@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useRouter } from "next/navigation";
@@ -20,14 +21,11 @@ interface VerifyResponse {
   token: string;
 }
 
-// Mirrors: LoginScreen.tsx
-// Full wallet auth flow: challenge → sign → verify → JWT → /home
 export default function LoginPage() {
   const { connected, publicKey, signMessage, disconnect } = useWallet();
   const router = useRouter();
   const [authState, setAuthState] = useState<AuthState>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  // Guard against double-fire (React strict mode) and re-entrant calls
   const authInProgress = useRef(false);
 
   const runAuthFlow = useCallback(async () => {
@@ -37,35 +35,31 @@ export default function LoginPage() {
     setErrorMsg(null);
 
     try {
-      // 1. Fetch challenge
       const { data: challenge } = await api.get<ChallengeResponse>(
         `/auth/challenge?wallet=${publicKey.toBase58()}`
       );
 
-      // 2. Sign the challenge message — user will see a wallet popup
       let sigBytes: Uint8Array;
       try {
         sigBytes = await signMessage(new TextEncoder().encode(challenge.message));
       } catch {
-        // User dismissed or rejected the signing request
         setErrorMsg("Signature request was cancelled.");
         setAuthState("error");
         return;
       }
 
-      // 3. Verify signature and receive JWT
       const { data: verified } = await api.post<VerifyResponse>("/auth/verify", {
         wallet: publicKey.toBase58(),
         message: challenge.message,
         signature: bs58.encode(sigBytes),
       });
 
-      // 4. Persist JWT and navigate into the app
       localStorage.setItem(TOKEN_KEY, verified.token);
       router.push("/home");
     } catch (err: unknown) {
       const serverError =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+        (err as { response?: { data?: { error?: string } } })?.response?.data
+          ?.error;
       setErrorMsg(serverError ?? "Authentication failed. Please try again.");
       setAuthState("error");
     } finally {
@@ -73,7 +67,6 @@ export default function LoginPage() {
     }
   }, [publicKey, signMessage, router]);
 
-  // Kick off auth automatically once the wallet is connected
   useEffect(() => {
     if (connected && publicKey) {
       runAuthFlow();
@@ -84,9 +77,17 @@ export default function LoginPage() {
   }, [connected, publicKey, runAuthFlow]);
 
   return (
-    <div className="min-h-dvh bg-background flex flex-col items-center justify-center gap-8 px-6">
-      <div className="flex flex-col items-center gap-3">
-        <h1 className="text-4xl font-black tracking-widest text-accent uppercase">
+    <div className="relative min-h-[100svh] overflow-hidden bg-[#0a0a0a] flex flex-col items-center justify-center gap-8 px-6">
+      <Image
+        src="/assets/images/home_character.png"
+        alt="Solus city character"
+        fill
+        className="object-cover md:object-contain opacity-20 pointer-events-none"
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a]/90 via-[#0a0a0a]/65 to-[#0a0a0a]/85" />
+
+      <div className="relative z-10 flex flex-col items-center gap-3">
+        <h1 className="text-4xl font-black tracking-widest text-[#eee] uppercase">
           Solus City
         </h1>
         <p className="text-text-secondary text-sm tracking-wide">
@@ -94,11 +95,11 @@ export default function LoginPage() {
         </p>
       </div>
 
-      <div className="w-full max-w-xs flex flex-col items-center gap-4">
+      <div className="relative z-10 w-full max-w-xs flex flex-col items-center gap-4">
         {authState === "authenticating" && (
           <div className="flex flex-col items-center gap-3">
             <LoadingSpinner size={36} />
-            <p className="text-text-secondary text-sm">Authenticating…</p>
+            <p className="text-text-secondary text-sm">Authenticating...</p>
           </div>
         )}
 
@@ -127,7 +128,7 @@ export default function LoginPage() {
         {authState === "idle" && <WalletMultiButton className="w-full justify-center" />}
       </div>
 
-      <p className="text-text-dim text-xs text-center max-w-xs">
+      <p className="relative z-10 text-text-dim text-xs text-center max-w-xs">
         Supports Phantom and Solflare. Your wallet signs a nonce — no funds are
         transferred at login.
       </p>

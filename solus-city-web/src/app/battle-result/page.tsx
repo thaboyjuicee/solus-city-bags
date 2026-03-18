@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Skull, ShieldAlert, Trophy } from "lucide-react";
 import { api } from "@/lib/api/client";
 import {
   BATTLE_RESULT_KEY,
@@ -155,6 +156,7 @@ export default function BattleResultPage() {
     : win
     ? "text-[#66bb6a]"
     : "text-[#ef5350]";
+  const OutcomeIcon = isEvade ? ShieldAlert : win ? Trophy : Skull;
 
   const heroTitle = isEvade
     ? "EVADE REPORT"
@@ -192,19 +194,11 @@ export default function BattleResultPage() {
         {/* Outcome headline */}
         <div className="flex flex-col items-center py-4 gap-3">
           {/* Icon */}
-          <svg
+          <OutcomeIcon
+            size={36}
+            strokeWidth={1.75}
             className={`w-10 h-10 ${outcomeColor}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={1.5}
-          >
-            {isEvade ? (
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5zm-5 0c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5S11 2.67 11 3.5v5c0 .83-.67 1.5-1.5 1.5zM20 13H15v-1.5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5V13H5c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 .55.45 1 1 1h10c.55 0 1-.45 1-1v-5h1c.55 0 1-.45 1-1s-.45-1-1-1z" />
-            )}
-          </svg>
+          />
 
           <span
             className={`text-[36px] font-black tracking-[6px] ${outcomeColor}`}
