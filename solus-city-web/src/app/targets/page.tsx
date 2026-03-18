@@ -285,7 +285,7 @@ export default function TargetsPage() {
     <div className="flex flex-col bg-background min-h-dvh">
       {profile && <StatusBars profile={profile} />}
 
-      <div className="max-w-2xl w-full mx-auto px-3 py-3 flex flex-col gap-3">
+      <div className="flex flex-col gap-3">
         {/* Hero */}
         <div className="h-28 rounded-lg overflow-hidden border border-[#1e1e1e] bg-[#0d0d0d] flex items-end relative">
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
@@ -352,3 +352,4 @@ export default function TargetsPage() {
     </div>
   );
 }
+

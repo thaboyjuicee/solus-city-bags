@@ -141,7 +141,7 @@ export default function AttackLogsPage() {
 
   return (
     <div className="flex flex-col bg-background min-h-dvh">
-      <div className="max-w-2xl w-full mx-auto px-3 py-3 flex flex-col gap-3">
+      <div className="flex flex-col gap-3">
 
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -287,3 +287,4 @@ export default function AttackLogsPage() {
     </div>
   );
 }
+

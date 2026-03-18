@@ -10,6 +10,13 @@ const Navigation = dynamic(
   () => import("@/components/layout/Navigation").then((m) => m.Navigation),
   { ssr: false }
 );
+const GamePageChrome = dynamic(
+  () =>
+    import("@/components/layout/GamePageChrome").then(
+      (m) => m.GamePageChrome
+    ),
+  { ssr: false }
+);
 
 export const metadata: Metadata = {
   title: "Solus City",
@@ -23,11 +30,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="bg-background text-text-primary min-h-dvh">
+      <body className="min-h-dvh">
         <SolanaWalletProvider>
-          <div className="flex flex-col min-h-dvh">
+          <div className="relative min-h-dvh">
             <Navigation />
-            <main className="flex-1">{children}</main>
+            <main className="min-h-dvh md:pt-14">
+              <GamePageChrome>{children}</GamePageChrome>
+            </main>
           </div>
         </SolanaWalletProvider>
       </body>

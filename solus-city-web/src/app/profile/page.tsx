@@ -261,7 +261,7 @@ export default function ProfilePage() {
     <div className="flex flex-col bg-background min-h-dvh">
       <StatusBars profile={profile} />
 
-      <div className="max-w-2xl w-full mx-auto px-3 py-3 flex flex-col gap-3">
+      <div className="flex flex-col gap-3">
 
         {/* Identity */}
         <div className="bg-[#141414] border border-[#1e1e1e] rounded-lg p-3.5">
@@ -394,3 +394,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

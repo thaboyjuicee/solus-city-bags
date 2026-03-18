@@ -173,7 +173,7 @@ export default function BattleResultPage() {
 
   return (
     <div className="flex flex-col bg-background min-h-dvh">
-      <div className="max-w-2xl w-full mx-auto px-3 py-3 flex flex-col gap-3">
+      <div className="flex flex-col gap-3">
 
         {/* Hero */}
         <div className="h-28 rounded-lg overflow-hidden border border-[#1e1e1e] bg-[#0d0d0d] flex items-end relative">
@@ -355,3 +355,4 @@ export default function BattleResultPage() {
     </div>
   );
 }
+
