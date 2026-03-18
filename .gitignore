@@ -1,0 +1,59 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.claude/
+.vscode/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env / secrets
+**/.env
+**/.env.*
+!**/.env.example
+
+# Node deps
+**/node_modules/
+
+# Build outputs
+**/dist/
+**/build/
+**/.cache/
+**/.turbo/
+**/.next/
+
+# TypeScript
+**/*.tsbuildinfo
+
+# React Native / Metro
+soluscitymobile/.metro-health-check*
+soluscitymobile/.bundle/
+soluscitymobile/coverage/
+soluscitymobile/.expo/
+
+# Android
+soluscitymobile/android/.gradle/
+soluscitymobile/android/app/build/
+soluscitymobile/android/build/
+soluscitymobile/android/local.properties
+soluscitymobile/android/captures/
+soluscitymobile/android/.cxx/
+soluscitymobile/android/**/generated/
+soluscitymobile/android/**/intermediates/
+soluscitymobile/android/**/outputs/
+
+# iOS
+soluscitymobile/ios/Pods/
+soluscitymobile/ios/build/
+soluscitymobile/ios/*.xcworkspace/
+
+# Prisma local files
+solus-city-server/prisma/dev.db*
+
+# Temporary scripts and artifacts
+*.tmp
+*.temp

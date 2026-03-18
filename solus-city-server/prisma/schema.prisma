@@ -1,0 +1,193 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  wallet    String   @unique
+  createdAt DateTime @default(now())
+
+  profile           Profile?
+  inventory         Inventory[]
+  attacksMade       Battle[]         @relation("Attacker")
+  attacksReceived   Battle[]         @relation("Defender")
+  cooldownsGiven    AttackCooldown[] @relation("CooldownAttacker")
+  cooldownsReceived AttackCooldown[] @relation("CooldownDefender")
+  events            EventLog[]
+  attackLogs        AttackLog[]
+  syndicateMembership SyndicateMember?
+  ledSyndicate      Syndicate?        @relation("SyndicateLeader")
+}
+
+model Profile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id])
+  name         String   @default("")
+  cash         Float    @default(1000)
+  rp           Int      @default(100)
+
+  // Bars (Torn-style)
+  health       Int      @default(100)
+  maxHealth    Int      @default(100)
+  energy       Int      @default(20)
+  maxEnergy    Int      @default(20)
+  nerve        Int      @default(10)
+  maxNerve     Int      @default(10)
+  happiness    Int      @default(50)
+  maxHappiness Int      @default(50)
+
+  // Level / XP
+  level        Int      @default(1)
+  xp           Int      @default(0)
+
+  // Combat stats (trained in gym)
+  strength     Int      @default(0)
+  speed        Int      @default(0)
+  defense      Int      @default(0)
+  dexterity    Int      @default(0)
+
+  // Timers
+  lastEnergyTs DateTime @default(now())
+  lastNerveTs  DateTime @default(now())
+  lastHappinessTs DateTime @default(now())
+  lastIncomeTs DateTime @default(now())
+  hospitalUntil DateTime @default("1970-01-01T00:00:00Z")
+  shieldUntil  DateTime
+
+  pendingNonce String?
+}
+
+model Item {
+  id        String      @id @default(cuid())
+  category  String      @default("unit")
+  name      String
+  atk       Int
+  def       Int
+  speed     Int         @default(0)
+  dex       Int         @default(0)
+  price     Int
+  levelRequirement Int  @default(1)
+  rarity    String?
+  description String?   @default("")
+  stackable Boolean     @default(true)
+  isUnique  Boolean     @default(false)
+  inventory Inventory[]
+}
+
+model Inventory {
+  userId String
+  itemId String
+  qty    Int    @default(0)
+
+  user User @relation(fields: [userId], references: [id])
+  item Item @relation(fields: [itemId], references: [id])
+
+  @@unique([userId, itemId])
+}
+
+model Battle {
+  id         String   @id @default(cuid())
+  attackerId String
+  defenderId String?
+  defenderType String  @default("player") // "player" | "npc"
+  defenderNpcId String?
+  defenderName String
+  ts         DateTime @default(now())
+  win        Boolean
+  loot       Float
+  rpDelta    Int
+  xpGained   Int      @default(0)
+  damageDealt Int     @default(0)
+  damageTaken Int     @default(0)
+  hospitalizedTarget Boolean @default(false)
+  hospitalizedSelf Boolean   @default(false)
+  aAP        Int
+  dDP        Int
+
+  attacker User @relation("Attacker", fields: [attackerId], references: [id])
+  defender User? @relation("Defender", fields: [defenderId], references: [id])
+}
+
+model AttackCooldown {
+  attackerId   String
+  defenderId   String
+  nextAttackTs DateTime
+
+  attacker User @relation("CooldownAttacker", fields: [attackerId], references: [id])
+  defender User @relation("CooldownDefender", fields: [defenderId], references: [id])
+
+  @@unique([attackerId, defenderId])
+}
+
+model EventLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String   // "attack_win", "attack_loss", "attacked", "crime", "gym", "hospital", "level_up", "shop"
+  message   String
+  ts        DateTime @default(now())
+}
+
+model AttackLog {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id])
+  createdAt          DateTime @default(now())
+  type               String
+  attackerId         String?
+  defenderId         String?
+  attackerName       String
+  defenderName       String
+  targetType         String   // "player" | "npc"
+  result             String   // "win" | "loss"
+  damageDealt        Int
+  damageTaken        Int
+  loot               Float
+  rpChange           Int
+  xpGained           Int
+  hospitalResult     String   @default("none")
+  revengeTargetId    String?
+  revengeAvailable   Boolean  @default(false)
+}
+
+model Crime {
+  id           String @id @default(cuid())
+  name         String
+  nerveCost    Int
+  cashMin      Int
+  cashMax      Int
+  xpReward     Int
+  successRate  Float  // 0.0 - 1.0
+  levelReq     Int    @default(1)
+}
+
+model Syndicate {
+  id          String            @id @default(cuid())
+  name        String            @unique
+  description String            @default("")
+  buffType    String            @default("ap") // MVP: ap buff only
+  buffValue   Float             @default(0.05)
+  leaderId    String            @unique
+  leader      User              @relation("SyndicateLeader", fields: [leaderId], references: [id])
+  members     SyndicateMember[]
+  createdAt   DateTime          @default(now())
+}
+
+model SyndicateMember {
+  id          String    @id @default(cuid())
+  syndicateId String
+  userId      String    @unique
+  role        String    @default("member")
+  joinedAt    DateTime  @default(now())
+
+  syndicate   Syndicate @relation(fields: [syndicateId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@unique([syndicateId, userId])
+}
