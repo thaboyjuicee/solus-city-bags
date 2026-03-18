@@ -6,16 +6,16 @@
 players, train stats at the gym, buy gear, join syndicates, and compete for RP (Respect Points)
 on a global leaderboard. The game economy runs on the **$SOLUS token** via the **Bags SDK**.
 
-This repo contains three packages:
+This repo contains two packages:
 
 | Folder | Purpose |
 |---|---|
-| `soluscitymobile/` | Original React Native client (Expo-free, bare RN 0.84) |
 | `solus-city-server/` | Fastify + Prisma backend deployed on Railway |
-| `solus-city-web/` | **New** Next.js 14 web client (this work) |
+| `solus-city-web/` | Next.js 14 web client (this work) |
 
-The web client is a ground-up port of the React Native app's 11 screens into a Next.js 14
+The web client is a ground-up port of the original React Native app's 11 screens into a Next.js 14
 App Router application, targeting the **Bags Hackathon** submission deadline.
+The React Native app (`soluscitymobile/`) has been removed from the repo — the web client is the active client.
 
 ---
 
@@ -26,7 +26,7 @@ App Router application, targeting the **Bags Hackathon** submission deadline.
 |---|---|---|
 | Framework | Next.js 14.2.35 (App Router) | Pinned to latest patched 14.x — avoids 14.2.29 security issue |
 | Language | TypeScript 5 | Strict mode on |
-| Styling | Tailwind CSS 3.4 | Custom colour palette mirroring RN app |
+| Styling | Tailwind CSS 3.4 | Custom colour palette mirroring the original mobile app |
 | HTTP client | Axios 1.7.9 | JWT interceptor + 401 → `/login` redirect |
 | Wallet | `@solana/wallet-adapter-react` + react-ui | Phantom + Solflare only (no meta-package) |
 | Solana network | **mainnet-beta** | `NEXT_PUBLIC_SOLANA_NETWORK=mainnet-beta` |
