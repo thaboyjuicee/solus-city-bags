@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
 import { BATTLE_RESULT_KEY, BattleResult, formatHospitalMessage } from "@/lib/battle";
@@ -288,6 +289,12 @@ export default function TargetsPage() {
       <div className="flex flex-col gap-3">
         {/* Hero */}
         <div className="h-28 rounded-lg overflow-hidden border border-[#1e1e1e] bg-[#0d0d0d] flex items-end relative">
+          <Image
+            src="/assets/images/arena_banner.png"
+            alt="Battle banner"
+            fill
+            className="object-cover opacity-50"
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
           <div className="relative z-10 px-3 pb-3 flex w-full items-end justify-between">
             <div>

@@ -20,11 +20,15 @@ export default async function crimeRoutes(
       if (!profile) return reply.status(404).send({ error: "Profile not found" });
 
       const crimes = await prisma.crime.findMany({
-        where: { levelReq: { lte: profile.level } },
         orderBy: { levelReq: "asc" },
       });
 
-      return reply.send(crimes);
+      const crimesWithState = crimes.map((crime) => ({
+        ...crime,
+        locked: crime.levelReq > profile.level,
+      }));
+
+      return reply.send(crimesWithState);
     } catch (err) {
       request.log.error(err, "/crimes error");
       return reply.status(500).send({ error: "Internal server error" });

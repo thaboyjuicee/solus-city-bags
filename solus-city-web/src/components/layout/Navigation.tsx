@@ -123,6 +123,15 @@ export function Navigation() {
         </div>
       </nav>
 
+      <nav className="md:hidden fixed top-0 left-0 right-0 h-14 bg-[#111] border-b border-[#1e1e1e] z-50 flex items-center justify-center">
+        <Link
+          href="/home"
+          className="text-[#eee] font-black tracking-[3px] text-sm"
+        >
+          SOLUS CITY
+        </Link>
+      </nav>
+
       <nav className="md:hidden fixed bottom-0 left-0 right-0 h-14 bg-[#111] border-t border-[#1e1e1e] z-50 flex justify-around items-center">
         {NAV_TABS.slice(0, 4).map((tab) => {
           const active = isActive(tab.href, path);

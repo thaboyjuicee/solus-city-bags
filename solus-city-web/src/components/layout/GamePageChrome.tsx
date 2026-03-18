@@ -5,18 +5,18 @@ import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
 
 const PAGE_IMAGE: Record<string, string> = {
-  "/": "/assets/images/skyline.png",
-  "/home": "/assets/images/skyline.png",
-  "/crimes": "/assets/images/crimes.png",
-  "/targets": "/assets/images/arena.png",
-  "/battle": "/assets/images/arena.png",
-  "/gym": "/assets/images/gym.png",
-  "/shop": "/assets/images/shop.png",
-  "/leaderboard": "/assets/images/skyline.png",
-  "/attack-logs": "/assets/images/skyline.png",
-  "/profile": "/assets/images/skyline.png",
-  "/syndicates": "/assets/images/skyline.png",
-  "/battle-result": "/assets/images/arena.png",
+  "/": "/assets/images/home_skyline.png",
+  "/home": "/assets/images/home_skyline.png",
+  "/crimes": "/assets/images/crimes_banner.png",
+  "/targets": "/assets/images/arena_banner.png",
+  "/battle": "/assets/images/arena_banner.png",
+  "/gym": "/assets/images/gym_banner.png",
+  "/shop": "/assets/images/shop_banner.png",
+  "/leaderboard": "/assets/images/home_skyline.png",
+  "/attack-logs": "/assets/images/home_skyline.png",
+  "/profile": "/assets/images/home_skyline.png",
+  "/syndicates": "/assets/images/home_skyline.png",
+  "/battle-result": "/assets/images/arena_banner.png",
 };
 
 export function GamePageChrome({ children }: { children: ReactNode }) {
@@ -27,18 +27,24 @@ export function GamePageChrome({ children }: { children: ReactNode }) {
   const image =
     PAGE_IMAGE[pathname] ??
     PAGE_IMAGE[(pathname ?? "/").split("/")[1] as keyof typeof PAGE_IMAGE] ??
-    "/assets/images/skyline.png";
+    "/assets/images/home_skyline.png";
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] relative">
+    <div className="min-h-screen bg-[#000000] relative isolate">
       <Image
         src={image}
         alt=""
         fill
-        className="object-cover opacity-[0.08] fixed inset-0 -z-10 pointer-events-none"
+        className="object-cover opacity-[0.08] inset-0 z-0 pointer-events-none"
+      />
+      <Image
+        src="/assets/images/texture_overlay.png"
+        alt=""
+        fill
+        className="object-cover opacity-[0.08] inset-0 z-0 pointer-events-none mix-blend-screen"
       />
 
-      <div className="relative z-10 px-4 py-4 max-w-lg mx-auto space-y-4 pb-16 md:pb-4">
+      <div className="relative z-10 px-4 py-4 w-full max-w-5xl xl:max-w-6xl mx-auto space-y-4 pb-16 md:px-8 md:py-5 md:pb-4">
         {children}
       </div>
     </div>

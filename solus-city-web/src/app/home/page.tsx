@@ -135,7 +135,7 @@ export default function HomePage() {
 
       <div className="relative h-36 rounded-md overflow-hidden border border-[#1e1e1e]">
         <Image
-          src="/assets/images/skyline.png"
+          src="/assets/images/home_skyline.png"
           alt="Solus city skyline"
           fill
           className="object-cover opacity-50"
@@ -175,20 +175,11 @@ export default function HomePage() {
         </div>
       )}
 
-      <div className="flex gap-3 items-stretch">
-        <Image
-          src="/assets/images/character.png"
-          alt={displayName}
-          width={80}
-          height={112}
-          className="w-20 h-28 object-cover object-top rounded-md opacity-80"
-        />
-        <div className="grid grid-cols-2 gap-1.5 flex-1">
-          <StatCard label="Cash" value={`$${Math.floor(profile?.cash ?? 0).toLocaleString()}`} color="#66bb6a" />
-          <StatCard label="Income" value={`$${profile?.incomePerHour ?? 0}`} color="#66bb6a" />
-          <StatCard label="AP" value={String(profile?.ap ?? 0)} color="#ef5350" />
-          <StatCard label="DP" value={String(profile?.dp ?? 0)} color="#42a5f5" />
-        </div>
+      <div className="grid grid-cols-2 gap-1.5">
+        <StatCard label="Cash" value={`$${Math.floor(profile?.cash ?? 0).toLocaleString()}`} color="#66bb6a" />
+        <StatCard label="Income" value={`$${profile?.incomePerHour ?? 0}`} color="#66bb6a" />
+        <StatCard label="AP" value={String(profile?.ap ?? 0)} color="#ef5350" />
+        <StatCard label="DP" value={String(profile?.dp ?? 0)} color="#42a5f5" />
       </div>
 
       <div className="grid grid-cols-4 gap-1.5">

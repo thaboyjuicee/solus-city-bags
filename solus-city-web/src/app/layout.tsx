@@ -34,7 +34,7 @@ export default function RootLayout({
         <SolanaWalletProvider>
           <div className="relative min-h-dvh">
             <Navigation />
-            <main className="min-h-dvh md:pt-14">
+            <main className="min-h-dvh pt-14 md:pt-14">
               <GamePageChrome>{children}</GamePageChrome>
             </main>
           </div>

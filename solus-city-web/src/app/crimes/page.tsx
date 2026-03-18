@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
 import { api } from "@/lib/api/client";
 import { StatusBars, type ProfileStats } from "@/components/ui/StatusBars";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -18,6 +19,7 @@ interface Crime {
   xpReward: number;
   successRate: number;
   levelReq: number;
+  locked?: boolean;
 }
 
 interface CommitResponse {
@@ -94,28 +96,45 @@ function CrimeCard({
   result: CrimeResult | undefined;
   onCommit: (crime: Crime) => void;
 }) {
-  const locked = profile.level < crime.levelReq;
+  const locked = typeof crime.locked === "boolean" ? crime.locked : profile.level < crime.levelReq;
   const notEnoughNerve = !locked && profile.nerve < crime.nerveCost;
   const isCommitting = committing === crime.id;
   const anyCommitting = committing !== null;
 
   return (
     <div
-      className={`bg-[#141414] border border-[#1e1e1e] rounded-lg p-3.5 flex flex-col gap-2 transition-opacity ${
-        locked ? "opacity-40" : ""
-      }`}
+      className="rounded-lg p-3.5 flex flex-col gap-2 transition-opacity border"
+      style={{
+        backgroundColor: locked ? "#343434" : "#141414",
+        borderColor: locked ? "#5a5a5a" : "#1e1e1e",
+        color: locked ? "#b0b0b0" : "#eee",
+      }}
     >
       {/* Header row */}
       <div className="flex items-center justify-between">
-        <span className="text-[#eee] text-[15px] font-bold">{crime.name}</span>
-        <span className="flex items-center gap-1 bg-[#9945FF20] rounded px-1.5 py-0.5">
+        <span className={`text-[15px] font-bold ${locked ? "text-[#a6a6a6]" : "text-[#eee]"}`}>
+          {crime.name}
+        </span>
+        <span
+          className={`flex items-center gap-1 rounded px-1.5 py-0.5 ${
+            locked ? "bg-[#66666620] text-[#888]" : "bg-[#9945FF20] text-[#9945ff]"
+          }`}
+        >
           {locked && (
-            <svg className="w-2.5 h-2.5 text-text-dim" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              className={`w-2.5 h-2.5 ${locked ? "text-[#999]" : "text-[#1e88e5]"}`}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
           )}
-          <span className="text-[9px] font-bold text-text-dim">LV.{crime.levelReq}</span>
+          <span className={`text-[9px] font-bold ${locked ? "text-[#999]" : "text-text-dim"}`}>LV.{crime.levelReq}</span>
         </span>
       </div>
 
@@ -123,27 +142,27 @@ function CrimeCard({
       <div className="flex items-center gap-1 flex-wrap">
         {/* Nerve cost */}
         <span className="flex items-center gap-1">
-          <svg className="w-2.5 h-2.5 text-[#1e88e5]" viewBox="0 0 24 24" fill="currentColor">
+          <svg className={`w-2.5 h-2.5 ${locked ? "text-[#999]" : "text-[#1e88e5]"}`} viewBox="0 0 24 24" fill="currentColor">
             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
           </svg>
           <span
             className={`text-[10px] font-bold ${
-              notEnoughNerve ? "text-[#ef5350]" : "text-[#1e88e5]"
+              notEnoughNerve ? "text-[#ef5350]" : locked ? "text-[#8f8f8f]" : "text-[#1e88e5]"
             }`}
           >
             {crime.nerveCost} NV
           </span>
         </span>
-        <span className="text-[#333] text-[10px] mx-1">·</span>
-        <span className="text-[10px] font-bold text-[#66bb6a]">
+        <span className={`text-[10px] mx-1 ${locked ? "text-[#666]" : "text-[#333]"}`}>&middot;</span>
+        <span className={`text-[10px] font-bold ${locked ? "text-[#8f8f8f]" : "text-[#66bb6a]"}`}>
           ${crime.cashMin.toLocaleString()}–${crime.cashMax.toLocaleString()}
         </span>
-        <span className="text-[#333] text-[10px] mx-1">·</span>
-        <span className="text-[10px] font-bold text-[#fdd835]">
+        <span className={`text-[10px] mx-1 ${locked ? "text-[#666]" : "text-[#333]"}`}>&middot;</span>
+        <span className={`text-[10px] font-bold ${locked ? "text-[#8f8f8a]" : "text-[#fdd835]"}`}>
           {crime.xpReward} XP
         </span>
-        <span className="text-[#333] text-[10px] mx-1">·</span>
-        <span className="text-[10px] font-bold text-text-dim">
+        <span className={`text-[10px] mx-1 ${locked ? "text-[#666]" : "text-[#333]"}`}>&middot;</span>
+        <span className={`text-[10px] font-bold ${locked ? "text-[#777]" : "text-text-dim"}`}>
           {Math.round(crime.successRate * 100)}%
         </span>
       </div>
@@ -153,7 +172,9 @@ function CrimeCard({
         onClick={() => onCommit(crime)}
         disabled={anyCommitting || locked}
         className={`w-full py-2.5 rounded flex items-center justify-center border text-[11px] font-bold tracking-[2px] transition-colors ${
-          locked || anyCommitting
+          locked
+            ? "bg-[#2f2f2f] border-[#555] text-[#666] cursor-not-allowed"
+            : anyCommitting
             ? "bg-[#111] border-[#222] text-text-dim cursor-not-allowed"
             : notEnoughNerve
             ? "bg-[#1a0a0a] border-[#7f1919] text-[#ef5350] opacity-60 cursor-not-allowed"
@@ -162,6 +183,8 @@ function CrimeCard({
       >
         {isCommitting ? (
           <LoadingSpinner size={12} color="#ef5350" />
+        ) : locked ? (
+          "LOCKED"
         ) : notEnoughNerve ? (
           "NOT ENOUGH NERVE"
         ) : (
@@ -289,6 +312,12 @@ export default function CrimesPage() {
       <div className="flex flex-col gap-3">
         {/* Hero */}
         <div className="h-28 rounded-lg overflow-hidden border border-[#1e1e1e] bg-[#0d0d0d] flex items-end relative">
+          <Image
+            src="/assets/images/crimes_banner.png"
+            alt="Crimes banner"
+            fill
+            className="object-cover opacity-50"
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
           <div className="relative z-10 px-3 pb-3">
             <p className="text-[20px] font-black text-[#eee] tracking-[4px]">CRIMES</p>
@@ -323,4 +352,5 @@ export default function CrimesPage() {
     </div>
   );
 }
+
 
