@@ -7,7 +7,7 @@ An on-chain crime RPG built on Solana. Players authenticate with a wallet signat
 ```
 solus-city-bags/
 ├── solus-city-server/   # Fastify + Prisma backend (deployed on Railway)
-└── solus-city-web/      # Next.js 14 web client (deploying to Vercel)
+└── solus-city-web/      # Next.js 14 web client (deployed on Railway)
 ```
 
 ## Tech Stack
@@ -29,7 +29,7 @@ solus-city-bags/
 | HTTP client | Axios — JWT interceptor + 401 redirect |
 | Wallet | `@solana/wallet-adapter-react` — Phantom + Solflare |
 | Solana network | mainnet-beta |
-| Deployment | Vercel |
+| Deployment | Railway |
 
 ## Running Locally
 
@@ -153,13 +153,14 @@ NEXT_PUBLIC_SOLANA_NETWORK=mainnet-beta
 3. Railway runs `npm run build && npm run start` automatically on push.
 4. The PostgreSQL plugin in Railway provides `DATABASE_URL`.
 
-### Web client — Vercel
+### Web client — Railway
 
-1. Import the repo into Vercel and set the **Root Directory** to `solus-city-web`.
-2. Set environment variables:
-   - `NEXT_PUBLIC_API_BASE_URL` → your Railway backend URL
-   - `NEXT_PUBLIC_SOLANA_NETWORK` → `mainnet-beta`
-3. Vercel detects Next.js automatically — no build config needed.
+1. Create a second Railway service for `solus-city-web`.
+2. Set the **Root Directory** for that service to `solus-city-web`.
+3. Set environment variables:
+   - `NEXT_PUBLIC_API_BASE_URL` -> `https://${{Backend.RAILWAY_PUBLIC_DOMAIN}}` or your backend service name
+   - `NEXT_PUBLIC_SOLANA_NETWORK` -> `mainnet-beta`
+4. Railway will detect Next.js automatically and run `npm run build` / `npm run start`.
 
 ## Game Systems
 
