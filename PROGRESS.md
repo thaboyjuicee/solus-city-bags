@@ -1,0 +1,336 @@
+# Solus City — Web Client Progress
+
+## 1. Project Overview
+
+**Solus City** is an on-chain crime RPG built on Solana. Players commit crimes, attack other
+players, train stats at the gym, buy gear, join syndicates, and compete for RP (Respect Points)
+on a global leaderboard. The game economy runs on the **$SOLUS token** via the **Bags SDK**.
+
+This repo contains three packages:
+
+| Folder | Purpose |
+|---|---|
+| `soluscitymobile/` | Original React Native client (Expo-free, bare RN 0.84) |
+| `solus-city-server/` | Fastify + Prisma backend deployed on Railway |
+| `solus-city-web/` | **New** Next.js 14 web client (this work) |
+
+The web client is a ground-up port of the React Native app's 11 screens into a Next.js 14
+App Router application, targeting the **Bags Hackathon** submission deadline.
+
+---
+
+## 2. Tech Stack
+
+### Web client (`solus-city-web/`)
+| Layer | Choice | Notes |
+|---|---|---|
+| Framework | Next.js 14.2.35 (App Router) | Pinned to latest patched 14.x — avoids 14.2.29 security issue |
+| Language | TypeScript 5 | Strict mode on |
+| Styling | Tailwind CSS 3.4 | Custom colour palette mirroring RN app |
+| HTTP client | Axios 1.7.9 | JWT interceptor + 401 → `/login` redirect |
+| Wallet | `@solana/wallet-adapter-react` + react-ui | Phantom + Solflare only (no meta-package) |
+| Solana network | **mainnet-beta** | `NEXT_PUBLIC_SOLANA_NETWORK=mainnet-beta` |
+| Base58 encoding | `bs58 ^5.0.0` | Used for wallet signature encoding in login flow |
+
+### Backend (`solus-city-server/`)
+| Layer | Choice |
+|---|---|
+| Runtime | Node.js ≥ 22 / Fastify |
+| ORM | Prisma + PostgreSQL |
+| Auth | Ed25519 wallet signature → JWT (tweetnacl + bs58) |
+| Deployment | Railway (`https://solus-city-app-production.up.railway.app`) |
+
+---
+
+## 3. Completed Screens
+
+### ✅ Login (`/login`)
+**File:** `src/app/login/page.tsx`
+
+Full wallet-auth flow:
+1. `WalletMultiButton` → wallet connects
+2. `GET /auth/challenge?wallet=<base58>` → `{ nonce, message }`
+3. `signMessage(utf8(message))` → wallet popup → `Uint8Array` signature
+4. `bs58.encode(sigBytes)` → `POST /auth/verify { wallet, message, signature }`
+5. Receive `{ token }` → `localStorage.setItem("solus_city_jwt", token)` → redirect `/home`
+
+**States:** idle (wallet button) / authenticating (spinner) / error (message + retry + disconnect).
+
+**Auth guard:** `useEffect` watches `connected` — auto-triggers flow on wallet connect, resets on
+disconnect. `authInProgress` ref prevents React strict-mode double-fire.
+
+---
+
+### ✅ Home (`/home`)
+**File:** `src/app/home/page.tsx`
+
+Parallel `GET /me` + `GET /events` on mount. Displays:
+- `StatusBars` strip (HP/EN/NV/HA with CSS-animated fills)
+- Hero card with player name, level, RP
+- Shield banner (conditional on `shieldUntil > now`)
+- Economy grid: Cash · Income/hr · AP · DP
+- Combat grid: STR · SPD · DEF · DEX
+- Syndicate badge (if member)
+- Event feed (30 events, colour-coded by type, `timeAgo` formatting)
+- Refresh button (replaces RN pull-to-refresh) + logout
+
+**Decision:** XP next threshold = `100 * level` — taken from mobile `StatusBars.tsx` line 63.
+
+---
+
+### ✅ Crimes (`/crimes`)
+**File:** `src/app/crimes/page.tsx`
+
+Parallel `GET /me` + `GET /crimes`. Crimes are pre-filtered by level server-side.
+
+Per-card inline results (green success / yellow failure / red error) instead of RN `Alert`.
+Commit response `profile: { nerve, cash, xp, level }` patches local state directly — StatusBars
+nerve bar animates down without a re-fetch.
+
+**Button states:** ready / in-flight (spinner) / other-crime-in-flight (dimmed) / not enough
+nerve (red, disabled) / locked by level (card at opacity-40, disabled).
+
+---
+
+### ✅ Targets (`/targets`)
+**File:** `src/app/targets/page.tsx`
+
+Parallel `GET /me` + `GET /targets`. Mixed player + NPC list (10 targets, RP-band matched
+server-side).
+
+**Per-target attack state** (`Record<string, { attacking, error }>`) so multiple target buttons
+are independent.
+
+`IN_HOSPITAL` error from server (`code === "IN_HOSPITAL"`) is handled with the shared
+`formatHospitalMessage(recoverAt)` utility. Hospital banner shown for the attacker too.
+
+**Result handoff:** battle result stored in `sessionStorage` under `"solus_city_battle_result"`
+before navigating to `/battle-result`. Opponent name is enriched with `target.displayName`
+before storing — server falls back to `"Player"` for unnamed accounts, but the targets list
+already showed the wallet-abbreviated name.
+
+---
+
+### ✅ Battle Result (`/battle-result`)
+**File:** `src/app/battle-result/page.tsx`
+
+Reads result from `sessionStorage` on mount. Redirects to `/targets` if missing or unparseable.
+
+Displays: VICTORY / DEFEAT / EVADED headline (colour-coded) · loot · RP change · XP · hit type
+(NORMAL / CRITICAL / EVADED) · evasion/crit chances · damage dealt/taken · hospital badges ·
+battle odds (AP vs DP, win chance, roll) · post-battle stats.
+
+**Attack Again** (NPC only): re-calls `POST /battle/attack`, overwrites `sessionStorage`, calls
+`setResult()` in-place and scrolls to top — no navigation needed.
+
+**Shared utilities:** `src/lib/battle.ts` exports `BattleResult` type, `BATTLE_RESULT_KEY`,
+and `formatHospitalMessage` used by both Targets and Battle Result.
+
+---
+
+### ✅ Gym (`/gym`)
+**File:** `src/app/gym/page.tsx`
+
+`GET /me` only — no separate gym endpoint. Four trainable stats (STR/SPD/DEF/DEX).
+
+Animated stat bars: fill = `Math.min(value / 5, 100)%` (ported from `GymScreen.tsx`).
+
+Train response `profile: { energy, happiness, strength, speed, defense, dexterity, xp, level }`
+patches all 8 fields into local state — StatusBars energy/happiness animate immediately.
+
+**Low energy** is shown as a `(low energy)` hint on the button but NOT disabled client-side —
+server enforces it and the error surfaces as an inline red result. Avoids stale-energy false
+positives.
+
+---
+
+### ✅ Shop (`/shop`)
+**File:** `src/app/shop/page.tsx`
+
+Parallel `GET /me` + `GET /shop/items`. Items come back as `{ units, equipment, all }` —
+page uses `all` and filters by the active tab.
+
+**Post-buy local patch** (no re-fetch): `newCash` → `profile.cash`, `newCombat.ap/dp` →
+`profile.ap/dp`, `qty` → increments `items[id].owned`.
+
+**Power preview** (`AP X → Y · DP X → Y`) rendered from server-computed `powerPreview` field
+(only shown when `atk > 0 || def > 0`).
+
+**Buy button states:** LOCKED (level req) / OWNED (unique already held) / LOW CASH (client
+estimate from `qty × price`) / in-flight (spinner) / BUY.
+
+Qty input: `<input type="number" min=1 max=100>`. Invalid qty caught client-side and shown
+as inline error before the network call. `MAX_BUY_QTY = 100` matches server constant.
+
+---
+
+## 4. Remaining Screens to Wire Up
+
+### 🔲 Leaderboard (`/leaderboard`)
+- Route: `GET /leaderboard` (or similar — check `solus-city-server/src/routes/`)
+- Display: ranked list by RP, highlight current player's row
+- Likely simple read-only page, no mutations
+
+### 🔲 Profile (`/profile`)
+- Route: `GET /me` (already used elsewhere), possibly `PATCH /me` for name change
+- Display: full stats, wallet, equipped items, syndicate info
+- May include name-edit flow
+
+### 🔲 Attack Logs (`/attack-logs`)
+- Route: `GET /attack-logs` (check server routes)
+- Display: incoming vs outgoing tabs, per-log outcome, damage, loot, timestamp
+- Referenced in Battle Result "VIEW LOGS" button
+
+### 🔲 Syndicates (`/syndicates`)
+- Routes: `GET /syndicates`, `POST /syndicates` (create), `POST /syndicates/:id/join`, etc.
+- Display: syndicate list, create flow, member list, role management
+- Most complex remaining screen
+
+---
+
+## 5. Pending Work — Bags SDK Integration
+
+After all screens are wired up, the following Bags-specific features need to be added:
+
+### $SOLUS Token
+- Define `$SOLUS` mint address and integrate into the wallet context
+- Display token balance in the StatusBars / Home screen
+- Wire up any token-gated content (premium crimes, elite NPC access, etc.)
+
+### Fee Sharing
+- Integrate Bags fee-sharing SDK calls where the game takes a cut of transactions
+- Likely applies to: shop purchases, syndicate creation, battle entry fees (if added)
+- Requires Bags SDK documentation review for the exact integration surface
+
+### Token-Gating
+- Certain content may be gated behind holding a minimum $SOLUS balance
+- Gate checks should be client-side hints only; server must enforce authoritatively
+- Consider a `useTokenBalance` hook that reads the SPL balance and exposes it to pages
+
+### General Bags SDK Setup
+- Install `@bags-protocol/sdk` (or equivalent package name — confirm from hackathon docs)
+- Wrap app in Bags provider alongside `SolanaWalletProvider`
+- Ensure `NEXT_PUBLIC_SOLANA_NETWORK=mainnet-beta` is set correctly for production
+
+---
+
+## 6. Key File Locations & Architecture
+
+```
+solus-city-web/
+├── next.config.js                  # transpilePackages for wallet adapter ESM
+├── tailwind.config.ts              # custom colour tokens matching RN palette
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx              # Root layout — SolanaWalletProvider + Navigation (ssr:false)
+│   │   ├── globals.css             # Tailwind base + wallet modal overrides
+│   │   ├── login/page.tsx          ✅ Full auth flow
+│   │   ├── home/page.tsx           ✅ /me + /events
+│   │   ├── crimes/page.tsx         ✅ /me + /crimes + /crimes/commit
+│   │   ├── targets/page.tsx        ✅ /me + /targets + /battle/attack
+│   │   ├── battle-result/page.tsx  ✅ sessionStorage result reader
+│   │   ├── gym/page.tsx            ✅ /me + /gym/train
+│   │   ├── shop/page.tsx           ✅ /me + /shop/items + /shop/buy
+│   │   ├── leaderboard/page.tsx    🔲 placeholder
+│   │   ├── profile/page.tsx        🔲 placeholder
+│   │   ├── attack-logs/page.tsx    🔲 placeholder
+│   │   └── syndicates/page.tsx     🔲 placeholder
+│   ├── components/
+│   │   ├── providers/WalletProvider.tsx   # Phantom + Solflare, autoConnect
+│   │   ├── layout/Navigation.tsx          # Top nav + mobile bottom tabs (ssr:false)
+│   │   ├── ui/StatusBars.tsx              # HP/EN/NV/HA + level/xp/cash/AP/DP strip
+│   │   └── ui/LoadingSpinner.tsx
+│   └── lib/
+│       ├── api/client.ts           # Axios instance: JWT header + 401 redirect
+│       ├── config.ts               # API_BASE_URL, SOLANA_NETWORK, TOKEN_KEY
+│       └── battle.ts               # BattleResult type, BATTLE_RESULT_KEY, formatHospitalMessage
+```
+
+### Architecture decisions
+
+**JWT storage:** `localStorage["solus_city_jwt"]` — matches the RN app's key (was
+`seeker_wars_jwt`, renamed during this session). The Axios interceptor attaches it to every
+request and clears + redirects on 401.
+
+**Server/client boundary:** All data-fetching pages are `"use client"` because auth is
+localStorage-based and unavailable during SSR. `Navigation` is `dynamic(..., { ssr: false })`
+to prevent wallet adapter hydration mismatch (the `<i>` icon issue).
+
+**State patching over re-fetching:** After mutations (crimes, gym, shop, battle) the server
+returns a partial profile. Local state is patched from the response rather than triggering a
+full `GET /me` re-fetch. This keeps the StatusBars reactive with zero extra round-trips.
+
+**sessionStorage for battle result:** The battle response (~25 fields) is too large to safely
+encode in URL query params. It's written to `sessionStorage["solus_city_battle_result"]` in
+the targets page and read back on `/battle-result`. Missing or unparseable data redirects to
+`/targets`.
+
+**Shared stat colour palette** (matches mobile exactly):
+```
+HP  #e53935    EN  #43a047    NV  #1e88e5    HA  #fdd835
+STR #ff9800    SPD #ab47bc    DEF #26c6da    DEX #fdd835
+AP  #ef5350    DP  #1e88e5    RP  #14F195    Cash #66bb6a
+Accent #9945FF (Solana purple)
+```
+
+---
+
+## 7. Environment Variables
+
+Copy `solus-city-web/.env.local.example` → `solus-city-web/.env.local`:
+
+```env
+# Required
+NEXT_PUBLIC_API_BASE_URL=https://solus-city-app-production.up.railway.app
+NEXT_PUBLIC_SOLANA_NETWORK=mainnet-beta
+
+# Future — Bags SDK
+# NEXT_PUBLIC_BAGS_APP_ID=<your-bags-app-id>
+# NEXT_PUBLIC_SOLUS_MINT=<$SOLUS-token-mint-address>
+```
+
+---
+
+## 8. Known Issues & Gotchas
+
+### Wallet adapter hydration mismatch (fixed)
+`WalletMultiButton` renders an `<i>` icon tag on the client that isn't in the server HTML.
+Fixed by importing `Navigation` via `dynamic(..., { ssr: false })` in `layout.tsx`.
+
+### `@solana/wallet-adapter-wallets` pulls in `@stellar/stellar-sdk`
+The "all wallets" meta-package transitively depends on stellar SDK which requires `yarn`.
+Fixed by using individual adapter packages directly:
+- `@solana/wallet-adapter-phantom`
+- `@solana/wallet-adapter-solflare`
+
+### Opponent name shows as "Player (PLAYER)" (fixed)
+`POST /battle/attack` resolves opponent name as `defenderProfile.name || "Player"`.
+For players without a username this loses the wallet-abbreviated name shown in the targets
+list. Fixed in `targets/page.tsx` by enriching `opponent.name` with `target.displayName`
+before writing to `sessionStorage`.
+
+### `next.config.ts` → `next.config.js` (fixed)
+TypeScript config file caused issues during install. Converted to plain JS with JSDoc type
+annotation (`/** @type {import('next').NextConfig} */`).
+
+### Mobile `StatusBars` uses `nextHappinessAt` — web does not
+The RN `StatusBars` reads `profile.nextHappinessAt` to display a regen timer. The web
+`StatusBars` component omits this for now. Can be added when the Profile page is built and
+regen timers are needed.
+
+### `GET /targets` server-side filtering
+Targets are RP-band filtered on the server (already excluding shielded/hospitalized
+players). However, the mobile still checks `profile.level < crime.levelReq` client-side for
+crime cards — similar defensive checks exist in several pages. These are belt-and-suspenders
+guards, not primary enforcement.
+
+### Energy check for attack (1 energy required)
+`POST /battle/attack` deducts 1 energy. The Targets page does not client-side-gate on
+energy (unlike the nerve check on Crimes). If the player has 0 energy the server returns a
+400 `"Not enough energy"` which surfaces as a per-target inline error. This is intentional
+— avoids stale energy false positives.
+
+### Power preview staleness after shop purchase
+`/shop/items` computes `powerPreview` (AP/DP delta) server-side at fetch time. After buying,
+the preview is not refreshed — it reflects the pre-purchase state. Acceptable for now; a full
+re-fetch of shop items after each purchase would fix it at the cost of an extra round-trip.
