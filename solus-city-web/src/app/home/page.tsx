@@ -133,7 +133,7 @@ export default function HomePage() {
     <div className="flex flex-col gap-3">
       {profile && <StatusBars profile={profile} />}
 
-      <div className="relative h-36 rounded-md overflow-hidden border border-[#1e1e1e]">
+      <div className="relative h-36 rounded-md overflow-hidden border border-white/10 bg-black/20 backdrop-blur-sm">
         <Image
           src="/assets/images/home_skyline.png"
           alt="Solus city skyline"
@@ -143,7 +143,7 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0a0a]" />
           <button
             onClick={logout}
-            className="absolute top-2 right-2 h-7 w-7 rounded-sm bg-[#141414] border border-[#1e1e1e] text-[#888] flex items-center justify-center"
+            className="absolute top-2 right-2 h-7 w-7 rounded-sm bg-black/20 backdrop-blur-sm border border-white/10 text-[#888] flex items-center justify-center"
             aria-label="Log out"
           >
             <LogOut size={16} />
@@ -190,7 +190,7 @@ export default function HomePage() {
       </div>
 
       <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Recent Activity</p>
-      <div className="bg-[#141414] border border-[#1e1e1e] rounded-md px-3 py-2.5 space-y-2">
+      <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md px-3 py-2.5 space-y-2">
         {events.length === 0 ? (
           <p className="text-[#444] text-[11px] text-center">No recent activity.</p>
         ) : (

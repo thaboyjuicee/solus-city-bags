@@ -75,7 +75,7 @@ export function StatusBars({ profile }: StatusBarsProps) {
   const xpNext = profile.level * 100;
 
   return (
-    <div className="bg-[#0a0a0a] border-b border-[#1e1e1e] px-3 py-2">
+    <div className="bg-black/20 backdrop-blur-sm border-b border-white/10 px-3 py-2">
       <div className="flex flex-col gap-1">
         {BARS.map(({ label, currentKey, maxKey, color, key }) => {
           const current = profile[currentKey];

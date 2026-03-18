@@ -88,7 +88,7 @@ export function Navigation() {
 
   return (
     <>
-      <nav className="hidden md:block fixed top-0 left-0 right-0 h-14 bg-[#111] border-b border-[#1e1e1e] z-50">
+      <nav className="hidden md:block fixed top-0 left-0 right-0 h-14 bg-black/25 backdrop-blur-sm border-b border-white/10 z-50">
         <div className="h-full px-3 flex items-center justify-between gap-3 relative">
           <Link
             href="/home"
@@ -123,7 +123,7 @@ export function Navigation() {
         </div>
       </nav>
 
-      <nav className="md:hidden fixed top-0 left-0 right-0 h-14 bg-[#111] border-b border-[#1e1e1e] z-50 flex items-center justify-center">
+      <nav className="md:hidden fixed top-0 left-0 right-0 h-14 bg-black/25 backdrop-blur-sm border-b border-white/10 z-50 flex items-center justify-center">
         <Link
           href="/home"
           className="text-[#eee] font-black tracking-[3px] text-sm"
@@ -132,7 +132,7 @@ export function Navigation() {
         </Link>
       </nav>
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-14 bg-[#111] border-t border-[#1e1e1e] z-50 flex justify-around items-center">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-14 bg-black/25 backdrop-blur-sm border-t border-white/10 z-50 flex justify-around items-center">
         {NAV_TABS.slice(0, 4).map((tab) => {
           const active = isActive(tab.href, path);
 
@@ -174,7 +174,7 @@ export function Navigation() {
       </nav>
 
       {moreOpen && (
-        <div className="md:hidden fixed left-0 right-0 bottom-14 border-t border-[#1e1e1e] bg-[#111] z-50">
+        <div className="md:hidden fixed left-0 right-0 bottom-14 border-t border-white/10 bg-black/25 backdrop-blur-sm z-50">
           {NAV_TABS.slice(4).map((tab) => {
             const active = isActive(tab.href, path);
             return (

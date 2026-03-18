@@ -52,7 +52,7 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-[#141414] border border-[#1e1e1e] rounded-lg p-3.5 flex flex-col">
+    <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3.5 flex flex-col">
       {title && (
         <p className="text-[9px] font-black tracking-[3px] uppercase text-text-dim mb-2">
           {title}
@@ -136,7 +136,7 @@ export default function BattleResultPage() {
   // ------------------------------------------------------------------
   if (!result) {
     return (
-      <div className="flex min-h-dvh bg-background items-center justify-center">
+      <div className="flex min-h-dvh bg-transparent items-center justify-center">
         <LoadingSpinner size={32} />
       </div>
     );
@@ -174,11 +174,11 @@ export default function BattleResultPage() {
     result.updatedProfile.maxHealth * 0.3;
 
   return (
-    <div className="flex flex-col bg-background min-h-dvh">
+    <div className="flex flex-col bg-transparent min-h-dvh">
       <div className="flex flex-col gap-3">
 
         {/* Hero */}
-        <div className="h-28 rounded-lg overflow-hidden border border-[#1e1e1e] bg-[#0d0d0d] flex items-end relative">
+        <div className="h-28 rounded-lg overflow-hidden border border-white/10 bg-black/20 backdrop-blur-sm flex items-end relative">
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
           <div className="relative z-10 px-3 pb-3">
             <p className="text-[10px] font-black text-[#eee] tracking-[3px] uppercase mb-1">
@@ -265,14 +265,14 @@ export default function BattleResultPage() {
             negative={result.damageTaken > 0}
           />
           {targetHospitalized && (
-            <div className="mt-2 flex items-center justify-center gap-2 rounded border border-[#2e7d32] bg-[#66bb6a10] px-3 py-2">
+            <div className="mt-2 flex items-center justify-center gap-2 rounded border border-[#2e7d32] bg-black/20 backdrop-blur-sm px-3 py-2">
               <span className="text-[#66bb6a] text-[11px] font-bold tracking-wide">
                 Target sent to hospital!
               </span>
             </div>
           )}
           {selfHospitalized && (
-            <div className="mt-2 flex items-center justify-center gap-2 rounded border border-[#7f1919] bg-[#ef535010] px-3 py-2">
+            <div className="mt-2 flex items-center justify-center gap-2 rounded border border-[#7f1919] bg-black/20 backdrop-blur-sm px-3 py-2">
               <span className="text-[#ef5350] text-[11px] font-bold tracking-wide">
                 You were hospitalized!
               </span>
@@ -309,7 +309,7 @@ export default function BattleResultPage() {
 
         {/* Attack again error */}
         {attackAgainError && (
-          <div className="rounded px-3 py-2 bg-[#1a0a0a] border border-[#7f1919] text-[11px] font-bold text-[#ef5350]">
+          <div className="rounded px-3 py-2 bg-black/20 backdrop-blur-sm border border-[#7f1919] text-[11px] font-bold text-[#ef5350]">
             {attackAgainError}
           </div>
         )}
@@ -318,13 +318,13 @@ export default function BattleResultPage() {
         <div className="flex gap-2.5">
           <button
             onClick={() => router.push("/targets")}
-            className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#1a0a2e] border border-[rgba(153,69,255,0.3)] rounded-lg text-[#9945FF] text-[11px] font-bold tracking-[2px]"
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-black/20 backdrop-blur-sm border border-[rgba(153,69,255,0.3)] rounded-lg text-[#9945FF] text-[11px] font-bold tracking-[2px]"
           >
             BACK TO TARGETS
           </button>
           <button
             onClick={() => router.push("/attack-logs")}
-            className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#111] border border-[#1e1e1e] rounded-lg text-[#888] text-[11px] font-bold tracking-[2px]"
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg text-[#888] text-[11px] font-bold tracking-[2px]"
           >
             VIEW LOGS
           </button>
@@ -334,7 +334,7 @@ export default function BattleResultPage() {
           <button
             onClick={attackAgain}
             disabled={attackingAgain}
-            className="w-full py-2.5 rounded border border-[#7f1919] bg-[#1a0a0a] text-[#ef5350] text-[11px] font-black tracking-[2px] flex items-center justify-center disabled:opacity-50"
+            className="w-full py-2.5 rounded border border-[#7f1919] bg-black/20 backdrop-blur-sm text-[#ef5350] text-[11px] font-black tracking-[2px] flex items-center justify-center disabled:opacity-50"
           >
             {attackingAgain ? (
               <LoadingSpinner size={14} color="#ef5350" />

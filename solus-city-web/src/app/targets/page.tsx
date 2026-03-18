@@ -85,7 +85,7 @@ function TargetCard({
   const disabled = attacking || target.shieldActive || profile.inHospital;
 
   return (
-    <div className={`bg-[#141414] border border-[#1e1e1e] rounded-lg p-3.5 flex flex-col gap-2 ${target.shieldActive ? "opacity-40" : ""}`}>
+    <div className={`bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3.5 flex flex-col gap-2 ${target.shieldActive ? "opacity-40" : ""}`}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
@@ -124,8 +124,8 @@ function TargetCard({
         disabled={disabled}
         className={`w-full py-2.5 rounded border flex items-center justify-center gap-1.5 text-[11px] font-bold tracking-[2px] transition-colors ${
           disabled
-            ? "bg-[#111] border-[#222] text-text-dim opacity-40 cursor-not-allowed"
-            : "bg-[#1a0a0a] border-[#7f1919] text-[#ef5350] hover:bg-[#2a0a0a]"
+            ? "bg-black/20 border-white/10 text-text-dim opacity-40 cursor-not-allowed"
+            : "bg-black/20 border-[#7f1919] text-[#ef5350] hover:bg-black/30"
         }`}
       >
         {attacking ? (
@@ -288,7 +288,7 @@ export default function TargetsPage() {
 
       <div className="flex flex-col gap-3">
         {/* Hero */}
-        <div className="h-28 rounded-lg overflow-hidden border border-[#1e1e1e] bg-[#0d0d0d] flex items-end relative">
+        <div className="h-28 rounded-lg overflow-hidden border border-white/10 bg-black/20 backdrop-blur-sm flex items-end relative">
           <Image
             src="/assets/images/arena_banner.png"
             alt="Battle banner"
@@ -307,7 +307,7 @@ export default function TargetsPage() {
             </div>
             <button
               onClick={() => { setLoading(true); fetchData(); }}
-              className="bg-[#141414] border border-[#1e1e1e] rounded p-2 text-text-dim hover:text-text-secondary transition-colors"
+              className="bg-black/20 backdrop-blur-sm border border-white/10 rounded p-2 text-text-dim hover:text-text-secondary transition-colors"
               title="Refresh targets"
               aria-label="Refresh targets"
             >
@@ -321,7 +321,7 @@ export default function TargetsPage() {
 
         {/* Hospital banner for the attacker */}
         {profile?.inHospital && (
-          <div className="flex items-center justify-center gap-2 bg-[#1a0a0a] border border-[#7f1919] rounded px-3 py-2">
+          <div className="flex items-center justify-center gap-2 bg-black/20 backdrop-blur-sm border border-[#7f1919] rounded px-3 py-2">
             <svg className="w-3 h-3 text-[#ef5350]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>

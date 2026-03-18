@@ -155,7 +155,7 @@ export default function SyndicatesPage() {
   // ------------------------------------------------------------------
   if (loading) {
     return (
-      <div className="flex min-h-dvh bg-background items-center justify-center">
+      <div className="flex min-h-dvh bg-transparent items-center justify-center">
         <LoadingSpinner size={32} />
       </div>
     );
@@ -166,7 +166,7 @@ export default function SyndicatesPage() {
   // ------------------------------------------------------------------
   if (pageError) {
     return (
-      <div className="flex flex-col min-h-dvh bg-background items-center justify-center gap-4 px-6">
+      <div className="flex flex-col min-h-dvh bg-transparent items-center justify-center gap-4 px-6">
         <p className="text-danger text-sm text-center">{pageError}</p>
         <button
           onClick={() => { setLoading(true); fetchData(); }}
@@ -182,7 +182,7 @@ export default function SyndicatesPage() {
   const busy = creating || leaving || joiningId !== null;
 
   return (
-    <div className="flex flex-col bg-background min-h-dvh">
+    <div className="flex flex-col bg-transparent min-h-dvh">
       {profile && <StatusBars profile={profile} />}
 
       <div className="flex flex-col gap-3">
@@ -199,7 +199,7 @@ export default function SyndicatesPage() {
           </div>
           <button
             onClick={() => { setLoading(true); fetchData(); }}
-            className="bg-[#141414] border border-[#1e1e1e] rounded p-2 text-text-dim hover:text-text-secondary transition-colors"
+            className="bg-black/20 backdrop-blur-sm border border-white/10 rounded p-2 text-text-dim hover:text-text-secondary transition-colors"
             aria-label="Refresh syndicates"
           >
             <svg
@@ -219,7 +219,7 @@ export default function SyndicatesPage() {
         </div>
 
         {/* ---- MY SYNDICATE ---- */}
-        <div className="bg-[#141414] border border-[#1e1e1e] rounded-lg p-3.5">
+        <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3.5">
           <p className="text-[9px] font-black tracking-[2px] uppercase text-text-dim mb-2.5">
             My Syndicate
           </p>
@@ -260,7 +260,7 @@ export default function SyndicatesPage() {
                 onChange={(e) => { setCreateName(e.target.value); setCreateError(null); }}
                 placeholder="Syndicate Name (3–24 chars)"
                 maxLength={24}
-                className="w-full bg-[#111] border border-[#1e1e1e] rounded px-3 py-2 text-[#eee] text-[13px] focus:outline-none focus:border-accent mb-2 placeholder:text-[#555]"
+                className="w-full bg-black/20 backdrop-blur-sm border border-white/10 rounded px-3 py-2 text-[#eee] text-[13px] focus:outline-none focus:border-accent mb-2 placeholder:text-[#555]"
               />
               <input
                 type="text"
@@ -268,7 +268,7 @@ export default function SyndicatesPage() {
                 onChange={(e) => setCreateDesc(e.target.value)}
                 placeholder="Description (optional)"
                 maxLength={180}
-                className="w-full bg-[#111] border border-[#1e1e1e] rounded px-3 py-2 text-[#eee] text-[13px] focus:outline-none focus:border-accent mb-2 placeholder:text-[#555]"
+                className="w-full bg-black/20 backdrop-blur-sm border border-white/10 rounded px-3 py-2 text-[#eee] text-[13px] focus:outline-none focus:border-accent mb-2 placeholder:text-[#555]"
               />
               {createError && (
                 <p className="text-[#ef5350] text-[11px] font-bold mb-2">{createError}</p>
@@ -286,7 +286,7 @@ export default function SyndicatesPage() {
 
         {/* ---- TOP SYNDICATES ---- */}
         {leaderboard.length > 0 && (
-          <div className="bg-[#141414] border border-[#1e1e1e] rounded-lg p-3.5">
+          <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3.5">
             <p className="text-[9px] font-black tracking-[2px] uppercase text-text-dim mb-2.5">
               Top Syndicates
             </p>
@@ -314,7 +314,7 @@ export default function SyndicatesPage() {
             {syndicates.map((item) => {
               const joined = profile?.syndicate?.id === item.id;
               return (
-                <div key={item.id} className="bg-[#141414] border border-[#1e1e1e] rounded-lg p-3.5 flex flex-col gap-1.5">
+                <div key={item.id} className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3.5 flex flex-col gap-1.5">
                   <p className="text-[#eee] text-[14px] font-bold">{item.name}</p>
                   <p className="text-[11px] text-text-dim">{item.description || "No description"}</p>
                   <p className="text-[11px] text-text-dim">

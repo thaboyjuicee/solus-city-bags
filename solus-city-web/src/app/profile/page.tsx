@@ -217,7 +217,7 @@ export default function ProfilePage() {
   // ------------------------------------------------------------------
   if (loading) {
     return (
-      <div className="flex min-h-dvh bg-background items-center justify-center">
+      <div className="flex min-h-dvh bg-transparent items-center justify-center">
         <LoadingSpinner size={32} />
       </div>
     );
@@ -228,7 +228,7 @@ export default function ProfilePage() {
   // ------------------------------------------------------------------
   if (pageError) {
     return (
-      <div className="flex flex-col min-h-dvh bg-background items-center justify-center gap-4 px-6">
+      <div className="flex flex-col min-h-dvh bg-transparent items-center justify-center gap-4 px-6">
         <p className="text-danger text-sm text-center">{pageError}</p>
         <button
           onClick={() => { setLoading(true); fetchData(); }}
@@ -258,13 +258,13 @@ export default function ProfilePage() {
   const canSave = nameDraft.trim().length >= 3 && nameDraft.trim().length <= 20;
 
   return (
-    <div className="flex flex-col bg-background min-h-dvh">
+    <div className="flex flex-col bg-transparent min-h-dvh">
       <StatusBars profile={profile} />
 
       <div className="flex flex-col gap-3">
 
         {/* Identity */}
-        <div className="bg-[#141414] border border-[#1e1e1e] rounded-lg p-3.5">
+        <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3.5">
           <SectionTitle>Identity</SectionTitle>
 
           {/* Name row */}
@@ -279,7 +279,7 @@ export default function ProfilePage() {
                 onChange={(e) => { setNameDraft(e.target.value); setNameError(""); }}
                 maxLength={20}
                 placeholder="Enter new name"
-                className="bg-[#111] border border-[#1e1e1e] rounded text-[#eee] text-[13px] font-bold px-2 py-1 text-right focus:outline-none focus:border-accent"
+                className="bg-black/20 backdrop-blur-sm border border-white/10 rounded text-[#eee] text-[13px] font-bold px-2 py-1 text-right focus:outline-none focus:border-accent"
                 style={{ width: 150 }}
               />
             )}
@@ -303,7 +303,7 @@ export default function ProfilePage() {
             {!editingName ? (
               <button
                 onClick={() => { setNameDraft(profile.name); setNameError(""); setEditingName(true); }}
-                className="border border-[rgba(20,241,149,0.35)] rounded px-3 py-1.5 bg-[#111] text-[#14F195] text-[10px] font-black tracking-[1px]"
+                className="border border-[rgba(20,241,149,0.35)] rounded px-3 py-1.5 bg-black/20 backdrop-blur-sm text-[#14F195] text-[10px] font-black tracking-[1px]"
               >
                 EDIT
               </button>
@@ -319,7 +319,7 @@ export default function ProfilePage() {
                 <button
                   onClick={cancelEdit}
                   disabled={savingName}
-                  className="border border-[#2d2d2d] rounded px-3 py-1.5 bg-[#111] text-[#555] text-[10px] font-black tracking-[1px]"
+                  className="border border-white/10 rounded px-3 py-1.5 bg-black/20 backdrop-blur-sm text-[#555] text-[10px] font-black tracking-[1px]"
                 >
                   CANCEL
                 </button>
@@ -329,7 +329,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Status bars */}
-        <div className="bg-[#141414] border border-[#1e1e1e] rounded-lg p-3.5">
+        <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3.5">
           <SectionTitle>Status</SectionTitle>
           <StatBar label="Health"    current={profile.health}    max={profile.maxHealth}    color="#e53935" />
           <StatBar label="Energy"    current={profile.energy}    max={profile.maxEnergy}    color="#43a047" />
@@ -338,14 +338,14 @@ export default function ProfilePage() {
         </div>
 
         {/* Economy */}
-        <div className="bg-[#141414] border border-[#1e1e1e] rounded-lg p-3.5">
+        <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3.5">
           <SectionTitle>Economy</SectionTitle>
           <StatRow label="Cash"       value={`$${Math.floor(profile.cash).toLocaleString()}`} color="#66bb6a" />
           <StatRow label="Income/hr"  value={`$${profile.incomePerHour.toLocaleString()}`}    color="#66bb6a" />
         </div>
 
         {/* Combat */}
-        <div className="bg-[#141414] border border-[#1e1e1e] rounded-lg p-3.5">
+        <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3.5">
           <SectionTitle>Combat</SectionTitle>
           <StatRow label="Attack Power"   value={profile.ap} color="#ef5350" />
           <StatRow label="Defense Power"  value={profile.dp} color="#1e88e5" />
@@ -365,7 +365,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Syndicate */}
-        <div className="bg-[#141414] border border-[#1e1e1e] rounded-lg p-3.5">
+        <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3.5">
           <SectionTitle>Syndicate</SectionTitle>
           {profile.syndicate ? (
             <>
@@ -379,7 +379,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Timers */}
-        <div className="bg-[#141414] border border-[#1e1e1e] rounded-lg p-3.5">
+        <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3.5">
           <SectionTitle>Timers</SectionTitle>
           {hospitalStatus !== "Full" && (
             <StatRow label="Hospital Until" value={hospitalStatus} color="#ef5350" />

@@ -16,7 +16,7 @@ body {
 
 @layer utilities {
   .bg-background {
-    background-color: #000000;
+    background-color: transparent;
   }
 
   .text-danger {

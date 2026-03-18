@@ -90,7 +90,7 @@ function ItemCard({
   const showPreview = item.atk > 0 || item.def > 0;
 
   return (
-    <div className={`bg-[#141414] border border-[#1e1e1e] rounded-lg p-3.5 flex flex-col gap-2 ${item.locked ? "opacity-45" : ""}`}>
+    <div className={`bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3.5 flex flex-col gap-2 ${item.locked ? "opacity-45" : ""}`}>
       {/* Header */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
@@ -156,7 +156,7 @@ function ItemCard({
           value={qty}
           onChange={(e) => onQtyChange(item.id, e.target.value)}
           disabled={cannotBuy || buying}
-          className="w-16 bg-[#1e1e1e] text-[#eee] border border-[#333] rounded-lg px-2 py-2 text-center text-sm font-bold
+          className="w-16 bg-black/20 backdrop-blur-sm text-[#eee] border border-white/10 rounded-lg px-2 py-2 text-center text-sm font-bold
                      focus:outline-none focus:border-accent disabled:opacity-40"
         />
         <button
@@ -164,7 +164,7 @@ function ItemCard({
           disabled={cannotBuy || buying}
           className={`flex-1 py-2.5 rounded-lg border flex items-center justify-center text-[11px] font-bold tracking-[2px] transition-opacity ${
             cannotBuy
-              ? "bg-[#111] border-[#222] text-text-dim opacity-40 cursor-not-allowed"
+              ? "bg-black/20 border-white/10 text-text-dim opacity-40 cursor-not-allowed"
               : insufficientCash
               ? "bg-[#1a0a2e] border-[rgba(153,69,255,0.3)] text-[#9945FF] opacity-60"
               : "bg-[#1a0a2e] border-[rgba(153,69,255,0.3)] text-[#9945FF] hover:bg-[#2a0a3e]"
@@ -308,7 +308,7 @@ export default function ShopPage() {
   // ------------------------------------------------------------------
   if (loading) {
     return (
-      <div className="flex min-h-dvh bg-background items-center justify-center">
+      <div className="flex min-h-dvh bg-transparent items-center justify-center">
         <LoadingSpinner size={32} />
       </div>
     );
@@ -334,13 +334,13 @@ export default function ShopPage() {
   const visibleItems = items.filter((i) => i.category === category);
 
   return (
-    <div className="flex flex-col bg-background min-h-dvh">
+    <div className="flex flex-col bg-transparent min-h-dvh">
       {profile && <StatusBars profile={profile} />}
 
       <div className="flex flex-col gap-3">
 
         {/* Hero */}
-        <div className="h-28 rounded-lg overflow-hidden border border-[#1e1e1e] bg-[#0d0d0d] flex items-end relative">
+        <div className="h-28 rounded-lg overflow-hidden border border-white/10 bg-black/20 backdrop-blur-sm flex items-end relative">
           <Image
             src="/assets/images/shop_banner.png"
             alt="Shop banner"
@@ -359,7 +359,7 @@ export default function ShopPage() {
         </div>
 
         {/* Cash balance */}
-        <div className="flex items-center justify-between bg-[#141414] border border-[#1e1e1e] rounded-lg px-3 py-2">
+        <div className="flex items-center justify-between bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg px-3 py-2">
           <span className="text-text-dim text-[11px] font-bold tracking-wide">
             Your Cash
           </span>
@@ -377,7 +377,7 @@ export default function ShopPage() {
               className={`flex-1 py-2 rounded-lg border text-[10px] font-black tracking-[2px] uppercase transition-colors ${
                 category === cat
                   ? "bg-[#1a0a2e] border-[rgba(153,69,255,0.3)] text-[#9945FF]"
-                  : "bg-[#111] border-[#1e1e1e] text-text-dim hover:text-text-secondary"
+                  : "bg-black/20 backdrop-blur-sm border border-white/10 text-text-dim hover:text-text-secondary"
               }`}
             >
               {cat === "unit" ? "Units" : "Equipment"}

@@ -99,7 +99,7 @@ export default function LeaderboardPage() {
   // ------------------------------------------------------------------
   if (loading) {
     return (
-      <div className="flex min-h-dvh bg-background items-center justify-center">
+      <div className="flex min-h-dvh bg-transparent items-center justify-center">
         <LoadingSpinner size={32} />
       </div>
     );
@@ -110,7 +110,7 @@ export default function LeaderboardPage() {
   // ------------------------------------------------------------------
   if (error) {
     return (
-      <div className="flex flex-col min-h-dvh bg-background items-center justify-center gap-4 px-6">
+      <div className="flex flex-col min-h-dvh bg-transparent items-center justify-center gap-4 px-6">
         <p className="text-danger text-sm text-center">{error}</p>
         <button
           onClick={() => { setLoading(true); fetchData(); }}
@@ -127,7 +127,7 @@ export default function LeaderboardPage() {
   const selfOutside = entries.find((e) => e.isMe && e.rank > 100) ?? null;
 
   return (
-    <div className="flex flex-col bg-background min-h-dvh">
+    <div className="flex flex-col bg-transparent min-h-dvh">
       {profile && <StatusBars profile={profile} />}
 
       <div className="flex flex-col gap-3">
@@ -145,7 +145,7 @@ export default function LeaderboardPage() {
           <button
             onClick={() => fetchData(true)}
             disabled={refreshing}
-            className="bg-[#141414] border border-[#1e1e1e] rounded p-2 text-text-dim hover:text-text-secondary transition-colors disabled:opacity-50"
+            className="bg-black/20 backdrop-blur-sm border border-white/10 rounded p-2 text-text-dim hover:text-text-secondary transition-colors disabled:opacity-50"
             aria-label="Refresh leaderboard"
           >
             <svg
@@ -165,10 +165,10 @@ export default function LeaderboardPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-[#141414] border border-[#1e1e1e] rounded-lg overflow-hidden">
+        <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg overflow-hidden">
 
           {/* Column headers */}
-          <div className="flex items-center px-3 py-2 border-b border-[#1e1e1e] bg-[#111]">
+          <div className="flex items-center px-3 py-2 border-b border-white/10 bg-black/20 backdrop-blur-sm">
             <span className="w-8 text-[9px] font-black tracking-[2px] uppercase text-text-dim">#</span>
             <span className="flex-1 text-[9px] font-black tracking-[2px] uppercase text-text-dim">Player</span>
             <span className="w-8 text-center text-[9px] font-black tracking-[2px] uppercase text-text-dim">LV</span>
@@ -236,8 +236,8 @@ export default function LeaderboardPage() {
               <div className="flex-1 border-t border-dashed border-[#333]" />
             </div>
 
-            <div className="bg-[#1a0a2e] border border-[rgba(153,69,255,0.3)] rounded-lg overflow-hidden">
-              <div className="flex items-center px-3 py-2 border-b border-[rgba(153,69,255,0.15)] bg-[#111]">
+            <div className="bg-black/20 backdrop-blur-sm border border-[rgba(153,69,255,0.3)] rounded-lg overflow-hidden">
+              <div className="flex items-center px-3 py-2 border-b border-[rgba(153,69,255,0.15)] bg-black/20 backdrop-blur-sm">
                 <span className="flex-1 text-[9px] font-black tracking-[2px] uppercase text-text-dim">
                   Your rank
                 </span>

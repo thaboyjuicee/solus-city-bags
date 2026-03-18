@@ -50,7 +50,7 @@ type CrimeResult =
 function ResultBanner({ result }: { result: CrimeResult }) {
   if (!result.ok) {
     return (
-      <div className="mt-2 rounded px-3 py-2 bg-[#1a0a0a] border border-[#7f1919] text-[11px] font-bold text-[#ef5350]">
+      <div className="mt-2 rounded px-3 py-2 bg-black/20 backdrop-blur-sm border border-[#7f1919] text-[11px] font-bold text-[#ef5350]">
         {result.msg}
       </div>
     );
@@ -61,8 +61,8 @@ function ResultBanner({ result }: { result: CrimeResult }) {
     <div
       className={`mt-2 rounded px-3 py-2 border text-[11px] font-bold flex flex-col gap-0.5 ${
         data.success
-          ? "bg-[#0a1a0a] border-[#1a4a1a] text-[#66bb6a]"
-          : "bg-[#1a1a0a] border-[#4a4a1a] text-[#fdd835]"
+          ? "bg-black/20 backdrop-blur-sm border-[#1a4a1a] text-[#66bb6a]"
+          : "bg-black/20 backdrop-blur-sm border-[#4a4a1a] text-[#fdd835]"
       }`}
     >
       {data.success ? (
@@ -103,10 +103,10 @@ function CrimeCard({
 
   return (
     <div
-      className="rounded-lg p-3.5 flex flex-col gap-2 transition-opacity border"
+      className="rounded-lg p-3.5 flex flex-col gap-2 transition-opacity border backdrop-blur-sm"
       style={{
-        backgroundColor: locked ? "#343434" : "#141414",
-        borderColor: locked ? "#5a5a5a" : "#1e1e1e",
+        backgroundColor: locked ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.20)",
+        borderColor: locked ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.10)",
         color: locked ? "#b0b0b0" : "#eee",
       }}
     >
@@ -173,12 +173,12 @@ function CrimeCard({
         disabled={anyCommitting || locked}
         className={`w-full py-2.5 rounded flex items-center justify-center border text-[11px] font-bold tracking-[2px] transition-colors ${
           locked
-            ? "bg-[#2f2f2f] border-[#555] text-[#666] cursor-not-allowed"
+            ? "bg-black/20 border-white/10 text-[#666] cursor-not-allowed"
             : anyCommitting
-            ? "bg-[#111] border-[#222] text-text-dim cursor-not-allowed"
+            ? "bg-black/20 border-white/10 text-text-dim cursor-not-allowed"
             : notEnoughNerve
-            ? "bg-[#1a0a0a] border-[#7f1919] text-[#ef5350] opacity-60 cursor-not-allowed"
-            : "bg-[#1a0a0a] border-[#7f1919] text-[#ef5350] hover:bg-[#2a0a0a]"
+            ? "bg-black/20 border-[#7f1919] text-[#ef5350] opacity-60 cursor-not-allowed"
+            : "bg-black/20 border-[#7f1919] text-[#ef5350] hover:bg-black/30"
         }`}
       >
         {isCommitting ? (
@@ -311,7 +311,7 @@ export default function CrimesPage() {
 
       <div className="flex flex-col gap-3">
         {/* Hero */}
-        <div className="h-28 rounded-lg overflow-hidden border border-[#1e1e1e] bg-[#0d0d0d] flex items-end relative">
+        <div className="h-28 rounded-lg overflow-hidden border border-white/10 bg-black/20 backdrop-blur-sm flex items-end relative">
           <Image
             src="/assets/images/crimes_banner.png"
             alt="Crimes banner"

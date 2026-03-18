@@ -30,7 +30,7 @@ export function GamePageChrome({ children }: { children: ReactNode }) {
     "/assets/images/home_skyline.png";
 
   return (
-    <div className="min-h-screen bg-[#000000] relative isolate">
+    <div className="min-h-screen bg-transparent relative isolate">
       <Image
         src={image}
         alt=""

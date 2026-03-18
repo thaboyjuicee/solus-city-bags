@@ -110,7 +110,7 @@ export default function AttackLogsPage() {
   // ------------------------------------------------------------------
   if (loading) {
     return (
-      <div className="flex min-h-dvh bg-background items-center justify-center">
+      <div className="flex min-h-dvh bg-transparent items-center justify-center">
         <LoadingSpinner size={32} />
       </div>
     );
@@ -121,7 +121,7 @@ export default function AttackLogsPage() {
   // ------------------------------------------------------------------
   if (error) {
     return (
-      <div className="flex flex-col min-h-dvh bg-background items-center justify-center gap-4 px-6">
+      <div className="flex flex-col min-h-dvh bg-transparent items-center justify-center gap-4 px-6">
         <p className="text-danger text-sm text-center">{error}</p>
         <button
           onClick={() => { setLoading(true); fetchLogs(); }}
@@ -140,7 +140,7 @@ export default function AttackLogsPage() {
   });
 
   return (
-    <div className="flex flex-col bg-background min-h-dvh">
+    <div className="flex flex-col bg-transparent min-h-dvh">
       <div className="flex flex-col gap-3">
 
         {/* Header */}
@@ -155,7 +155,7 @@ export default function AttackLogsPage() {
           </div>
           <button
             onClick={() => { setLoading(true); fetchLogs(); }}
-            className="bg-[#141414] border border-[#1e1e1e] rounded p-2 text-text-dim hover:text-text-secondary transition-colors"
+            className="bg-black/20 backdrop-blur-sm border border-white/10 rounded p-2 text-text-dim hover:text-text-secondary transition-colors"
             aria-label="Refresh logs"
           >
             <svg
@@ -183,7 +183,7 @@ export default function AttackLogsPage() {
               className={`flex-1 py-2 rounded-lg border text-[10px] font-black tracking-[2px] uppercase transition-colors ${
                 tab === t
                   ? "bg-[#1a0a2e] border-[rgba(153,69,255,0.3)] text-[#9945FF]"
-                  : "bg-[#111] border-[#1e1e1e] text-text-dim hover:text-text-secondary"
+                  : "bg-black/20 backdrop-blur-sm border border-white/10 text-text-dim hover:text-text-secondary"
               }`}
             >
               {t}
@@ -219,7 +219,7 @@ export default function AttackLogsPage() {
               return (
                 <div
                   key={entry.id}
-                  className="bg-[#141414] border border-[#1e1e1e] rounded-lg p-3 flex flex-col gap-1.5"
+                  className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3 flex flex-col gap-1.5"
                 >
                   {/* Top row: badge + direction + timestamp */}
                   <div className="flex items-center justify-between">

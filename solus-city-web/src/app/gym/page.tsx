@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
@@ -44,7 +44,7 @@ type PageProfile = ProfileStats & {
 };
 
 // ---------------------------------------------------------------------------
-// Constants — mirrors GymScreen.tsx and the server constants
+// Constants â€” mirrors GymScreen.tsx and the server constants
 // ---------------------------------------------------------------------------
 
 const STATS: { key: Stat; label: string; color: string }[] = [
@@ -57,7 +57,7 @@ const STATS: { key: Stat; label: string; color: string }[] = [
 const GYM_ENERGY_COST = 5;
 
 // ---------------------------------------------------------------------------
-// Animated stat bar — mirrors GymScreen AnimatedStatBar
+// Animated stat bar â€” mirrors GymScreen AnimatedStatBar
 // Fill % = Math.min(value / 5, 100) so the bar is "full" at 500 points
 // ---------------------------------------------------------------------------
 
@@ -167,7 +167,7 @@ export default function GymPage() {
   // ------------------------------------------------------------------
   if (loading) {
     return (
-      <div className="flex min-h-dvh bg-background items-center justify-center">
+      <div className="flex min-h-dvh bg-transparent items-center justify-center">
         <LoadingSpinner size={32} />
       </div>
     );
@@ -178,7 +178,7 @@ export default function GymPage() {
   // ------------------------------------------------------------------
   if (pageError) {
     return (
-      <div className="flex flex-col min-h-dvh bg-background items-center justify-center gap-4 px-6">
+      <div className="flex flex-col min-h-dvh bg-transparent items-center justify-center gap-4 px-6">
         <p className="text-danger text-sm text-center">{pageError}</p>
         <button
           onClick={() => { setLoading(true); fetchProfile(); }}
@@ -193,13 +193,13 @@ export default function GymPage() {
   const notEnoughEnergy = (profile?.energy ?? 0) < GYM_ENERGY_COST;
 
   return (
-    <div className="flex flex-col bg-background min-h-dvh">
+    <div className="flex flex-col bg-transparent min-h-dvh">
       {profile && <StatusBars profile={profile} />}
 
       <div className="flex flex-col gap-3">
 
         {/* Hero */}
-        <div className="h-28 rounded-lg overflow-hidden border border-[#1e1e1e] bg-[#0d0d0d] flex items-end relative">
+        <div className="h-28 rounded-lg overflow-hidden border border-white/10 bg-black/20 flex items-end relative backdrop-blur-sm">
           <Image
             src="/assets/images/gym_banner.png"
             alt="Gym banner"
@@ -219,7 +219,7 @@ export default function GymPage() {
 
         {/* Hospital banner */}
         {profile?.inHospital && (
-          <div className="flex items-center justify-center gap-2 bg-[#1a0a0a] border border-[#7f1919] rounded px-3 py-2">
+          <div className="flex items-center justify-center gap-2 bg-black/20 border border-[#7f1919] rounded px-3 py-2 backdrop-blur-sm">
             <span className="text-[#ef5350] text-[11px] font-bold">
               You are in the hospital and cannot train.
             </span>
@@ -227,7 +227,7 @@ export default function GymPage() {
         )}
 
         {/* Current stats panel */}
-        <div className="bg-[#141414] border border-[#1e1e1e] rounded-lg p-3.5 flex flex-col gap-2.5">
+        <div className="bg-black/20 border border-white/10 rounded-lg p-3.5 flex flex-col gap-2.5 backdrop-blur-sm">
           {STATS.map((s) => {
             const val = profile ? (profile as unknown as Record<string, number>)[s.key] ?? 0 : 0;
             return (
@@ -260,9 +260,9 @@ export default function GymPage() {
                 <button
                   onClick={() => train(s.key)}
                   disabled={disabled}
-                  className="w-full border rounded-lg p-3.5 flex items-center justify-center gap-2 text-[11px] font-bold tracking-[2px] bg-[#111] transition-opacity"
+                  className="w-full border rounded-lg p-3.5 flex items-center justify-center gap-2 text-[11px] font-bold tracking-[2px] bg-black/20 transition-opacity backdrop-blur-sm"
                   style={{
-                    borderColor: disabled ? "#222" : s.color,
+                    borderColor: disabled ? "rgba(255,255,255,0.08)" : s.color,
                     color: disabled ? "#555" : s.color,
                     opacity: anyTraining && !isTraining ? 0.4 : 1,
                   }}
@@ -303,7 +303,7 @@ export default function GymPage() {
                               (happiness bonus!)
                             </span>
                           )}
-                          {" "}· +{result.data.xpGained} XP
+                          {" "}Â· +{result.data.xpGained} XP
                         </span>
                         {result.data.leveledUp && (
                           <span className="text-[#9945FF]">
@@ -322,9 +322,15 @@ export default function GymPage() {
         </div>
 
         {/* Info box */}
-        <div className="bg-[#141414] border border-[#1e1e1e] rounded-lg p-3 flex flex-col gap-1.5">
+        <div className="bg-black/20 border border-white/10 rounded-lg p-3 flex flex-col gap-1.5 backdrop-blur-sm">
           <div className="flex items-center gap-1.5 mb-0.5">
-            <svg className="w-3 h-3 text-text-dim" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg
+              className="w-3 h-3 text-text-dim"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
               <circle cx="12" cy="12" r="10" />
               <line x1="12" y1="8" x2="12" y2="12" />
               <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -334,14 +340,14 @@ export default function GymPage() {
             </span>
           </div>
           <p className="text-[#444] text-[11px]">Energy cost: {GYM_ENERGY_COST} per session</p>
-          <p className="text-[#444] text-[11px]">Stat gain: 1–3 points (bonus +1 with happiness)</p>
+          <p className="text-[#444] text-[11px]">Stat gain: 1-3 points (bonus +1 with happiness)</p>
           <p className="text-[#444] text-[11px]">XP reward: 10 per session</p>
-          <p className="text-[#444] text-[11px]">Training raises STR/SPD/DEF/DEX which feed into AP &amp; DP</p>
+          <p className="text-[#444] text-[11px]">Training raises STR/SPD/DEF/DEX which feed into AP & DP</p>
         </div>
 
-        <div className="h-16 md:hidden" />
       </div>
     </div>
   );
 }
+
 
