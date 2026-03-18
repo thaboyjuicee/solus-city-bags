@@ -20,7 +20,7 @@ interface Props {
 
 export function SolanaWalletProvider({ children }: Props) {
   const endpoint = useMemo(
-    () => clusterApiUrl(SOLANA_NETWORK),
+    () => process.env.NEXT_PUBLIC_HELIUS_RPC_URL ?? clusterApiUrl(SOLANA_NETWORK),
     []
   );
 
