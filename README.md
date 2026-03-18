@@ -1,425 +1,176 @@
 # Solus City
 
-Solus City is an Android-first, text-driven crime RPG on Solana.
-Players authenticate with a wallet signature, then progress through crimes, gym training, equipment/unit purchases, PvP/NPC battles, leaderboards, and syndicates.
+An on-chain crime RPG built on Solana. Players authenticate with a wallet signature then progress through crimes, gym training, equipment purchases, PvP/NPC battles, leaderboards, and syndicates. The game economy runs on the **$SOLUS token** via the **Bags protocol**.
 
-This README is a detailed technical guide to how the project works across all major folders.
+## Repository Structure
 
-## Table Of Contents
-1. Project Overview
-2. Repository Layout
-3. End-To-End Runtime Flow
-4. Backend Architecture (`solus-city-server`)
-5. Database Schema And Game State
-6. API Contract By Route
-7. Mobile Architecture (`soluscitymobile`)
-8. Screen-To-Endpoint Mapping
-9. Game Systems And Formulas
-10. Configuration
-11. Local Development
-12. Troubleshooting
-13. Extension Guide
-
-## Project Overview
-
-The repository is a monorepo-style workspace with:
-- A Fastify + Prisma + PostgreSQL backend API.
-- A React Native mobile app (Android-focused).
-- Setup and launcher docs/scripts at root.
-
-Core gameplay loop:
-1. Connect Solana wallet and sign a nonce challenge.
-2. Receive JWT and load profile state.
-3. Regenerate bars and passive income on activity.
-4. Spend energy/nerve to train and commit crimes.
-5. Buy units/equipment to improve AP/DP.
-6. Fight NPCs or players for loot/RP/XP.
-7. Track progression via logs, leaderboards, and syndicates.
-
-## Repository Layout
-
-```text
-solus_city_react/
-|- README.md
-|- SETUP.md
-|- GAME_GUIDE.md
-|- HACKATHON_SUBMISSION.md
-|- start.bat
-|- release/
-|  `- solus-city-mvp-arm64-release.apk
-|- solus-city-server/
-|  |- .env.example
-|  |- package.json
-|  |- prisma/
-|  |  |- schema.prisma
-|  |  |- seed.ts
-|  |  `- migrations/
-|  `- src/
-|     |- index.ts
-|     |- lib/
-|     |  |- auth.ts
-|     |  |- jwt.ts
-|     |  |- constants.ts
-|     |  |- game.ts
-|     |  `- npcs.ts
-|     `- routes/
-|        |- auth.ts
-|        |- me.ts
-|        |- events.ts
-|        |- crimes.ts
-|        |- gym.ts
-|        |- shop.ts
-|        |- targets.ts
-|        |- battle.ts
-|        |- attackLogs.ts
-|        |- leaderboard.ts
-|        `- syndicates.ts
-`- soluscitymobile/
-    |- App.tsx
-    |- package.json
-    |- jest.config.js
-    |- jest.setup.js
-    |- android/
-    |- ios/
-    `- src/
-        |- config.ts
-        |- api/client.ts
-        |- assets/images.ts
-        |- navigation/AppNavigator.tsx
-        |- components/
-        `- screens/
+```
+solus-city-bags/
+├── solus-city-server/   # Fastify + Prisma backend (deployed on Railway)
+└── solus-city-web/      # Next.js 14 web client (deploying to Vercel)
 ```
 
-## End-To-End Runtime Flow
+## Tech Stack
 
-### 1) Authentication
-- Mobile calls `GET /auth/challenge?wallet=<pubkey>`.
-- Server upserts `User` + `Profile`, writes `pendingNonce`, returns `message`.
-- Mobile wallet signs message via Solana Mobile Wallet Adapter.
-- Mobile sends `POST /auth/verify` with wallet/message/signature.
-- Server verifies ed25519 signature (`tweetnacl` + `bs58`), clears nonce, returns JWT.
-- Mobile stores JWT (`AsyncStorage`, key: `seeker_wars_jwt`).
+### Backend (`solus-city-server/`)
+| Layer | Choice |
+|---|---|
+| Runtime | Node.js ≥ 22 + Fastify |
+| ORM | Prisma + PostgreSQL |
+| Auth | Ed25519 wallet signature → JWT (tweetnacl + bs58) |
+| Deployment | Railway |
 
-### 2) Session bootstrap
-- App opens `Main` route if token exists.
-- `api` axios client attaches bearer token per request.
-- Any `401` clears token and resets navigation to `Login`.
+### Web client (`solus-city-web/`)
+| Layer | Choice |
+|---|---|
+| Framework | Next.js 14 (App Router) |
+| Language | TypeScript 5 (strict) |
+| Styling | Tailwind CSS 3.4 |
+| HTTP client | Axios — JWT interceptor + 401 redirect |
+| Wallet | `@solana/wallet-adapter-react` — Phantom + Solflare |
+| Solana network | mainnet-beta |
+| Deployment | Vercel |
 
-### 3) Stateful game actions
-- Server-side routes apply passive updates (`income`, `energy`, `nerve`) before action logic.
-- Hospital recovery is applied when timers have expired.
-- Mutations log to `EventLog` and battle actions also log to `AttackLog`.
+## Running Locally
 
-## Backend Architecture (`solus-city-server`)
+### Prerequisites
+- Node.js ≥ 22
+- PostgreSQL running locally
 
-### Entry point
-- `src/index.ts`
-Registers all route modules with shared Prisma client and starts Fastify on `PORT` (default `3000`).
+### 1. Backend
 
-### Shared libraries
-- `src/lib/auth.ts`
-Fastify `requireAuth` preHandler, validates bearer token and sets `request.user`.
-
-- `src/lib/jwt.ts`
-JWT helpers: `signToken` and `verifyToken`.
-
-- `src/lib/constants.ts`
-Centralized tuning constants for regen, battle, loot, leveling, gym, crimes, and syndicates.
-
-- `src/lib/game.ts`
-Core deterministic game logic:
-- offline income application
-- energy/nerve regen ticks
-- hospital checks and recovery
-- level-up processing
-- AP/DP and combat breakdown computation
-- next bar tick timestamps
-
-- `src/lib/npcs.ts`
-NPC template pool and scaling function (`buildNpcForPlayer`) based on player level and RP.
-
-### Route modules
-- `src/routes/auth.ts`
-Wallet challenge + signature verification.
-
-- `src/routes/me.ts`
-Returns canonical profile snapshot, bars, timers, AP/DP, syndicate summary.
-
-- `src/routes/events.ts`
-Recent event feed.
-
-- `src/routes/crimes.ts`
-Crime listing and crime commit action (nerve cost, success roll, cash/XP reward).
-
-- `src/routes/gym.ts`
-Stat training action (energy cost, happiness bonus, XP gain).
-
-- `src/routes/shop.ts`
-Item listing with ownership and power preview; purchase endpoint with inventory upsert.
-
-- `src/routes/targets.ts`
-Target generation for RP band (players + NPC fill).
-
-- `src/routes/battle.ts`
-Combat resolution, cooldown checks, loot/RP/XP calculation, hospitalization, logs/events.
-
-- `src/routes/attackLogs.ts`
-Attack history and revenge eligibility checks.
-
-- `src/routes/leaderboard.ts`
-Top RP players (+ self if outside top 100).
-
-- `src/routes/syndicates.ts`
-Syndicate create/list/detail/join/leave and syndicate leaderboard.
-
-## Database Schema And Game State
-
-Defined in `solus-city-server/prisma/schema.prisma`.
-
-### Primary entities
-- `User`: wallet identity.
-- `Profile`: all mutable player stats, bars, timers, nonce, shield/hospital state.
-- `Item`: purchasable units/equipment.
-- `Inventory`: user-item quantities.
-- `Crime`: configurable crime catalog.
-- `Battle`: historical battle snapshots.
-- `AttackCooldown`: anti-spam attacker->defender cooldown.
-- `EventLog`: feed-style events.
-- `AttackLog`: battle log including revenge metadata.
-- `Syndicate` and `SyndicateMember`: social groups and AP buff membership.
-
-### Seeded content
-From `solus-city-server/prisma/seed.ts`:
-- Item catalog with both unit and equipment categories.
-- Crime catalog with increasing risk/reward by level.
-
-## API Contract By Route
-
-Base URL:
-- Local server: `http://localhost:3000`
-- Android emulator from app: `http://10.0.2.2:3000`
-- Production (Railway): `https://solus-city-app-production.up.railway.app`
-
-Public routes:
-- `GET /health`
-- `GET /auth/challenge?wallet=<pubkey>`
-- `POST /auth/verify`
-
-Protected routes (JWT required):
-- `GET /me`
-- `GET /events`
-- `GET /crimes`
-- `POST /crimes/commit`
-- `POST /gym/train`
-- `GET /shop/items`
-- `POST /shop/buy`
-- `GET /targets`
-- `POST /battle/attack`
-  - Returns `400 {"code":"IN_HOSPITAL","error":"You are in the hospital","recoverAt":"<ISO datetime>"}` when hospital timer is active.
-- `GET /logs/attacks`
-- `GET /leaderboard`
-- `POST /syndicates`
-- `GET /syndicates`
-- `GET /syndicates/:id`
-- `POST /syndicates/:id/join`
-- `POST /syndicates/leave`
-- `GET /leaderboard/syndicates`
-
-## Mobile Architecture (`soluscitymobile`)
-
-### App shell
-- `App.tsx`: top-level status bar + navigator.
-- `src/navigation/AppNavigator.tsx`:
-Stack + tab navigation:
-`Login` -> `Main` tabs (`Home`, `Crimes`, `Targets`, `Gym`, `More`) -> nested `More` stack (`Shop`, `Leaderboard`, `Profile`, `AttackLogs`, `Syndicates`) + `BattleResult` screen.
-
-### API layer
-- `src/api/client.ts`
-Axios instance with:
-- base URL from `src/config.ts`
-- automatic JWT injection
-- automatic logout redirect on `401`
-
-### Visual/status components
-- `src/components/StatusBars.tsx`: persistent bars and quick stats.
-- `src/components/LoadingSpinner.tsx`: loading UI.
-- `src/components/RainOverlay.tsx` and `src/components/NeonGlow.tsx`: scene effects.
-
-### Assets
-- `src/assets/images.ts` maps screen image constants used by themed screens.
-
-## Screen-To-Endpoint Mapping
-
-- `src/screens/LoginScreen.tsx`
-Uses Mobile Wallet Adapter authorize + sign flow and calls:
-- `GET /auth/challenge`
-- `POST /auth/verify`
-
-- `src/screens/HomeScreen.tsx`
-Calls:
-- `GET /me`
-- `GET /events`
-
-- `src/screens/CrimesScreen.tsx`
-Calls:
-- `GET /me`
-- `GET /crimes`
-- `POST /crimes/commit`
-
-- `src/screens/GymScreen.tsx`
-Calls:
-- `GET /me`
-- `POST /gym/train`
-
-- `src/screens/TargetsScreen.tsx`
-Calls:
-- `GET /me`
-- `GET /targets`
-- `POST /battle/attack`
-
-- `src/screens/BattleResultScreen.tsx`
-Displays battle payload and allows `Attack Again` for NPCs via `POST /battle/attack`.
-
-- `src/screens/AttackLogsScreen.tsx`
-Calls:
-- `GET /logs/attacks`
-- revenge via `POST /battle/attack`
-
-- `src/screens/ShopScreen.tsx`
-Calls:
-- `GET /me`
-- `GET /shop/items`
-- `POST /shop/buy`
-
-- `src/screens/LeaderboardScreen.tsx`
-Calls:
-- `GET /me`
-- `GET /leaderboard`
-
-- `src/screens/ProfileScreen.tsx`
-Calls:
-- `GET /me`
-
-- `src/screens/SyndicatesScreen.tsx`
-Calls:
-- `GET /me`
-- `GET /syndicates`
-- `GET /leaderboard/syndicates`
-- `POST /syndicates`
-- `POST /syndicates/:id/join`
-- `POST /syndicates/leave`
-
-## Game Systems And Formulas
-
-Values are centralized in `solus-city-server/src/lib/constants.ts`.
-
-Highlights:
-- Energy: +1 per 5 minutes.
-- Nerve: +1 per 3 minutes.
-- Income: passive, capped to 24h backfill.
-- Base AP/DP: `10` each before stats/items.
-- AP/DP calculation:
-- `AP = BASE_ATK + strength + item atk bonuses` (with syndicate AP multiplier when in syndicate).
-- `DP = BASE_DEF + defense + item def bonuses`.
-- Battle win chance: `attackerAP / (attackerAP + defenderDP)`.
-- Loot on win: `min(defenderCash * 0.08, 5000)`.
-- Cooldown: 10 minutes for same attacker->defender pair.
-- Hospital lockout: if your `hospitalUntil` is in the future, attacks are blocked and `POST /battle/attack` returns `IN_HOSPITAL` plus `recoverAt` for client messaging.
-- Gym: costs energy, grants stat gain + XP, happiness can increase gain.
-- Crimes: costs nerve, success roll against crime success rate.
-- Level-up: XP threshold scales with level (`XP_PER_LEVEL * level`) and increases max health.
-
-## Configuration
-
-### Server env (`solus-city-server/.env`)
-
-```env
-DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@localhost:5432/soluscity"
-JWT_SECRET="use-a-long-random-secret-at-least-32-chars"
-PORT=3000
-```
-
-### Mobile API base URL
-- `soluscitymobile/src/config.ts`
-- Emulator default: `http://10.0.2.2:3000`
-- Physical device: use `http://<your-lan-ip>:3000`
-- Production deployment: set `API_BASE_URL` and `APP_IDENTITY_URI` to your Railway service URL
-
-## Local Development
-
-### Quick start (manual)
-
-Backend:
 ```bash
 cd solus-city-server
 npm install
+
+# Apply migrations and seed item/crime catalog
 npm run db:migrate
 npm run db:seed
+
+# Start dev server (http://localhost:3000)
 npm run dev
 ```
 
-Mobile:
+Available scripts:
+| Script | Description |
+|---|---|
+| `npm run dev` | Start with ts-node-dev (hot reload) |
+| `npm run build` | Compile TypeScript to `dist/` |
+| `npm run start` | Run compiled build |
+| `npm run db:migrate` | Apply Prisma migrations |
+| `npm run db:seed` | Seed items and crimes |
+| `npm run db:studio` | Open Prisma Studio |
+
+### 2. Web Client
+
 ```bash
-cd soluscitymobile
+cd solus-city-web
 npm install
-npx react-native run-android
+
+# Start dev server (http://localhost:3001 or next available port)
+npm run dev
 ```
 
-### One-click launcher
-- `start.bat` runs install, migrations, seed, backend startup, adb reverse, and Android launch.
+Available scripts:
+| Script | Description |
+|---|---|
+| `npm run dev` | Start Next.js dev server |
+| `npm run build` | Production build |
+| `npm run start` | Serve production build |
+| `npm run lint` | Run ESLint |
 
-### Useful scripts
+## Environment Variables
 
-Server (`solus-city-server/package.json`):
-- `npm run dev`
-- `npm run build`
-- `npm run start`
-- `npm run db:migrate`
-- `npm run db:seed`
-- `npm run db:studio`
+### Backend — `solus-city-server/.env`
 
-Mobile (`soluscitymobile/package.json`):
-- `npm run android`
-- `npm run start`
-- `npm run lint`
-- `npm run test`
+Copy `.env.example` → `.env` and fill in:
 
-## Troubleshooting
-
-### Port already in use (`EADDRINUSE: 3000`)
-Find and kill blocker:
-```bash
-netstat -ano | grep ":3000"
-taskkill //PID <PID> //F
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/soluscity"
+JWT_SECRET="a-long-random-secret-at-least-32-chars"
+PORT=3000
 ```
 
-### API unreachable from emulator
-- Ensure server is running on `3000`.
-- Ensure mobile config uses `10.0.2.2` for emulator.
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `JWT_SECRET` | Secret used to sign/verify JWTs |
+| `PORT` | Port for the Fastify server (default `3000`) |
 
-### DB connection errors
-- Verify PostgreSQL is running.
-- Verify DB exists and `DATABASE_URL` is correct.
+### Web client — `solus-city-web/.env.local`
 
-### Android build issues
-- Confirm Android SDK/JDK setup from `SETUP.md`.
-- Rebuild after dependency updates.
+Copy `.env.local.example` → `.env.local` and fill in:
 
-## Extension Guide
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:3000
+NEXT_PUBLIC_SOLANA_NETWORK=mainnet-beta
+```
 
-### Add a new backend feature
-1. Add/extend model in `prisma/schema.prisma`.
-2. Run migration.
-3. Add constants/helpers in `src/lib/` if needed.
-4. Implement route in `src/routes/` with Zod validation.
-5. Register route in `src/index.ts`.
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_API_BASE_URL` | Backend API base URL |
+| `NEXT_PUBLIC_SOLANA_NETWORK` | Solana cluster — `mainnet-beta`, `devnet`, or `testnet` |
 
-### Add a new mobile screen
-1. Create screen in `soluscitymobile/src/screens/`.
-2. Add route in `AppNavigator.tsx`.
-3. Wire API calls through `src/api/client.ts`.
-4. Refresh relevant profile/event state after mutations.
+## API Reference
 
----
+**Base URL (production):** `https://solus-city-app-production.up.railway.app`
 
-For first-time Windows onboarding, follow `SETUP.md` step-by-step.
+### Public
+| Method | Route | Description |
+|---|---|---|
+| GET | `/health` | Health check |
+| GET | `/auth/challenge?wallet=<pubkey>` | Get nonce challenge message |
+| POST | `/auth/verify` | Verify signature and receive JWT |
+
+### Protected (Bearer JWT required)
+| Method | Route | Description |
+|---|---|---|
+| GET | `/me` | Full profile snapshot |
+| PATCH | `/me` | Update display name |
+| GET | `/events` | Recent event feed |
+| GET | `/crimes` | Available crimes |
+| POST | `/crimes/commit` | Commit a crime |
+| POST | `/gym/train` | Train a stat |
+| GET | `/shop/items` | Shop inventory with ownership |
+| POST | `/shop/buy` | Purchase item(s) |
+| GET | `/targets` | RP-matched target list |
+| POST | `/battle/attack` | Attack a target |
+| GET | `/logs/attacks` | Attack log history |
+| GET | `/leaderboard` | Top 100 players by RP |
+| GET | `/syndicates` | All syndicates |
+| GET | `/syndicates/:id` | Syndicate detail + members |
+| POST | `/syndicates` | Create a syndicate |
+| POST | `/syndicates/:id/join` | Join a syndicate |
+| POST | `/syndicates/leave` | Leave current syndicate |
+| GET | `/leaderboard/syndicates` | Top syndicates by total RP |
+
+## Deployment
+
+### Backend — Railway
+
+1. Connect the `solus-city-server/` directory (or the repo root with root directory set).
+2. Set the environment variables (`DATABASE_URL`, `JWT_SECRET`, `PORT`).
+3. Railway runs `npm run build && npm run start` automatically on push.
+4. The PostgreSQL plugin in Railway provides `DATABASE_URL`.
+
+### Web client — Vercel
+
+1. Import the repo into Vercel and set the **Root Directory** to `solus-city-web`.
+2. Set environment variables:
+   - `NEXT_PUBLIC_API_BASE_URL` → your Railway backend URL
+   - `NEXT_PUBLIC_SOLANA_NETWORK` → `mainnet-beta`
+3. Vercel detects Next.js automatically — no build config needed.
+
+## Game Systems
+
+| System | Summary |
+|---|---|
+| Energy regen | +1 per 5 minutes |
+| Nerve regen | +1 per 3 minutes |
+| Passive income | Applied on next login, capped at 24h backfill |
+| AP formula | `BASE_ATK + strength + item bonuses` (× syndicate multiplier if applicable) |
+| DP formula | `BASE_DEF + defense + item bonuses` |
+| Battle win chance | `attackerAP / (attackerAP + defenderDP)` |
+| Loot cap | `min(defenderCash × 8%, $5,000)` |
+| Attack cooldown | 10 minutes per attacker→defender pair |
+| Level threshold | `level × 100 XP` |
