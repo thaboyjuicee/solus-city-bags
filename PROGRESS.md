@@ -164,27 +164,44 @@ as inline error before the network call. `MAX_BUY_QTY = 100` matches server cons
 
 ---
 
-## 4. Remaining Screens to Wire Up
+## 4. Completed Screens (continued)
 
-### 🔲 Leaderboard (`/leaderboard`)
-- Route: `GET /leaderboard` (or similar — check `solus-city-server/src/routes/`)
-- Display: ranked list by RP, highlight current player's row
-- Likely simple read-only page, no mutations
+### ✅ Leaderboard (`/leaderboard`)
+**File:** `src/app/leaderboard/page.tsx`
 
-### 🔲 Profile (`/profile`)
-- Route: `GET /me` (already used elsewhere), possibly `PATCH /me` for name change
-- Display: full stats, wallet, equipped items, syndicate info
-- May include name-edit flow
+`Promise.all([GET /me, GET /leaderboard])`. Table: rank (trophy SVG top 3) · Player (name + AP/DP sub-line) · LV · RP.
+`isMe` row highlighted `bg-[#1a0a2e]`. Out-of-top-100 self-row after dashed `· · ·` separator in purple-bordered card.
+Refresh button with spin animation.
 
-### 🔲 Attack Logs (`/attack-logs`)
-- Route: `GET /attack-logs` (check server routes)
-- Display: incoming vs outgoing tabs, per-log outcome, damage, loot, timestamp
-- Referenced in Battle Result "VIEW LOGS" button
+---
 
-### 🔲 Syndicates (`/syndicates`)
-- Routes: `GET /syndicates`, `POST /syndicates` (create), `POST /syndicates/:id/join`, etc.
-- Display: syndicate list, create flow, member list, role management
-- Most complex remaining screen
+### ✅ Profile (`/profile`)
+**File:** `src/app/profile/page.tsx`
+
+`GET /me` only. Sections: Identity (name edit inline via `PATCH /me`, level, XP, wallet, RP) · Status (animated HP/EN/NV/HA bars) · Economy (cash, income/hr) · Combat (AP, DP, item bonuses, raw stats) · Syndicate (name, role, buff) · Timers (hospital, shield, next energy/nerve).
+
+Name edit: inline input with SAVE/CANCEL buttons, 3–20 char validation client-side before `PATCH /me`. Error shown inline.
+
+---
+
+### ✅ Attack Logs (`/attack-logs`)
+**File:** `src/app/attack-logs/page.tsx`
+
+`GET /logs/attacks` (up to 50 entries). Three-tab filter: All / Incoming / Outgoing. Per-entry: WIN/LOSS/EVADED badge + INCOMING/OUTGOING direction badge + timestamp · description · damage dealt/taken/loot/RP. Revenge button when `revengeAvailable: true` — calls `POST /battle/attack` then stores result in `sessionStorage` and navigates to `/battle-result`.
+
+---
+
+### ✅ Syndicates (`/syndicates`)
+**File:** `src/app/syndicates/page.tsx`
+
+`Promise.all([GET /me, GET /syndicates, GET /leaderboard/syndicates])`.
+
+Three sections:
+1. **My Syndicate** — if member: shows name, member count, buff, role, LEAVE button (`POST /syndicates/leave`). If not member: create form (name + description) calling `POST /syndicates`.
+2. **Top Syndicates** — top 5 from `/leaderboard/syndicates` leaderboard.
+3. **Discover** — full syndicate list with JOIN button (`POST /syndicates/:id/join`) when not in a syndicate.
+
+Per-action inline errors. `busy` flag prevents concurrent mutations.
 
 ---
 
@@ -231,10 +248,10 @@ solus-city-web/
 │   │   ├── battle-result/page.tsx  ✅ sessionStorage result reader
 │   │   ├── gym/page.tsx            ✅ /me + /gym/train
 │   │   ├── shop/page.tsx           ✅ /me + /shop/items + /shop/buy
-│   │   ├── leaderboard/page.tsx    🔲 placeholder
-│   │   ├── profile/page.tsx        🔲 placeholder
-│   │   ├── attack-logs/page.tsx    🔲 placeholder
-│   │   └── syndicates/page.tsx     🔲 placeholder
+│   │   ├── leaderboard/page.tsx    ✅ GET /leaderboard + /me
+│   │   ├── profile/page.tsx        ✅ GET /me + PATCH /me (name edit)
+│   │   ├── attack-logs/page.tsx    ✅ GET /logs/attacks + revenge
+│   │   └── syndicates/page.tsx     ✅ GET/POST /syndicates + leave
 │   ├── components/
 │   │   ├── providers/WalletProvider.tsx   # Phantom + Solflare, autoConnect
 │   │   ├── layout/Navigation.tsx          # Top nav + mobile bottom tabs (ssr:false)
