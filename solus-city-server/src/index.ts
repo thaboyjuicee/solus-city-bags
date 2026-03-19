@@ -6,6 +6,7 @@ import { PrismaClient } from "@prisma/client";
 import authRoutes from "./routes/auth";
 import meRoutes from "./routes/me";
 import shopRoutes from "./routes/shop";
+import { ensureSeedData } from "../prisma/seed";
 import targetsRoutes from "./routes/targets";
 import battleRoutes from "./routes/battle";
 import leaderboardRoutes from "./routes/leaderboard";
@@ -170,6 +171,7 @@ const start = async () => {
   try {
     console.log(`Starting Solus City API in ${NODE_ENV} mode on port ${PORT}`);
     await prisma.$connect();
+    await ensureSeedData(prisma);
     await fastify.listen({ port: PORT, host: "0.0.0.0" });
     fastify.log.info(`Solus City API running on port ${PORT}`);
   } catch (err) {
