@@ -84,11 +84,12 @@ export function Navigation() {
   if (pathname === "/login") return null;
 
   const mobileMoreTabs = NAV_TABS.slice(4);
+  const compactVisibleTabs = NAV_TABS.slice(0, 4);
   const moreActive = mobileMoreTabs.some((tab) => isActive(tab.href, path));
 
   return (
     <>
-      <nav className="hidden md:block fixed top-0 left-0 right-0 h-14 bg-black/25 backdrop-blur-sm border-b border-white/10 z-50">
+      <nav className="hidden 2xl:block fixed top-0 left-0 right-0 h-14 bg-black/25 backdrop-blur-sm border-b border-white/10 z-50 overflow-x-hidden">
         <div className="h-full px-3 flex items-center justify-between gap-3 relative">
           <Link
             href="/home"
@@ -104,14 +105,14 @@ export function Navigation() {
                 <Link
                   key={tab.href}
                   href={tab.href}
-                  className={`flex items-center gap-2 px-2.5 h-full text-[11px] font-bold tracking-[2px] uppercase transition-colors ${
+                  className={`flex items-center gap-2 px-2.5 h-full text-[11px] font-bold tracking-[2px] uppercase transition-colors whitespace-nowrap ${
                     active
                       ? "bg-[#1a0a2e] text-[#9945FF]"
                       : "text-[#555] hover:text-[#888]"
                   }`}
                 >
                   <Icon name={tab.icon} />
-                  <span>{tab.label}</span>
+                  <span className="whitespace-nowrap">{tab.label}</span>
                 </Link>
               );
             })}
@@ -123,7 +124,60 @@ export function Navigation() {
         </div>
       </nav>
 
-      <nav className="md:hidden fixed top-0 left-0 right-0 h-14 bg-black/25 backdrop-blur-sm border-b border-white/10 z-50 flex items-center justify-center">
+      <nav className="hidden lg:block 2xl:hidden fixed top-0 left-0 right-0 h-14 bg-black/25 backdrop-blur-sm border-b border-white/10 z-50">
+        <div className="h-full px-3 flex items-center justify-between gap-3">
+          <Link
+            href="/home"
+            className="text-[#eee] font-black tracking-[3px] text-sm flex-shrink-0"
+          >
+            SOLUS CITY
+          </Link>
+
+          <div className="flex items-center gap-0 relative h-full">
+            {compactVisibleTabs.map((tab) => {
+              const active = isActive(tab.href, path);
+              return (
+                <Link
+                  key={tab.href}
+                  href={tab.href}
+                  className={`flex items-center gap-1 px-2 h-full text-[11px] font-bold tracking-[2px] uppercase transition-colors whitespace-nowrap ${
+                    active
+                      ? "bg-[#1a0a2e] text-[#9945FF]"
+                      : "text-[#555] hover:text-[#888]"
+                  }`}
+                >
+                  <Icon name={tab.icon} />
+                  <span className="whitespace-nowrap">{tab.label}</span>
+                </Link>
+              );
+            })}
+
+            <button
+              onClick={() => setMoreOpen((v) => !v)}
+              className="h-full px-2 inline-flex items-center gap-1 text-[11px] font-bold tracking-[2px] uppercase transition-colors"
+              type="button"
+            >
+              <MoreHorizontal
+                size={16}
+                className={moreOpen || moreActive ? "text-[#9945FF]" : "text-[#555]"}
+              />
+              <span
+                className={`whitespace-nowrap ${
+                  moreOpen || moreActive ? "text-[#9945FF]" : "text-[#555]"
+                }`}
+              >
+                MORE
+              </span>
+            </button>
+          </div>
+
+          <div className="flex-shrink-0 w-[170px] flex justify-end">
+            <WalletMultiButton className="justify-center" />
+          </div>
+        </div>
+      </nav>
+
+      <nav className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-black/25 backdrop-blur-sm border-b border-white/10 z-50 flex items-center justify-center">
         <Link
           href="/home"
           className="text-[#eee] font-black tracking-[3px] text-sm"
@@ -132,7 +186,7 @@ export function Navigation() {
         </Link>
       </nav>
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-14 bg-black/25 backdrop-blur-sm border-t border-white/10 z-50 flex justify-around items-center">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-14 bg-black/25 backdrop-blur-sm border-t border-white/10 z-50 flex justify-around items-center">
         {NAV_TABS.slice(0, 4).map((tab) => {
           const active = isActive(tab.href, path);
 
@@ -174,24 +228,44 @@ export function Navigation() {
       </nav>
 
       {moreOpen && (
-        <div className="md:hidden fixed left-0 right-0 bottom-14 border-t border-white/10 bg-black/25 backdrop-blur-sm z-50">
-          {NAV_TABS.slice(4).map((tab) => {
+        <>
+          <div className="lg:hidden fixed left-0 right-0 bottom-14 border-t border-white/10 bg-black/25 backdrop-blur-sm z-50">
+            {mobileMoreTabs.map((tab) => {
+              const active = isActive(tab.href, path);
+              return (
+                <Link
+                  key={tab.href}
+                  href={tab.href}
+                  className={`flex items-center gap-2 px-4 py-2.5 text-[11px] font-bold tracking-[2px] uppercase border-b border-[#1e1e1e] transition-colors ${
+                    active ? "bg-[#1a0a2e] text-[#9945FF]" : "text-[#555]"
+                  }`}
+                  onClick={() => setMoreOpen(false)}
+                >
+                  <Icon name={tab.icon} />
+                  <span className="whitespace-nowrap">{tab.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+          <div className="hidden lg:block fixed top-14 right-3 border-t border-white/10 bg-black/25 backdrop-blur-sm z-50">
+            {mobileMoreTabs.map((tab) => {
             const active = isActive(tab.href, path);
-            return (
+              return (
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={`flex items-center gap-2 px-4 py-2.5 text-[11px] font-bold tracking-[2px] uppercase border-b border-[#1e1e1e] transition-colors ${
+                className={`flex items-center gap-2 px-4 py-2.5 text-[11px] font-bold tracking-[2px] uppercase border-b border-[#1e1e1e] transition-colors whitespace-nowrap ${
                   active ? "bg-[#1a0a2e] text-[#9945FF]" : "text-[#555]"
                 }`}
                 onClick={() => setMoreOpen(false)}
               >
                 <Icon name={tab.icon} />
-                {tab.label}
+                <span className="whitespace-nowrap">{tab.label}</span>
               </Link>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </>
   );
