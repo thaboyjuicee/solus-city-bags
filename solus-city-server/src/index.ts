@@ -15,12 +15,12 @@ import eventsRoutes from "./routes/events";
 import attackLogsRoutes from "./routes/attackLogs";
 import syndicateRoutes from "./routes/syndicates";
 
-const prisma = new PrismaClient();
 const fastify = Fastify({ logger: true });
 
 const NODE_ENV = process.env.NODE_ENV ?? "development";
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 const databaseUrl = process.env.DATABASE_URL;
+const publicDatabaseUrl = process.env.DATABASE_PUBLIC_URL;
 const jwtSecret = process.env.JWT_SECRET;
 const CORS_ORIGIN = process.env.CORS_ORIGIN ?? "*";
 const RATE_LIMIT_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS ?? "60000", 10);
@@ -47,7 +47,23 @@ function isRateLimitedPath(path: string): boolean {
   return true;
 }
 
-if (!databaseUrl) {
+const resolvedDatabaseUrl = (() => {
+  if (!databaseUrl) {
+    return databaseUrl;
+  }
+
+  if (
+    NODE_ENV === "development" &&
+    databaseUrl.includes("postgres.railway.internal") &&
+    publicDatabaseUrl
+  ) {
+    return publicDatabaseUrl;
+  }
+
+  return databaseUrl;
+})();
+
+if (!resolvedDatabaseUrl) {
   console.error("DATABASE_URL is required. Set it in server environment.");
 }
 
@@ -65,12 +81,15 @@ if (!databaseUrl || !jwtSecret) {
   process.exit(1);
 }
 
-const resolvedDatabaseUrl = databaseUrl.trim();
+const trimmedDatabaseUrl = resolvedDatabaseUrl?.trim();
 
-if (!/postgres(ql)?:\/\/.+/.test(resolvedDatabaseUrl)) {
+if (!trimmedDatabaseUrl || !/postgres(ql)?:\/\/.+/.test(trimmedDatabaseUrl)) {
   console.error("DATABASE_URL is not a valid PostgreSQL URL.");
   process.exit(1);
 }
+
+process.env.DATABASE_URL = trimmedDatabaseUrl;
+const prisma = new PrismaClient();
 
 fastify.addHook("onRequest", async (request, reply) => {
   withSecurityHeaders(reply);
