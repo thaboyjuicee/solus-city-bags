@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { AlertTriangle, LogOut } from "lucide-react";
 import { api } from "@/lib/api/client";
 import { TOKEN_KEY } from "@/lib/config";
 import { StatusBars, type ProfileStats } from "@/components/ui/StatusBars";
@@ -50,16 +50,18 @@ function timeAgo(ts: string): string {
 function eventColor(type: string): string {
   switch (type) {
     case "attack_win":
+    case "level_up":
     case "crime":
       return "#66bb6a";
     case "attack_loss":
     case "attacked":
     case "hospital":
+    case "hosp":
       return "#ef5350";
     case "gym":
       return "#ff9800";
-    case "level_up":
-      return "#9945FF";
+    case "mission":
+      return "#26c6da";
     case "shop":
       return "#42a5f5";
     default:
@@ -126,6 +128,9 @@ export default function HomePage() {
   }
 
   const shieldActive = profile ? new Date(profile.shieldUntil) > new Date() : false;
+  const hospitalActive = profile
+    ? profile.hospitalUntil !== null && new Date(profile.hospitalUntil) > new Date()
+    : false;
   const displayName =
     profile?.name || (profile?.wallet ? profile.wallet.slice(0, 8) + "..." : "Seeker");
 
@@ -141,13 +146,6 @@ export default function HomePage() {
           className="object-cover opacity-50"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0a0a]" />
-          <button
-            onClick={logout}
-            className="absolute top-2 right-2 h-7 w-7 rounded-sm bg-black/20 backdrop-blur-sm border border-white/10 text-[#888] flex items-center justify-center"
-            aria-label="Log out"
-          >
-            <LogOut size={16} />
-          </button>
         <div className="absolute inset-x-3 bottom-2 flex items-end justify-between">
           <div>
             <p className="text-xl font-black tracking-wider text-[#eee]">{displayName}</p>
@@ -155,6 +153,13 @@ export default function HomePage() {
               LEVEL {profile?.level} • {profile?.rp} RP
             </p>
           </div>
+          <button
+            onClick={logout}
+            className="h-7 w-7 rounded-sm bg-black/20 backdrop-blur-sm border border-white/10 text-[#888] flex items-center justify-center"
+            aria-label="Log out"
+          >
+            <LogOut size={16} />
+          </button>
         </div>
       </div>
 
@@ -171,6 +176,15 @@ export default function HomePage() {
           </svg>
           <span className="text-[#66bb6a] text-[10px] font-bold tracking-[2px]">
             NEWBIE SHIELD ACTIVE • until {new Date(profile!.shieldUntil).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          </span>
+        </div>
+      )}
+
+      {hospitalActive && (
+        <div className="bg-[#2a0a0a] border border-[#4d1f1f] rounded-md px-3 py-2 flex items-center gap-2">
+          <AlertTriangle size={14} className="text-[#ef5350]" />
+          <span className="text-[#ef5350] text-[10px] font-bold tracking-[2px]">
+            HOSPITALIZED • until {new Date(profile?.hospitalUntil ?? "").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </span>
         </div>
       )}
@@ -194,19 +208,29 @@ export default function HomePage() {
         {events.length === 0 ? (
           <p className="text-[#444] text-[11px] text-center">No recent activity.</p>
         ) : (
-          events.map((evt, i) => (
-            <div
-              key={evt.id}
-              className={`flex items-start gap-2 ${i < events.length - 1 ? "pb-2 border-b border-[#1e1e1e]" : ""}`}
-            >
+          events.map((evt, i) => {
+            const color = eventColor(evt.type);
+            return (
               <div
-                className="w-2 h-2 rounded-full mt-1"
-                style={{ backgroundColor: eventColor(evt.type) }}
-              />
-              <p className="text-[11px] text-[#ccc] flex-1 leading-snug">{evt.message}</p>
-              <span className="text-[9px] text-[#444] whitespace-nowrap">{timeAgo(evt.ts)}</span>
-            </div>
-          ))
+                key={evt.id}
+                className={`flex items-start gap-2 ${i < events.length - 1 ? "pb-2 border-b border-[#1e1e1e]" : ""}`}
+              >
+                <div className="w-2 h-2 rounded-full mt-1" style={{ backgroundColor: color }} />
+                <p
+                  className="text-[11px] flex-1 leading-snug"
+                  style={{ color: color === "#555" ? "#aaa" : color }}
+                >
+                  {evt.message}
+                </p>
+                <span
+                  className="text-[9px] whitespace-nowrap"
+                  style={{ color: color === "#555" ? "#555" : color }}
+                >
+                  {timeAgo(evt.ts)}
+                </span>
+              </div>
+            );
+          })
         )}
       </div>
 

@@ -5,6 +5,14 @@ import Image from "next/image";
 import { api } from "@/lib/api/client";
 import { StatusBars, type ProfileStats } from "@/components/ui/StatusBars";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import {
+  CircleHelp,
+  CircleX,
+  Dumbbell,
+  Swords,
+  Shield,
+  Target,
+} from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -47,11 +55,13 @@ type PageProfile = ProfileStats & {
 // Constants â€” mirrors GymScreen.tsx and the server constants
 // ---------------------------------------------------------------------------
 
-const STATS: { key: Stat; label: string; color: string }[] = [
-  { key: "strength",  label: "Strength",  color: "#ff9800" },
-  { key: "speed",     label: "Speed",     color: "#ab47bc" },
-  { key: "defense",   label: "Defense",   color: "#26c6da" },
-  { key: "dexterity", label: "Dexterity", color: "#fdd835" },
+type StatIcon = "dumbbell" | "target" | "shield" | "swords";
+
+const STATS: { key: Stat; label: string; color: string; icon: StatIcon }[] = [
+  { key: "strength", label: "Strength", color: "#ff9800", icon: "dumbbell" },
+  { key: "speed", label: "Speed", color: "#ab47bc", icon: "target" },
+  { key: "defense", label: "Defense", color: "#26c6da", icon: "shield" },
+  { key: "dexterity", label: "Dexterity", color: "#fdd835", icon: "swords" },
 ];
 
 const GYM_ENERGY_COST = 5;
@@ -88,6 +98,22 @@ function AnimatedStatBar({ value, color }: { value: number; color: string }) {
       />
     </div>
   );
+}
+
+function StatIcon({ icon, className }: { icon: StatIcon; className?: string }) {
+  if (icon === "swords") {
+    return <Swords className={className} />;
+  }
+
+  if (icon === "target") {
+    return <Target className={className} />;
+  }
+
+  if (icon === "shield") {
+    return <Shield className={className} />;
+  }
+
+  return <Dumbbell className={className} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -220,6 +246,7 @@ export default function GymPage() {
         {/* Hospital banner */}
         {profile?.inHospital && (
           <div className="flex items-center justify-center gap-2 bg-black/20 border border-[#7f1919] rounded px-3 py-2 backdrop-blur-sm">
+            <CircleX className="w-3.5 h-3.5 text-[#ef5350]" />
             <span className="text-[#ef5350] text-[11px] font-bold">
               You are in the hospital and cannot train.
             </span>
@@ -271,10 +298,7 @@ export default function GymPage() {
                     <LoadingSpinner size={16} color={s.color} />
                   ) : (
                     <>
-                      {/* Dumbbell icon */}
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M6.5 6.5h11M6.5 17.5h11M6 10h1a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1zM17 10h1a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1zM3 12h2M19 12h2" />
-                      </svg>
+                      <StatIcon icon={s.icon} className="w-3.5 h-3.5" />
                       TRAIN {s.label.toUpperCase()}
                       {notEnoughEnergy && !profile?.inHospital && (
                         <span className="text-[9px] normal-case tracking-normal font-normal text-text-dim ml-1">
@@ -303,7 +327,8 @@ export default function GymPage() {
                               (happiness bonus!)
                             </span>
                           )}
-                          {" "}Â· +{result.data.xpGained} XP
+                          {" · "}
+                          +{result.data.xpGained} XP
                         </span>
                         {result.data.leveledUp && (
                           <span className="text-[#9945FF]">
@@ -324,17 +349,7 @@ export default function GymPage() {
         {/* Info box */}
         <div className="bg-black/20 border border-white/10 rounded-lg p-3 flex flex-col gap-1.5 backdrop-blur-sm">
           <div className="flex items-center gap-1.5 mb-0.5">
-            <svg
-              className="w-3 h-3 text-text-dim"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
+            <CircleHelp className="w-3.5 h-3.5 text-text-dim" />
             <span className="text-[9px] font-black tracking-[2px] uppercase text-text-dim">
               Info
             </span>

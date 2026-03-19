@@ -44,7 +44,7 @@ export function GamePageChrome({ children }: { children: ReactNode }) {
         className="object-cover opacity-[0.08] inset-0 z-0 pointer-events-none mix-blend-screen"
       />
 
-      <div className="relative z-10 px-4 py-4 w-full max-w-5xl xl:max-w-6xl mx-auto space-y-4 pb-16 md:px-8 md:py-5 md:pb-4">
+      <div className="relative z-10 px-4 pt-20 pb-16 w-full max-w-5xl xl:max-w-6xl mx-auto space-y-4 md:pt-20 md:pb-4">
         {children}
       </div>
     </div>

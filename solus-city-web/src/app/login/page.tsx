@@ -1,8 +1,14 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import {
+  CircleDollarSign,
+  Dumbbell,
+  Swords,
+  Trophy,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import bs58 from "bs58";
@@ -20,6 +26,25 @@ interface ChallengeResponse {
 interface VerifyResponse {
   token: string;
 }
+
+const LOGIN_FEATURES = [
+  {
+    icon: Swords,
+    text: "Fight players for loot and rank",
+  },
+  {
+    icon: Dumbbell,
+    text: "Train your combat stats in the gym",
+  },
+  {
+    icon: CircleDollarSign,
+    text: "Commit crimes for cash and XP",
+  },
+  {
+    icon: Trophy,
+    text: "Climb the leaderboard",
+  },
+];
 
 export default function LoginPage() {
   const { connected, publicKey, signMessage, disconnect } = useWallet();
@@ -82,20 +107,45 @@ export default function LoginPage() {
         src="/assets/images/home_character.png"
         alt="Solus city character"
         fill
-        className="object-cover md:object-contain opacity-20 pointer-events-none"
+        className="object-cover md:object-contain opacity-25 pointer-events-none"
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a]/90 via-[#0a0a0a]/65 to-[#0a0a0a]/85" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a]/65 via-[#0a0a0a]/40 to-[#0a0a0a]/50" />
 
-      <div className="relative z-10 flex flex-col items-center gap-3">
-        <h1 className="text-4xl font-black tracking-widest text-[#eee] uppercase">
+      <div className="relative z-10 flex flex-col items-center gap-3 text-center max-w-sm">
+        <Image
+          src="/assets/images/app_icon.png"
+          alt="Solus City icon"
+          width={180}
+          height={180}
+          className="bg-transparent object-contain"
+        />
+        <h1 className="text-4xl font-black tracking-[0.28em] text-[#eee] uppercase">
           Solus City
         </h1>
-        <p className="text-text-secondary text-sm tracking-wide">
-          Connect your wallet to enter
+        <p className="text-text-secondary text-xs tracking-[3px] uppercase text-[#777]">
+          Text-based crime RPG on Solana
         </p>
+        <div className="mt-2 w-full rounded-md border border-[#1e1e1e] bg-[#111] bg-opacity-90 p-3">
+          <ul className="space-y-2 text-left">
+            {LOGIN_FEATURES.map((feature) => {
+              const Icon = feature.icon;
+              return (
+                <li
+                  key={feature.text}
+                  className="flex items-start gap-2 text-[11px] leading-4 text-[#b4b4b4] tracking-[0.6px]"
+                >
+                  <span className="mt-0.5 rounded-sm border border-[#262626] bg-[#141414] p-1 text-[#9945ff]">
+                    <Icon size={13} />
+                  </span>
+                  <span className="capitalize">{feature.text}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       </div>
 
-      <div className="relative z-10 w-full max-w-xs flex flex-col items-center gap-4">
+      <div className="relative z-10 w-full max-w-xs flex flex-col items-center gap-3">
         {authState === "authenticating" && (
           <div className="flex flex-col items-center gap-3">
             <LoadingSpinner size={36} />
@@ -126,12 +176,13 @@ export default function LoginPage() {
         )}
 
         {authState === "idle" && <WalletMultiButton className="w-full justify-center" />}
+        {authState === "idle" && (
+          <p className="text-text-dim text-xs font-black tracking-[1.2px] uppercase">
+            Powered by Solana
+          </p>
+        )}
       </div>
 
-      <p className="relative z-10 text-text-dim text-xs text-center max-w-xs">
-        Supports Phantom and Solflare. Your wallet signs a nonce — no funds are
-        transferred at login.
-      </p>
     </div>
   );
 }

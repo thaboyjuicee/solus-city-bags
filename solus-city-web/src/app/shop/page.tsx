@@ -1,10 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { api } from "@/lib/api/client";
 import { StatusBars, type ProfileStats } from "@/components/ui/StatusBars";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import {
+  ArrowRight,
+  CircleDollarSign,
+  Clock3,
+  Crosshair,
+  Package,
+  ShieldCheck,
+  ShoppingCart,
+  Swords,
+  Trophy,
+} from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -53,10 +64,21 @@ type ItemResult =
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function StatChip({ value, color, label }: { value: number; color: string; label: string }) {
+function StatChip({
+  value,
+  color,
+  label,
+  icon,
+}: {
+  value: number;
+  color: string;
+  label: string;
+  icon: ReactNode;
+}) {
   return (
     <span className="flex items-center gap-1 text-[12px] font-bold" style={{ color }}>
-      {label} +{value}
+      {icon}
+      <span>{label} +{value}</span>
     </span>
   );
 }
@@ -90,14 +112,17 @@ function ItemCard({
   const showPreview = item.atk > 0 || item.def > 0;
 
   return (
-    <div className={`bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3.5 flex flex-col gap-2 ${item.locked ? "opacity-45" : ""}`}>
+    <div
+      className={`bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3.5 flex flex-col gap-2 ${item.locked ? "opacity-45" : ""}`}
+    >
       {/* Header */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <svg className="w-3.5 h-3.5 text-[#eee] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-          </svg>
+          {item.category === "unit" ? (
+            <ShieldCheck className="w-4 h-4 text-[#eee] flex-shrink-0" />
+          ) : (
+            <Trophy className="w-4 h-4 text-[#eee] flex-shrink-0" />
+          )}
           <span className="text-[#eee] text-[15px] font-bold truncate">{item.name}</span>
         </div>
         <span className="flex-shrink-0 bg-[#9945FF20] text-[#9945FF] text-[9px] font-bold px-2 py-0.5 rounded tracking-wide">
@@ -107,11 +132,40 @@ function ItemCard({
 
       {/* Stats chips */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        {item.atk   > 0 && <StatChip value={item.atk}   color="#ef5350" label="ATK" />}
-        {item.def   > 0 && <StatChip value={item.def}   color="#1e88e5" label="DEF" />}
-        {item.speed > 0 && <StatChip value={item.speed} color="#9945FF" label="SPD" />}
-        {item.dex   > 0 && <StatChip value={item.dex}   color="#fdd835" label="DEX" />}
-        <span className="text-[12px] font-bold text-[#66bb6a]">
+        {item.atk > 0 && (
+          <StatChip
+            value={item.atk}
+            color="#ef5350"
+            label="ATK"
+            icon={<Swords className="w-3 h-3" />}
+          />
+        )}
+        {item.def > 0 && (
+          <StatChip
+            value={item.def}
+            color="#1e88e5"
+            label="DEF"
+            icon={<ShieldCheck className="w-3 h-3" />}
+          />
+        )}
+        {item.speed > 0 && (
+          <StatChip
+            value={item.speed}
+            color="#9945FF"
+            label="SPD"
+            icon={<Clock3 className="w-3 h-3" />}
+          />
+        )}
+        {item.dex > 0 && (
+          <StatChip
+            value={item.dex}
+            color="#fdd835"
+            label="DEX"
+            icon={<Crosshair className="w-3 h-3" />}
+          />
+        )}
+        <span className="flex items-center gap-1 text-[12px] font-bold text-[#66bb6a]">
+          <CircleDollarSign className="w-3 h-3" />
           ${item.price.toLocaleString()}
         </span>
       </div>
@@ -120,15 +174,13 @@ function ItemCard({
       {showPreview && (
         <div className="flex items-center gap-3 text-[10px] font-bold text-text-dim">
           <span>
-            AP{" "}
-            <span className="text-[#ef5350]">{apNow}</span>
-            {" → "}
+            AP <span className="text-[#ef5350]">{apNow}</span>{" "}
+            <ArrowRight className="w-3 h-3 inline-block align-middle text-text-dim" />
             <span className="text-[#66bb6a]">{apAfterOne}</span>
           </span>
           <span>
-            DP{" "}
-            <span className="text-[#1e88e5]">{dpNow}</span>
-            {" → "}
+            DP <span className="text-[#1e88e5]">{dpNow}</span>{" "}
+            <ArrowRight className="w-3 h-3 inline-block align-middle text-text-dim" />
             <span className="text-[#66bb6a]">{dpAfterOne}</span>
           </span>
         </div>
@@ -162,12 +214,12 @@ function ItemCard({
         <button
           onClick={() => onBuy(item)}
           disabled={cannotBuy || buying}
-          className={`flex-1 py-2.5 rounded-lg border flex items-center justify-center text-[11px] font-bold tracking-[2px] transition-opacity ${
+          className={`flex-1 py-2.5 rounded-lg border flex items-center justify-center gap-1 text-[11px] font-bold tracking-[2px] transition-opacity ${
             cannotBuy
               ? "bg-black/20 border-white/10 text-text-dim opacity-40 cursor-not-allowed"
               : insufficientCash
               ? "bg-[#1a0a2e] border-[rgba(153,69,255,0.3)] text-[#9945FF] opacity-60"
-              : "bg-[#1a0a2e] border-[rgba(153,69,255,0.3)] text-[#9945FF] hover:bg-[#2a0a3e]"
+              : "bg-[#1a0e2e] border-[rgba(153,69,255,0.3)] text-[#9945FF] hover:bg-[#2a0a3e]"
           } ${buying ? "opacity-40" : ""}`}
         >
           {buying ? (
@@ -175,7 +227,10 @@ function ItemCard({
           ) : insufficientCash && !cannotBuy ? (
             "LOW CASH"
           ) : (
-            buyLabel
+            <>
+              <ShoppingCart className="w-3.5 h-3.5" />
+              {buyLabel}
+            </>
           )}
         </button>
       </div>
@@ -192,12 +247,10 @@ function ItemCard({
           {result.ok ? (
             <>
               <span>
-                Bought {result.data.qty}× {result.data.item.name}
+                Bought {result.data.qty}x {result.data.item.name}
               </span>
               <span className="text-[#eee]">
-                Cash: ${Math.floor(result.data.newCash).toLocaleString()}
-                {" · "}AP {result.data.newCombat.ap}
-                {" · "}DP {result.data.newCombat.dp}
+                Cash: ${Math.floor(result.data.newCash).toLocaleString()} · AP {result.data.newCombat.ap} · DP {result.data.newCombat.dp}
               </span>
             </>
           ) : (
@@ -237,7 +290,9 @@ export default function ShopPage() {
       // Initialise qty to "1" for new items, preserve any existing user input
       setQuantities((prev) => {
         const init: Record<string, string> = {};
-        data.forEach((item) => { init[item.id] = "1"; });
+        data.forEach((item) => {
+          init[item.id] = "1";
+        });
         return { ...init, ...prev };
       });
     } catch (err: unknown) {
@@ -322,7 +377,10 @@ export default function ShopPage() {
       <div className="flex flex-col min-h-dvh bg-background items-center justify-center gap-4 px-6">
         <p className="text-danger text-sm text-center">{pageError}</p>
         <button
-          onClick={() => { setLoading(true); fetchData(); }}
+          onClick={() => {
+            setLoading(true);
+            fetchData();
+          }}
           className="px-5 py-2.5 bg-accent rounded-lg text-white font-semibold text-sm"
         >
           Retry
@@ -338,7 +396,6 @@ export default function ShopPage() {
       {profile && <StatusBars profile={profile} />}
 
       <div className="flex flex-col gap-3">
-
         {/* Hero */}
         <div className="h-28 rounded-lg overflow-hidden border border-white/10 bg-black/20 backdrop-blur-sm flex items-end relative">
           <Image
@@ -380,7 +437,14 @@ export default function ShopPage() {
                   : "bg-black/20 backdrop-blur-sm border border-white/10 text-text-dim hover:text-text-secondary"
               }`}
             >
-              {cat === "unit" ? "Units" : "Equipment"}
+              <span className="inline-flex items-center justify-center gap-1">
+                {cat === "unit" ? (
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                ) : (
+                  <Package className="w-3.5 h-3.5" />
+                )}
+                <span>{cat === "unit" ? "Units" : "Equipment"}</span>
+              </span>
             </button>
           ))}
         </div>
@@ -414,4 +478,3 @@ export default function ShopPage() {
     </div>
   );
 }
-

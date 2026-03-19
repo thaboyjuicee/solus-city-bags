@@ -7,6 +7,7 @@ import { api } from "@/lib/api/client";
 import { BATTLE_RESULT_KEY, BattleResult, formatHospitalMessage } from "@/lib/battle";
 import { StatusBars, type ProfileStats } from "@/components/ui/StatusBars";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { Swords } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -132,9 +133,7 @@ function TargetCard({
           <LoadingSpinner size={16} color="#ef5350" />
         ) : (
           <>
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5zm-5 0c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5S11 2.67 11 3.5v5c0 .83-.67 1.5-1.5 1.5zm10.5 3H15v-1.5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5V13H5c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 .55.45 1 1 1h10c.55 0 1-.45 1-1v-5h1c.55 0 1-.45 1-1s-.45-1-1-1z" />
-            </svg>
+            <Swords size={14} />
             {target.shieldActive
               ? "SHIELDED"
               : profile.inHospital
