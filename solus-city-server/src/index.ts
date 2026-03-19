@@ -6,7 +6,7 @@ import { PrismaClient } from "@prisma/client";
 import authRoutes from "./routes/auth";
 import meRoutes from "./routes/me";
 import shopRoutes from "./routes/shop";
-import { ensureSeedData } from "../prisma/seed";
+import { ensureSeedData } from "./lib/seedData";
 import targetsRoutes from "./routes/targets";
 import battleRoutes from "./routes/battle";
 import leaderboardRoutes from "./routes/leaderboard";
