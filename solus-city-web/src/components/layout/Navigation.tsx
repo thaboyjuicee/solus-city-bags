@@ -17,6 +17,7 @@ import {
   Swords,
 } from "lucide-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { useSLSBalance } from "@/hooks/useSLSBalance";
 
 type NavTab = {
   href: string;
@@ -69,6 +70,16 @@ function isActive(href: string, path: string) {
   return path === href || path.startsWith(`${href}/`);
 }
 
+function SLSBadge() {
+  const balance = useSLSBalance();
+  if (balance === null) return null;
+  return (
+    <span className="flex-shrink-0 px-2.5 py-1 rounded-sm bg-[#1a0a2e] border border-[rgba(153,69,255,0.3)] text-[#9945FF] text-[11px] font-bold tracking-[1px] whitespace-nowrap">
+      {balance.toFixed(2)} $SLS
+    </span>
+  );
+}
+
 export function Navigation() {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -118,7 +129,8 @@ export function Navigation() {
             })}
           </div>
 
-          <div className="flex-shrink-0 w-[170px] flex justify-end">
+          <div className="flex-shrink-0 flex items-center gap-2 justify-end">
+            <SLSBadge />
             <WalletMultiButton className="justify-center" />
           </div>
         </div>
@@ -171,7 +183,8 @@ export function Navigation() {
             </button>
           </div>
 
-          <div className="flex-shrink-0 w-[170px] flex justify-end">
+          <div className="flex-shrink-0 flex items-center gap-2 justify-end">
+            <SLSBadge />
             <WalletMultiButton className="justify-center" />
           </div>
         </div>

@@ -9,6 +9,7 @@ import { TOKEN_KEY } from "@/lib/config";
 import { StatusBars, type ProfileStats } from "@/components/ui/StatusBars";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { StatCard } from "@/components/game/StatCard";
+import { useSLSBalance } from "@/hooks/useSLSBalance";
 
 interface Profile extends ProfileStats {
   wallet: string;
@@ -71,6 +72,7 @@ function eventColor(type: string): string {
 
 export default function HomePage() {
   const router = useRouter();
+  const slxBalance = useSLSBalance();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -189,9 +191,16 @@ export default function HomePage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-1.5">
+      <div className="grid grid-cols-3 gap-1.5">
         <StatCard label="Cash" value={`$${Math.floor(profile?.cash ?? 0).toLocaleString()}`} color="#66bb6a" />
+        <StatCard
+          label="$SLS"
+          value={slxBalance !== null ? `${slxBalance.toFixed(2)} $SLS` : "—"}
+          color="#9945FF"
+        />
         <StatCard label="Income" value={`$${profile?.incomePerHour ?? 0}`} color="#66bb6a" />
+      </div>
+      <div className="grid grid-cols-2 gap-1.5">
         <StatCard label="AP" value={String(profile?.ap ?? 0)} color="#ef5350" />
         <StatCard label="DP" value={String(profile?.dp ?? 0)} color="#42a5f5" />
       </div>
