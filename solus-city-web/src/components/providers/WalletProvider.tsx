@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import {
   ConnectionProvider,
   WalletProvider,
@@ -18,6 +18,29 @@ interface Props {
   children: React.ReactNode;
 }
 
+type SolanaConnectionProviderProps = {
+  endpoint: string;
+  children?: React.ReactNode;
+};
+
+type SolanaWalletProviderProps = {
+  wallets: ReadonlyArray<unknown>;
+  autoConnect?: boolean;
+  children?: React.ReactNode;
+};
+
+type SolanaWalletModalProviderProps = {
+  children?: React.ReactNode;
+};
+
+const TypedConnectionProvider =
+  ConnectionProvider as React.ComponentType<SolanaConnectionProviderProps>;
+
+const TypedWalletProvider = WalletProvider as React.ComponentType<SolanaWalletProviderProps>;
+
+const TypedWalletModalProvider =
+  WalletModalProvider as React.ComponentType<SolanaWalletModalProviderProps>;
+
 export function SolanaWalletProvider({ children }: Props) {
   const endpoint = useMemo(
     () => process.env.NEXT_PUBLIC_HELIUS_RPC_URL ?? clusterApiUrl(SOLANA_NETWORK),
@@ -30,10 +53,10 @@ export function SolanaWalletProvider({ children }: Props) {
   );
 
   return (
-    <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>{children}</WalletModalProvider>
-      </WalletProvider>
-    </ConnectionProvider>
+    <TypedConnectionProvider endpoint={endpoint}>
+      <TypedWalletProvider wallets={wallets} autoConnect>
+        <TypedWalletModalProvider>{children}</TypedWalletModalProvider>
+      </TypedWalletProvider>
+    </TypedConnectionProvider>
   );
 }
