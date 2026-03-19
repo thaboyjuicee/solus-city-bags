@@ -1,1 +1,2 @@
-export { ProfileStats, StatusBars } from "@/components/game/StatusBars";
+export { StatusBars } from "@/components/game/StatusBars";
+export type { ProfileStats } from "@/components/game/StatusBars";

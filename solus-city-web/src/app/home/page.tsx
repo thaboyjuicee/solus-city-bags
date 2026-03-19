@@ -12,7 +12,7 @@ import { StatCard } from "@/components/game/StatCard";
 
 interface Profile extends ProfileStats {
   wallet: string;
-  name: string | null;
+  name: string;
   rp: number;
   strength: number;
   speed: number;

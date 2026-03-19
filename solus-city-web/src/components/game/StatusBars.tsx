@@ -27,6 +27,8 @@ export interface ProfileStats {
   level: number;
   xp: number;
   cash: number;
+  rp: number;
+  name: string;
   ap: number;
   dp: number;
   inHospital: boolean;
