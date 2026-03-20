@@ -87,6 +87,7 @@ export default async function meRoutes(
         nextEnergyAt: nextEnergyAt(updatedProfile),
         nextNerveAt: nextNerveAt(updatedProfile),
         nextHappinessAt: nextHappinessAt(updatedProfile),
+        slsSpent: updatedProfile.slsSpent,
         syndicate: membership
           ? {
               id: membership.syndicate.id,

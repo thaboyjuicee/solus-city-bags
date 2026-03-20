@@ -9,6 +9,7 @@ import {
   Home,
   MoreHorizontal,
   ScrollText,
+  ShoppingBag,
   Store,
   Trophy,
   UserRound,
@@ -28,6 +29,7 @@ type NavTab = {
     | "swords"
     | "dumbbell"
     | "store"
+    | "blackMarket"
     | "leaderboard"
     | "attackLogs"
     | "profile"
@@ -41,6 +43,7 @@ const NAV_TABS: NavTab[] = [
   { href: "/targets", label: "Battle", icon: "swords" },
   { href: "/gym", label: "Gym", icon: "dumbbell" },
   { href: "/shop", label: "Shop", icon: "store" },
+  { href: "/black-market", label: "Black Market", icon: "blackMarket" },
   { href: "/leaderboard", label: "Leaderboard", icon: "leaderboard" },
   { href: "/attack-logs", label: "Attack Logs", icon: "attackLogs" },
   { href: "/profile", label: "Profile", icon: "profile" },
@@ -54,6 +57,7 @@ const ICONS: Record<NonNullable<NavTab["icon"]>, typeof Home> = {
   swords: Swords,
   dumbbell: Dumbbell,
   store: Store,
+  blackMarket: ShoppingBag,
   leaderboard: Trophy,
   attackLogs: ScrollText,
   profile: UserRound,
