@@ -812,11 +812,11 @@ function HistoryPanel() {
         <div key={tx.id} className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3 flex items-start gap-2">
           {(() => {
             const isHospitalRelease = tx.type === "hospital_release";
-            const rowIcon = isHospitalRelease ? Plus : tx.type === "sls_sell" ? CircleDollarSign : ArrowLeftRight;
+            const RowIcon = isHospitalRelease ? Plus : tx.type === "sls_sell" ? CircleDollarSign : ArrowLeftRight;
             const rowIconColor = isHospitalRelease ? "text-[#ef5350]" : "text-[#555]";
             return (
               <div className="w-8 h-8 rounded-full bg-black/30 border border-white/10 flex items-center justify-center shrink-0">
-                <rowIcon size={14} className={rowIconColor} />
+                <RowIcon size={14} className={rowIconColor} />
               </div>
             );
           })()}
