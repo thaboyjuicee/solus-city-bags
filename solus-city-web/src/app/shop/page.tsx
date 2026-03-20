@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { PublicKey } from "@solana/web3.js";
-import { BagsSDK, type TradeQuoteResponse } from "@bagsfm/bags-sdk";
+import { VersionedTransaction } from "@solana/web3.js";
 import { api } from "@/lib/api/client";
 import { StatusBars, type ProfileStats } from "@/components/ui/StatusBars";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -27,8 +26,8 @@ import {
 // Constants
 // ---------------------------------------------------------------------------
 
-const SOL_MINT = new PublicKey("So11111111111111111111111111111111111111112");
-const SLS_MINT = new PublicKey("ELTXCFp1tmtfu39CPw6afnMSjW1BBxjinorJQsKmBAGS");
+const SOL_MINT_STR = "So11111111111111111111111111111111111111112";
+const SLS_MINT_STR = "ELTXCFp1tmtfu39CPw6afnMSjW1BBxjinorJQsKmBAGS";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -76,6 +75,13 @@ type ItemResult =
 type ShopTab = "unit" | "equipment" | "slx";
 type SwapPhase = "idle" | "quoting" | "quoted" | "done" | "error";
 
+interface SlsQuote {
+  outAmount: string;
+  priceImpactPct: string;
+  routePlan: Array<{ outputMintDecimals: number }>;
+  [key: string]: unknown;
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -100,16 +106,11 @@ function GetSLSPanel() {
   const { publicKey, signTransaction, connected } = useWallet();
   const slxBalance = useSLSBalance();
 
-  const sdk = useMemo(
-    () => new BagsSDK(process.env.NEXT_PUBLIC_BAGS_API_KEY ?? "", connection, "confirmed"),
-    [connection]
-  );
-
   const [solBalance, setSolBalance] = useState<number | null>(null);
   const [solInput, setSolInput] = useState("");
   const [phase, setPhase] = useState<SwapPhase>("idle");
   const [swapPending, setSwapPending] = useState(false);
-  const [quote, setQuote] = useState<TradeQuoteResponse | null>(null);
+  const [quote, setQuote] = useState<SlsQuote | null>(null);
   const [slxOut, setSlxOut] = useState<number | null>(null);
   const [priceImpact, setPriceImpact] = useState<string | null>(null);
   const [txSig, setTxSig] = useState<string | null>(null);
@@ -143,12 +144,14 @@ function GetSLSPanel() {
     setQuote(null);
     setSlxOut(null);
     try {
-      const q = await sdk.trade.getQuote({
-        inputMint: SOL_MINT,
-        outputMint: SLS_MINT,
-        amount: Math.floor(sol * 1e9),
-        slippageMode: "auto",
+      const res = await api.get<{ quote: SlsQuote }>("/bags/quote", {
+        params: {
+          inputMint: SOL_MINT_STR,
+          outputMint: SLS_MINT_STR,
+          amount: Math.floor(sol * 1e9),
+        },
       });
+      const q = res.data.quote;
       const lastLeg = q.routePlan[q.routePlan.length - 1];
       const decimals = lastLeg?.outputMintDecimals ?? 9;
       setSlxOut(parseInt(q.outAmount, 10) / Math.pow(10, decimals));
@@ -156,7 +159,7 @@ function GetSLSPanel() {
       setQuote(q);
       setPhase("quoted");
     } catch (e) {
-      setError(extractErrMsg(e, "Failed to get quote. Check your API key or try again."));
+      setError(extractErrMsg(e, "Failed to get quote. Please try again."));
       setPhase("error");
     }
   };
@@ -166,10 +169,13 @@ function GetSLSPanel() {
     setSwapPending(true);
     setError(null);
     try {
-      const { transaction, lastValidBlockHeight } = await sdk.trade.createSwapTransaction({
-        quoteResponse: quote,
-        userPublicKey: publicKey,
-      });
+      const res = await api.post<{ transaction: string; lastValidBlockHeight: number }>(
+        "/bags/swap",
+        { quoteResponse: quote, userPublicKey: publicKey.toBase58() }
+      );
+      const { transaction: txBase64, lastValidBlockHeight } = res.data;
+      const txBytes = Uint8Array.from(Buffer.from(txBase64, "base64"));
+      const transaction = VersionedTransaction.deserialize(txBytes);
       const signed = await signTransaction(transaction);
       const rawTx = signed.serialize();
       const sig = await connection.sendRawTransaction(rawTx, {

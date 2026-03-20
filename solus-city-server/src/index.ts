@@ -15,6 +15,7 @@ import crimeRoutes from "./routes/crimes";
 import eventsRoutes from "./routes/events";
 import attackLogsRoutes from "./routes/attackLogs";
 import syndicateRoutes from "./routes/syndicates";
+import bagsRoutes from "./routes/bags";
 
 const fastify = Fastify({ logger: true });
 
@@ -160,6 +161,7 @@ fastify.register(crimeRoutes, pluginOpts);
 fastify.register(eventsRoutes, pluginOpts);
 fastify.register(attackLogsRoutes, pluginOpts);
 fastify.register(syndicateRoutes, pluginOpts);
+fastify.register(bagsRoutes, pluginOpts);
 
 // Global error handler — never leak raw Prisma errors
 fastify.setErrorHandler((error, _request, reply) => {
