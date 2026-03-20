@@ -54,6 +54,18 @@ export default async function meRoutes(
         where: { userId },
         include: { syndicate: true },
       });
+      const [negativeSlsSpend, hospitalReleaseSpend] = await Promise.all([
+        prisma.slsTransaction.aggregate({
+          where: { userId, amount: { lt: 0 } },
+          _sum: { amount: true },
+        }),
+        prisma.slsTransaction.aggregate({
+          where: { userId, type: "hospital_release" },
+          _sum: { amount: true },
+        }),
+      ]);
+      const totalNegativeSpend = Math.abs(negativeSlsSpend._sum.amount ?? 0);
+      const totalHospitalReleaseSpend = Math.abs(hospitalReleaseSpend._sum.amount ?? 0);
 
       return reply.send({
         wallet: user?.wallet ?? "",
@@ -87,7 +99,7 @@ export default async function meRoutes(
         nextEnergyAt: nextEnergyAt(updatedProfile),
         nextNerveAt: nextNerveAt(updatedProfile),
         nextHappinessAt: nextHappinessAt(updatedProfile),
-        slsSpent: updatedProfile.slsSpent,
+        slsSpent: totalNegativeSpend + totalHospitalReleaseSpend,
         syndicate: membership
           ? {
               id: membership.syndicate.id,

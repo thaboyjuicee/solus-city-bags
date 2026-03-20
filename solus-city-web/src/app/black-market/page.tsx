@@ -815,18 +815,31 @@ function HistoryPanel() {
             <p className="text-[#555] text-[9px]">{formatDate(tx.createdAt)}</p>
           </div>
           <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
-            <span
-              className={`text-[12px] font-black ${tx.type === "sls_sell" ? "text-[#fdd835]" : "text-[#ef5350]"}`}
-            >
-              {tx.type === "sls_sell" ? "+" : "-"}{Math.abs(tx.amount).toFixed(2)} $SLS
-            </span>
-            <span className="text-[#555] text-[9px]">
-              {tx.type === "sls_sell"
-                ? `+${tx.usdValue.toFixed(2)} CASH`
-                : tx.usdValue > 0
-                  ? `~$${tx.usdValue.toFixed(2)}`
-                  : "$0.00"}
-            </span>
+            {(() => {
+              const isHospitalRelease = tx.type === "hospital_release";
+              const isDebit = tx.amount < 0 || isHospitalRelease;
+              const isCashPositive = tx.usdValue > 0 && !isHospitalRelease;
+              const amountColor = isDebit ? "text-[#ef5350]" : "text-[#fdd835]";
+              const amountPrefix = isDebit ? "-" : "+";
+              const cashPrefix = isCashPositive ? "+" : "-";
+              const cashColor = isCashPositive ? "text-[#66bb6a]" : "text-[#ef5350]";
+
+              return (
+                <>
+                  <span className={`text-[12px] font-black ${amountColor}`}>
+                    {amountPrefix}
+                    {Math.abs(tx.amount).toFixed(2)} $SLS
+                  </span>
+                  <span className={`${cashColor} text-[9px]`}>
+                    {tx.type === "sls_sell"
+                      ? `${cashPrefix}${Math.abs(tx.usdValue).toFixed(2)} CASH`
+                      : tx.usdValue > 0
+                        ? `~$${tx.usdValue.toFixed(2)}`
+                        : "$0.00"}
+                  </span>
+                </>
+              );
+            })()}
           </div>
         </div>
       ))}
