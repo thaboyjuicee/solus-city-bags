@@ -22,7 +22,6 @@ import {
   RP_WIN_CLAMP_MIN,
   RP_WIN_CLAMP_MAX,
   RP_LOSS,
-  COOLDOWN_MINUTES,
   CRIT_CHANCE_BASE,
   CRIT_CHANCE_MIN,
   CRIT_CHANCE_MAX,
@@ -68,60 +67,6 @@ function computeCritChance(
   const advantage = (attackerSpeed + attackerDex) - (defenderSpeed + defenderDex);
   const rawChance = CRIT_CHANCE_BASE + advantage / 700;
   return clamp(rawChance, CRIT_CHANCE_MIN, CRIT_CHANCE_MAX);
-}
-
-class CooldownActiveError extends Error {
-  nextAttackTs: Date;
-
-  constructor(nextAttackTs: Date) {
-    super("Target on cooldown");
-    this.nextAttackTs = nextAttackTs;
-  }
-}
-
-async function reservePlayerCooldown(
-  tx: Prisma.TransactionClient,
-  attackerId: string,
-  defenderId: string,
-  now: Date,
-  nextAttackTs: Date
-): Promise<void> {
-  const updated = await tx.attackCooldown.updateMany({
-    where: {
-      attackerId,
-      defenderId,
-      nextAttackTs: { lte: now },
-    },
-    data: { nextAttackTs },
-  });
-
-  if (updated.count === 1) return;
-
-  try {
-    await tx.attackCooldown.create({ data: { attackerId, defenderId, nextAttackTs } });
-    return;
-  } catch {
-    const existing = await tx.attackCooldown.findUnique({
-      where: { attackerId_defenderId: { attackerId, defenderId } },
-    });
-
-    if (existing && existing.nextAttackTs > now) {
-      throw new CooldownActiveError(existing.nextAttackTs);
-    }
-
-    const retried = await tx.attackCooldown.updateMany({
-      where: {
-        attackerId,
-        defenderId,
-        nextAttackTs: { lte: now },
-      },
-      data: { nextAttackTs },
-    });
-
-    if (retried.count !== 1) {
-      throw new CooldownActiveError(existing?.nextAttackTs ?? nextAttackTs);
-    }
-  }
 }
 
 export default async function battleRoutes(
@@ -353,84 +298,68 @@ export default async function battleRoutes(
       const newAttackerRp = Math.max(0, updatedAttacker.rp + rpChange);
       const newXp = updatedAttacker.xp + xpGained;
       const levelResult = processLevelUp({ ...updatedAttacker, xp: newXp });
-      const nextAttackTs = new Date(now.getTime() + COOLDOWN_MINUTES * 60 * 1000);
 
       let finalAttacker: Awaited<ReturnType<typeof prisma.profile.update>>;
       let createdBattle: Awaited<ReturnType<typeof prisma.battle.create>>;
 
       if (defenderProfileUserId) {
-        try {
-          const txResult = await prisma.$transaction(async (tx) => {
-            await reservePlayerCooldown(tx, userId, defenderProfileUserId, now, nextAttackTs);
-
-            const attacker = await tx.profile.update({
-              where: { userId },
-              data: {
-                ...atkIncomeUpdate,
-                ...atkEnergyUpdate,
-                ...atkNerveUpdate,
-                ...atkHappinessUpdate,
-                cash: updatedAttacker.cash + loot,
-                rp: newAttackerRp,
-                energy: updatedAttacker.energy - 1,
-                health: newAttackerHealth,
-                hospitalUntil: attackerHospitalUntil,
-                xp: levelResult.xp ?? newXp,
-                level: levelResult.level ?? updatedAttacker.level,
-                maxHealth: levelResult.maxHealth ?? updatedAttacker.maxHealth,
-              },
-            });
-
-            await tx.profile.update({
-              where: { userId: defenderProfileUserId },
-              data: {
-                ...defIncomeUpdate,
-                ...defEnergyUpdate,
-                ...defNerveUpdate,
-                ...defHappinessUpdate,
-                cash: Math.max(0, defenderCash - loot),
-                health: newDefenderHealth,
-                hospitalUntil: computedDefHospitalUntil,
-              },
-            });
-
-            const battle = await tx.battle.create({
-              data: {
-                attackerId: userId,
-                defenderId: defenderProfileUserId,
-                defenderType: isNpc ? "npc" : "player",
-                defenderNpcId: isNpc ? opponentId : null,
-                defenderName: opponentName,
-                win,
-                loot,
-                rpDelta: rpChange,
-                xpGained,
-                damageDealt,
-                damageTaken,
-                hospitalizedTarget: defenderHospitalized,
-                hospitalizedSelf: attackerHospitalized,
-                aAP: attackerAP,
-                dDP: opponentDP,
-              },
-            });
-
-            return { attacker, battle };
+        const txResult = await prisma.$transaction(async (tx) => {
+          const attacker = await tx.profile.update({
+            where: { userId },
+            data: {
+              ...atkIncomeUpdate,
+              ...atkEnergyUpdate,
+              ...atkNerveUpdate,
+              ...atkHappinessUpdate,
+              cash: updatedAttacker.cash + loot,
+              rp: newAttackerRp,
+              energy: updatedAttacker.energy - 1,
+              health: newAttackerHealth,
+              hospitalUntil: attackerHospitalUntil,
+              xp: levelResult.xp ?? newXp,
+              level: levelResult.level ?? updatedAttacker.level,
+              maxHealth: levelResult.maxHealth ?? updatedAttacker.maxHealth,
+            },
           });
 
-          finalAttacker = txResult.attacker;
-          createdBattle = txResult.battle;
-        } catch (err) {
-          if (err instanceof CooldownActiveError) {
-            await prisma.profile.update({
-              where: { userId },
-              data: { ...atkIncomeUpdate, ...atkEnergyUpdate, ...atkNerveUpdate, ...atkHappinessUpdate },
-            });
+          await tx.profile.update({
+            where: { userId: defenderProfileUserId },
+            data: {
+              ...defIncomeUpdate,
+              ...defEnergyUpdate,
+              ...defNerveUpdate,
+              ...defHappinessUpdate,
+              cash: Math.max(0, defenderCash - loot),
+              health: newDefenderHealth,
+              hospitalUntil: computedDefHospitalUntil,
+            },
+          });
 
-            return reply.status(400).send({ error: `Target on cooldown until ${err.nextAttackTs.toISOString()}` });
-          }
+          const battle = await tx.battle.create({
+            data: {
+              attackerId: userId,
+              defenderId: defenderProfileUserId,
+              defenderType: isNpc ? "npc" : "player",
+              defenderNpcId: isNpc ? opponentId : null,
+              defenderName: opponentName,
+              win,
+              loot,
+              rpDelta: rpChange,
+              xpGained,
+              damageDealt,
+              damageTaken,
+              hospitalizedTarget: defenderHospitalized,
+              hospitalizedSelf: attackerHospitalized,
+              aAP: attackerAP,
+              dDP: opponentDP,
+            },
+          });
 
-          throw err;
-        }
+          return { attacker, battle };
+        });
+
+        finalAttacker = txResult.attacker;
+        createdBattle = txResult.battle;
       } else {
         [finalAttacker, createdBattle] = await prisma.$transaction([
           prisma.profile.update({
@@ -473,6 +402,7 @@ export default async function battleRoutes(
       }
 
       const hospitalResult = computeHospitalResult(defenderHospitalized, attackerHospitalized);
+      const shouldEnableRevenge = hospitalResult === "target" || hospitalResult === "both";
       const attackerName = attackerProfile.name || "You";
 
       const attackerAttackType = evaded ? "attack_evaded" : isNpc ? "attacked_npc" : win ? "attack_win" : "attack_loss";
@@ -531,7 +461,7 @@ export default async function battleRoutes(
         await prisma.attackLog.create({
           data: {
             userId: defenderProfileUserId,
-            type: defenderLogType,
+          type: defenderLogType,
             attackerId: userId,
             defenderId: defenderProfileUserId,
             attackerName,
@@ -545,7 +475,7 @@ export default async function battleRoutes(
             xpGained: 0,
             hospitalResult,
             revengeTargetId: userId,
-            revengeAvailable: true,
+            revengeAvailable: shouldEnableRevenge,
           },
         });
       }

@@ -28,12 +28,7 @@ export default async function targetsRoutes(
       const rpMax = rp + band;
       const now = new Date();
 
-      // Get active cooldown target IDs for this attacker
-      const cooldowns = await prisma.attackCooldown.findMany({
-        where: { attackerId: userId, nextAttackTs: { gt: now } },
-        select: { defenderId: true },
-      });
-      const excludedIds = new Set([userId, ...cooldowns.map((c) => c.defenderId)]);
+      const excludedIds = new Set([userId]);
 
       // Find candidates in RP band, not shielded
       const candidates = await prisma.profile.findMany({

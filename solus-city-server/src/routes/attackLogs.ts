@@ -26,19 +26,15 @@ export default async function attackLogsRoutes(
             entry.type === "attack_evaded" || entry.type === "attacked_by_player_evaded" ? "evaded" : undefined;
 
           if (entry.targetType === "player" && entry.revengeTargetId && revengeAvailable) {
-            const [targetProfile, cooldown] = await Promise.all([
-              prisma.profile.findUnique({ where: { userId: entry.revengeTargetId } }),
-              prisma.attackCooldown.findUnique({
-                where: {
-                  attackerId_defenderId: {
-                    attackerId: userId,
-                    defenderId: entry.revengeTargetId,
-                  },
-                },
-              }),
-            ]);
+            const targetProfile = await prisma.profile.findUnique({ where: { userId: entry.revengeTargetId } });
 
-            if (!targetProfile || isInHospital(profile) || isInHospital(targetProfile) || targetProfile.shieldUntil > now || (cooldown && cooldown.nextAttackTs > now)) {
+            if (
+              !targetProfile ||
+              !["target", "both"].includes(entry.hospitalResult || "none") ||
+              isInHospital(profile) ||
+              isInHospital(targetProfile) ||
+              targetProfile.shieldUntil > now
+            ) {
               revengeAvailable = false;
             }
           } else {
