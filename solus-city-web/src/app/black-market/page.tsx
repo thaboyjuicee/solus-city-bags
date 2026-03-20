@@ -464,7 +464,7 @@ function HospitalPanel({
         <div className="bg-[#0a0a1a] border border-[rgba(153,69,255,0.3)] rounded-lg p-4 flex flex-col gap-2">
           <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">RELEASE COST</p>
           <div className="flex justify-between items-center">
-            <span className="text-[10px] text-[#888]">{releaseQuote.minutesRemaining}min remaining</span>
+            <span className="text-[10px] text-[#888]">Fixed release fee</span>
             <span className="text-[#9945FF] font-bold text-sm">{releaseQuote.costSls.toFixed(4)} $SLS</span>
           </div>
           <div className="flex justify-between items-center">
@@ -521,7 +521,7 @@ function HospitalPanel({
       )}
 
       <p className="text-[9px] text-[#333] text-center">
-        Cost: $0.25 per 10min · doubles each release per day
+        $0.15 flat fee · doubles each release per day
       </p>
     </div>
   );

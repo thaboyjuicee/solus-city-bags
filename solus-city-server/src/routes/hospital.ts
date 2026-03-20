@@ -21,7 +21,7 @@ import { isInHospital } from "../lib/game";
 const SLS_MINT = new PublicKey("ELTXCFp1tmtfu39CPw6afnMSjW1BBxjinorJQsKmBAGS");
 const TREASURY_WALLET = new PublicKey("5vTZGYbkJ2xGbpNEbgp8TLuob3jjXTLqRgzdG8zP1FiZ");
 const SLS_DECIMALS = 9;
-const USD_PER_10_MINUTES = 0.25;
+const BASE_RELEASE_FEE_USD = 0.15;
 
 interface DexPair {
   priceUsd?: string;
@@ -96,9 +96,8 @@ export default async function hospitalRoutes(
       const releaseCount = sameDay ? profile.hospitalReleaseCount : 0;
       const multiplier = Math.pow(2, releaseCount);
 
-      // Cost: $0.25 per 10-minute block × multiplier
-      const blocks = Math.ceil(minutesRemaining / 10);
-      const costUsd = USD_PER_10_MINUTES * blocks * multiplier;
+      // Cost: fixed $0.15 × daily multiplier
+      const costUsd = BASE_RELEASE_FEE_USD * multiplier;
 
       let slsPrice: number;
       try {
