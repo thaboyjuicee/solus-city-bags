@@ -1,128 +1,134 @@
 # Solus City
 
-An on-chain crime RPG built on Solana. Players authenticate with a wallet signature then progress through crimes, gym training, equipment purchases, PvP/NPC battles, leaderboards, and syndicates. The game economy runs on the **$SOLUS token** via the **Bags protocol**.
+**An on-chain crime RPG built on Solana.**
+
+Players authenticate with a Phantom/Solflare wallet signature and enter a persistent criminal underworld — committing crimes, training stats, buying equipment, raiding other players, climbing the leaderboard, and building syndicates. The in-game economy is anchored to the **$SLS token** traded on-chain, with real SOL→$SLS swaps powered by the **Bags protocol**.
+
+**Live:** [soluscity.xyz](https://soluscity.xyz)
+
+---
 
 ## Repository Structure
 
 ```
 solus-city-bags/
-├── solus-city-server/   # Fastify + Prisma backend (deployed on Railway)
-└── solus-city-web/      # Next.js 14 web client (deployed on Railway)
+├── solus-city-server/   # Fastify + Prisma API backend (Railway)
+└── solus-city-web/      # Next.js 14 web client (Vercel)
 ```
+
+---
 
 ## Tech Stack
 
 ### Backend (`solus-city-server/`)
+
 | Layer | Choice |
 |---|---|
-| Runtime | Node.js ≥ 22 + Fastify |
-| ORM | Prisma + PostgreSQL |
-| Auth | Ed25519 wallet signature → JWT (tweetnacl + bs58) |
+| Runtime | Node.js ≥ 22 |
+| Framework | Fastify 4 |
+| ORM | Prisma 5 + PostgreSQL |
+| Auth | Ed25519 wallet-signature → JWT (tweetnacl + bs58 + jsonwebtoken) |
+| Solana RPC | Helius (mainnet-beta) |
+| SPL Tokens | `@solana/spl-token`, `@solana/web3.js` |
+| Swaps | `@bagsfm/bags-sdk` 1.3.1 |
+| Validation | Zod |
 | Deployment | Railway |
 
-### Web client (`solus-city-web/`)
+### Web Client (`solus-city-web/`)
+
 | Layer | Choice |
 |---|---|
 | Framework | Next.js 14 (App Router) |
 | Language | TypeScript 5 (strict) |
 | Styling | Tailwind CSS 3.4 |
-| HTTP client | Axios — JWT interceptor + 401 redirect |
-| Wallet | `@solana/wallet-adapter-react` — Phantom + Solflare |
+| HTTP | Axios with JWT interceptor + 401 redirect |
+| Wallet | `@solana/wallet-adapter-react` — Phantom, Solflare |
+| Swaps | `@bagsfm/bags-sdk` 1.3.2 |
 | Solana network | mainnet-beta |
-| Deployment | Railway |
+| Deployment | Vercel |
 
-## Running Locally
+---
 
-### Prerequisites
-- Node.js ≥ 22
-- PostgreSQL running locally
+## Features
 
-### 1. Backend
+### Core Game Loop
 
-```bash
-cd solus-city-server
-npm install
-
-# Apply migrations and seed item/crime catalog
-npm run db:migrate
-npm run db:seed
-
-# Start dev server (http://localhost:3000)
-npm run dev
-```
-
-Available scripts:
-| Script | Description |
+| System | Details |
 |---|---|
-| `npm run dev` | Start with ts-node-dev (hot reload) |
-| `npm run build` | Compile TypeScript to `dist/` |
-| `npm run start` | Run compiled build |
-| `npm run db:migrate` | Apply Prisma migrations |
-| `npm run db:seed` | Seed items and crimes |
-| `npm run db:studio` | Open Prisma Studio |
+| **Crimes** | 10+ crimes with nerve cost, cooldown, XP/CASH reward, and jail risk |
+| **Gym** | Train Strength, Speed, Defense, Dexterity to boost AP/DP |
+| **Shop** | Buy units (gang members) and equipment — each with AP/DP bonuses |
+| **Battles** | Attack players and NPCs; win loot capped at `min(cash × 8%, $5 000)` |
+| **Hospital** | Defeated players are hospitalized; recover over time or buy out with $SLS |
+| **Leaderboard** | Top 100 players ranked by Respect Points (RP) |
+| **Syndicates** | Player-created factions with shared RP and a combat multiplier |
+| **Events feed** | Real-time scrolling ticker of recent game activity |
 
-### 2. Web Client
+### Black Market (`/black-market`)
 
-```bash
-cd solus-city-web
-npm install
+The Black Market is the hub for all $SLS token interactions:
 
-# Start dev server (http://localhost:3001 or next available port)
-npm run dev
-```
-
-Available scripts:
-| Script | Description |
+| Tab | Description |
 |---|---|
-| `npm run dev` | Start Next.js dev server |
-| `npm run build` | Production build |
-| `npm run start` | Serve production build |
-| `npm run lint` | Run ESLint |
+| **Get $SLS** | Swap SOL → $SLS directly in-game via Bags protocol (Jupiter-routed) |
+| **Sell $SLS** | Convert $SLS → in-game CASH at a fixed rate of **50 $SLS = 1 CASH** |
+| **Hospital** | Pay $SLS to instantly leave the hospital (base fee $0.15 USD, doubles per release per day) |
+| **History** | Full ledger of all $SLS transactions (buys, sells, hospital releases) |
 
-## Environment Variables
+The $SLS price strip at the top shows live price (DexScreener compact notation, e.g. `$0.0₈2628`), wallet balance, and total $SLS spent in-game.
 
-### Backend — `solus-city-server/.env`
+### $SLS Token Integration
 
-Copy `.env.example` → `.env` and fill in:
+- **Mint:** `ELTXCFp1tmtfu39CPw6afnMSjW1BBxjinorJQsKmBAGS`
+- **Treasury:** `5vTZGYbkJ2xGbpNEbgp8TLuob3jjXTLqRgzdG8zP1FiZ`
+- **DexScreener:** [View $SLS on DexScreener](https://dexscreener.com/solana/ELTXCFp1tmtfu39CPw6afnMSjW1BBxjinorJQsKmBAGS)
+- All on-chain transfers are verified server-side by reading pre/post token balances from the confirmed transaction — the server never trusts client-reported amounts.
 
-```env
-DATABASE_URL="postgresql://user:password@localhost:5432/soluscity"
-JWT_SECRET="a-long-random-secret-at-least-32-chars"
-PORT=3000
-```
+### Bags SDK Integration
 
-| Variable | Description |
+SOL→$SLS swaps use the [Bags protocol](https://bags.fm):
+
+1. Frontend calls `/bags/quote` (server proxy) → receives a `VersionedTransaction`
+2. Player signs with their wallet
+3. Frontend calls `/bags/swap` (server proxy) to submit the signed tx
+4. Bags routes through Jupiter for best execution
+
+---
+
+## Game Mechanics
+
+| Mechanic | Formula / Rule |
 |---|---|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `JWT_SECRET` | Secret used to sign/verify JWTs |
-| `PORT` | Port for the Fastify server (default `3000`) |
+| AP | `BASE_ATK + strength + Σ item AP bonuses` (× syndicate multiplier) |
+| DP | `BASE_DEF + defense + Σ item DP bonuses` |
+| Win chance | `attackerAP / (attackerAP + defenderDP)` |
+| Loot cap | `min(defenderCash × 8%, $5 000)` |
+| Attack cooldown | 10 min per attacker→defender pair |
+| Level threshold | `level × 100 XP` |
+| Energy regen | +1 per 5 min |
+| Nerve regen | +1 per 3 min |
+| Happiness | Decays with crimes/battles; boosted by home items |
+| Passive income | Applied on next login, capped at 24 h backfill |
+| Hospital release | Base $0.15 USD in $SLS; cost doubles per release within the same UTC day |
+| $SLS → CASH rate | 50 $SLS = 1 CASH (min 50 000 $SLS / max 2 500 000 $SLS per trade) |
 
-### Web client — `solus-city-web/.env.local`
-
-Copy `.env.local.example` → `.env.local` and fill in:
-
-```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:3000
-NEXT_PUBLIC_SOLANA_NETWORK=mainnet-beta
-```
-
-| Variable | Description |
-|---|---|
-| `NEXT_PUBLIC_API_BASE_URL` | Backend API base URL |
-| `NEXT_PUBLIC_SOLANA_NETWORK` | Solana cluster — `mainnet-beta`, `devnet`, or `testnet` |
+---
 
 ## API Reference
 
-**Base URL (production):** `https://solus-city-app-production.up.railway.app`
+**Production base URL:** `https://solus-city-app-production.up.railway.app`
 
 ### Public
+
 | Method | Route | Description |
 |---|---|---|
 | GET | `/health` | Health check |
 | GET | `/auth/challenge?wallet=<pubkey>` | Get nonce challenge message |
-| POST | `/auth/verify` | Verify signature and receive JWT |
+| POST | `/auth/verify` | Verify wallet signature → JWT |
+| GET | `/sls/price` | Live $SLS price in USD (DexScreener) |
 
 ### Protected (Bearer JWT required)
+
 | Method | Route | Description |
 |---|---|---|
 | GET | `/me` | Full profile snapshot |
@@ -131,11 +137,11 @@ NEXT_PUBLIC_SOLANA_NETWORK=mainnet-beta
 | GET | `/crimes` | Available crimes |
 | POST | `/crimes/commit` | Commit a crime |
 | POST | `/gym/train` | Train a stat |
-| GET | `/shop/items` | Shop inventory with ownership |
-| POST | `/shop/buy` | Purchase item(s) |
-| GET | `/targets` | RP-matched target list |
+| GET | `/shop/items` | Shop inventory with ownership flags |
+| POST | `/shop/buy` | Purchase an item |
+| GET | `/targets` | RP-matched target list (players + NPCs) |
 | POST | `/battle/attack` | Attack a target |
-| GET | `/logs/attacks` | Attack log history |
+| GET | `/logs/attacks` | Last 50 attack log entries |
 | GET | `/leaderboard` | Top 100 players by RP |
 | GET | `/syndicates` | All syndicates |
 | GET | `/syndicates/:id` | Syndicate detail + members |
@@ -143,35 +149,10 @@ NEXT_PUBLIC_SOLANA_NETWORK=mainnet-beta
 | POST | `/syndicates/:id/join` | Join a syndicate |
 | POST | `/syndicates/leave` | Leave current syndicate |
 | GET | `/leaderboard/syndicates` | Top syndicates by total RP |
-
-## Deployment
-
-### Backend — Railway
-
-1. Connect the `solus-city-server/` directory (or the repo root with root directory set).
-2. Set the environment variables (`DATABASE_URL`, `JWT_SECRET`, `PORT`).
-3. Railway runs `npm run build && npm run start` automatically on push.
-4. The PostgreSQL plugin in Railway provides `DATABASE_URL`.
-
-### Web client — Railway
-
-1. Create a second Railway service for `solus-city-web`.
-2. Set the **Root Directory** for that service to `solus-city-web`.
-3. Set environment variables:
-   - `NEXT_PUBLIC_API_BASE_URL` -> `https://${{Backend.RAILWAY_PUBLIC_DOMAIN}}` or your backend service name
-   - `NEXT_PUBLIC_SOLANA_NETWORK` -> `mainnet-beta`
-4. Railway will detect Next.js automatically and run `npm run build` / `npm run start`.
-
-## Game Systems
-
-| System | Summary |
-|---|---|
-| Energy regen | +1 per 5 minutes |
-| Nerve regen | +1 per 3 minutes |
-| Passive income | Applied on next login, capped at 24h backfill |
-| AP formula | `BASE_ATK + strength + item bonuses` (× syndicate multiplier if applicable) |
-| DP formula | `BASE_DEF + defense + item bonuses` |
-| Battle win chance | `attackerAP / (attackerAP + defenderDP)` |
-| Loot cap | `min(defenderCash × 8%, $5,000)` |
-| Attack cooldown | 10 minutes per attacker→defender pair |
-| Level threshold | `level × 100 XP` |
+| POST | `/hospital/release` | Build unsigned $SLS transfer tx for hospital release |
+| POST | `/hospital/confirm` | Verify on-chain tx and clear hospitalization |
+| POST | `/sls/sell/quote` | Build unsigned $SLS transfer tx for CASH purchase |
+| POST | `/sls/sell/confirm` | Verify on-chain tx and credit CASH |
+| GET | `/sls/transactions` | Last 20 $SLS transaction records |
+| POST | `/bags/quote` | Proxy: get Bags swap quote |
+| POST | `/bags/swap` | Proxy: submit signed Bags swap tx |
