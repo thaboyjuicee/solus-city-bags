@@ -70,10 +70,16 @@ function computeCritChance(
 }
 
 function getRepeatedAttackRewardMultiplier(consecutiveAttackCount: number): number {
-  if (consecutiveAttackCount <= 0) return 1;
-  if (consecutiveAttackCount === 1) return 0.6;
-  if (consecutiveAttackCount === 2) return 0.3;
+  if (consecutiveAttackCount <= 1) return 1;
+  if (consecutiveAttackCount === 2) return 0.6;
+  if (consecutiveAttackCount === 3) return 0.3;
   return 0.2;
+}
+
+function getRepeatedAttackWindowStart(now: Date): Date {
+  const windowStart = new Date(now);
+  windowStart.setMinutes(windowStart.getMinutes() - 15);
+  return windowStart;
 }
 
 export default async function battleRoutes(
@@ -226,23 +232,19 @@ export default async function battleRoutes(
 
       let repeatedAttackMultiplier = 1;
       if (defenderProfileUserId) {
+        const repeatedWindowStart = getRepeatedAttackWindowStart(now);
         const recentAttackLogs = await prisma.attackLog.findMany({
           where: {
             userId,
+            defenderId: defenderProfileUserId,
             targetType: "player",
+            createdAt: { gte: repeatedWindowStart },
           },
           orderBy: { createdAt: "desc" },
-          take: 10,
           select: { defenderId: true },
         });
 
-        let consecutiveTargetHits = 0;
-        for (const entry of recentAttackLogs) {
-          if (entry.defenderId !== defenderProfileUserId) break;
-          consecutiveTargetHits += 1;
-        }
-
-        repeatedAttackMultiplier = getRepeatedAttackRewardMultiplier(consecutiveTargetHits);
+        repeatedAttackMultiplier = getRepeatedAttackRewardMultiplier(recentAttackLogs.length + 1);
       }
 
       const pWin = attackerAP / (attackerAP + opponentDP);
