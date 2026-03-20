@@ -8,7 +8,7 @@ const BARS = [
   { key: "nv", label: "NV", currentKey: "nerve", maxKey: "maxNerve", color: "#1e88e5" },
   {
     key: "happiness",
-    label: "HP",
+    label: "HA",
     currentKey: "happiness",
     maxKey: "maxHappiness",
     color: "#fdd835",
