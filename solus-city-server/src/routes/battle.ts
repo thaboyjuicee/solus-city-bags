@@ -69,6 +69,13 @@ function computeCritChance(
   return clamp(rawChance, CRIT_CHANCE_MIN, CRIT_CHANCE_MAX);
 }
 
+function getRepeatedAttackRewardMultiplier(consecutiveAttackCount: number): number {
+  if (consecutiveAttackCount <= 0) return 1;
+  if (consecutiveAttackCount === 1) return 0.6;
+  if (consecutiveAttackCount === 2) return 0.3;
+  return 0.2;
+}
+
 export default async function battleRoutes(
   fastify: FastifyInstance,
   { prisma }: { prisma: PrismaClient }
@@ -217,6 +224,27 @@ export default async function battleRoutes(
         defenderHealth = npc.health;
       }
 
+      let repeatedAttackMultiplier = 1;
+      if (defenderProfileUserId) {
+        const recentAttackLogs = await prisma.attackLog.findMany({
+          where: {
+            userId,
+            targetType: "player",
+          },
+          orderBy: { createdAt: "desc" },
+          take: 10,
+          select: { defenderId: true },
+        });
+
+        let consecutiveTargetHits = 0;
+        for (const entry of recentAttackLogs) {
+          if (entry.defenderId !== defenderProfileUserId) break;
+          consecutiveTargetHits += 1;
+        }
+
+        repeatedAttackMultiplier = getRepeatedAttackRewardMultiplier(consecutiveTargetHits);
+      }
+
       const pWin = attackerAP / (attackerAP + opponentDP);
       const roll = Math.random();
       const baseWin = roll < pWin;
@@ -260,11 +288,16 @@ export default async function battleRoutes(
           }
 
           loot = Math.min(Math.round(defenderCash * LOOT_PERCENT), LOOT_CAP);
-          rpChange = Math.round(RP_WIN_BASE + clamp((opponentRp - updatedAttacker.rp) / 50, RP_WIN_CLAMP_MIN, RP_WIN_CLAMP_MAX));
-          xpGained = 15 + Math.floor(Math.random() * 10);
+          const baseRpChange = Math.round(
+            RP_WIN_BASE + clamp((opponentRp - updatedAttacker.rp) / 50, RP_WIN_CLAMP_MIN, RP_WIN_CLAMP_MAX)
+          );
+          let baseXpGain = 15 + Math.floor(Math.random() * 10);
           if (criticalHit) {
-            xpGained += CRIT_XP_BONUS;
+            baseXpGain += CRIT_XP_BONUS;
           }
+          rpChange = Math.max(0, Math.floor(baseRpChange * repeatedAttackMultiplier));
+          loot = Math.floor(loot * repeatedAttackMultiplier);
+          xpGained = Math.floor(baseXpGain * repeatedAttackMultiplier);
         }
       } else {
         damageDealt = winnerDmg;
