@@ -87,14 +87,19 @@ export default function BattleResultPage() {
   }, [router]);
 
   const attackAgain = async () => {
-    if (!result?.opponent || result.opponent.type !== "npc") return;
+    if (!result?.opponent) return;
     setAttackingAgain(true);
     setAttackAgainError(null);
+
+    const targetType =
+      result.opponent.type === "npc" || result.opponent.type === "player"
+        ? result.opponent.type
+        : "npc";
 
     try {
       const res = await api.post<BattleResult>("/battle/attack", {
         targetId: result.opponent.id,
-        targetType: "npc",
+        targetType,
       });
       sessionStorage.setItem(BATTLE_RESULT_KEY, JSON.stringify(res.data));
       setResult(res.data);
@@ -148,7 +153,8 @@ export default function BattleResultPage() {
   const { outcomeType, win, rpChange, loot } = result;
   const isEvade = outcomeType === "evaded";
   const rpSign = rpChange >= 0 ? "+" : "";
-  const canAttackAgain = result.opponent?.type === "npc";
+  const canAttackAgain =
+    result.opponent?.type === "npc" || result.opponent?.type === "player";
 
   const outcomeLabel = isEvade ? "EVADED" : win ? "VICTORY" : "DEFEAT";
   const outcomeColor = isEvade
