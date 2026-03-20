@@ -10,12 +10,12 @@ import { useSLSBalance } from "@/hooks/useSLSBalance";
 import {
   ArrowLeftRight,
   Clock,
-  DollarSign,
+  CircleDollarSign,
+  Coins,
   History,
+  Plus,
   ShoppingBag,
-  TrendingUp,
   Wallet,
-  Zap,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -326,19 +326,19 @@ function GetSLSPanel() {
             </button>
             <button onClick={confirmSwap} disabled={isLoading}
               className="flex-1 py-2.5 rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF] text-[11px] font-bold tracking-[2px] flex items-center justify-center gap-1.5 hover:bg-[#2a0a3e] disabled:opacity-40 transition-colors">
-              {swapPending ? <LoadingSpinner size={16} color="#9945FF" /> : <><ArrowLeftRight size={14} /> CONFIRM SWAP</>}
+              {swapPending ? <LoadingSpinner size={16} color="#9945FF" /> : <><CircleDollarSign size={14} /> CONFIRM SWAP</>}
             </button>
           </div>
         ) : (
           <button onClick={getQuote} disabled={!canQuote}
             className="w-full py-2.5 rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF] text-[11px] font-bold tracking-[2px] flex items-center justify-center gap-1.5 hover:bg-[#2a0a3e] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-            {phase === "quoting" ? <LoadingSpinner size={16} color="#9945FF" /> : <><ArrowLeftRight size={14} /> GET QUOTE</>}
+            {phase === "quoting" ? <LoadingSpinner size={16} color="#9945FF" /> : <><Coins size={14} /> GET QUOTE</>}
           </button>
         )
       ) : (
         <button onClick={() => { setPhase("idle"); setSolInput(""); setTxSig(null); resetQuote(); }}
           className="w-full py-2.5 rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF] text-[11px] font-bold tracking-[2px] flex items-center justify-center gap-1.5 hover:bg-[#2a0a3e] transition-colors">
-          <ArrowLeftRight size={14} /> SWAP AGAIN
+          <CircleDollarSign size={14} /> SWAP AGAIN
         </button>
       )}
 
@@ -550,7 +550,7 @@ function SellSLSPanel({ onSold }: { onSold: () => void }) {
               disabled={isLoading}
               className="flex-1 py-2.5 rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF] text-[11px] font-bold tracking-[2px] flex items-center justify-center gap-1.5 hover:bg-[#2a0a3e] disabled:opacity-40 transition-colors"
             >
-              {isLoading ? <LoadingSpinner size={16} color="#9945FF" /> : <><DollarSign size={14} /> CONFIRM SELL</>}
+              {isLoading ? <LoadingSpinner size={16} color="#9945FF" /> : <><CircleDollarSign size={14} /> CONFIRM SELL</>}
             </button>
           </div>
         ) : (
@@ -559,7 +559,7 @@ function SellSLSPanel({ onSold }: { onSold: () => void }) {
             disabled={!isAmountValid}
             className="w-full py-2.5 rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF] text-[11px] font-bold tracking-[2px] flex items-center justify-center gap-1.5 hover:bg-[#2a0a3e] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            {phase === "quoting" ? <LoadingSpinner size={16} color="#9945FF" /> : <><DollarSign size={14} /> SELL FOR CASH</>}
+            {phase === "quoting" ? <LoadingSpinner size={16} color="#9945FF" /> : <><CircleDollarSign size={14} /> SELL FOR CASH</>}
           </button>
         )
       ) : (
@@ -572,7 +572,7 @@ function SellSLSPanel({ onSold }: { onSold: () => void }) {
           }}
           className="w-full py-2.5 rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF] text-[11px] font-bold tracking-[2px] flex items-center justify-center gap-1.5 hover:bg-[#2a0a3e] transition-colors"
         >
-          <DollarSign size={14} /> SELL AGAIN
+          <CircleDollarSign size={14} /> SELL AGAIN
         </button>
       )}
     </div>
@@ -624,7 +624,7 @@ function HospitalPanel({
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-12">
         <div className="w-12 h-12 rounded-full bg-[#0a1a0a] border border-[#1a4a1a] flex items-center justify-center">
-          <Zap size={20} className="text-[#66bb6a]" />
+          <Plus size={20} className="text-[#ef5350]" />
         </div>
         <p className="text-[#66bb6a] text-[11px] font-bold tracking-[2px]">YOU ARE NOT HOSPITALIZED</p>
         <p className="text-[#555] text-[10px]">You are free to roam Solus City</p>
@@ -679,7 +679,7 @@ function HospitalPanel({
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-12">
         <div className="w-12 h-12 rounded-full bg-[#0a1a0a] border border-[#1a4a1a] flex items-center justify-center">
-          <Zap size={20} className="text-[#66bb6a]" />
+          <Plus size={20} className="text-[#ef5350]" />
         </div>
         <p className="text-[#66bb6a] text-[11px] font-bold tracking-[2px]">RELEASED FROM HOSPITAL</p>
         <p className="text-[#555] text-[10px]">You are free to roam Solus City</p>
@@ -744,7 +744,7 @@ function HospitalPanel({
       ) : phase === "idle" || phase === "error" ? (
         <button onClick={requestRelease} disabled={isLoading}
           className="w-full py-2.5 rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF] text-[11px] font-bold tracking-[2px] flex items-center justify-center gap-1.5 hover:bg-[#2a0a3e] disabled:opacity-40 transition-colors">
-          <DollarSign size={14} /> PAY $SLS TO LEAVE NOW
+          <CircleDollarSign size={14} /> PAY $SLS TO LEAVE NOW
         </button>
       ) : phase === "quoted" ? (
         <div className="flex gap-2">
@@ -754,7 +754,7 @@ function HospitalPanel({
           </button>
           <button onClick={confirmRelease} disabled={isLoading}
             className="flex-1 py-2.5 rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF] text-[11px] font-bold tracking-[2px] flex items-center justify-center gap-1.5 hover:bg-[#2a0a3e] disabled:opacity-40 transition-colors">
-            <DollarSign size={14} /> CONFIRM PAYMENT
+            <CircleDollarSign size={14} /> CONFIRM PAYMENT
           </button>
         </div>
       ) : (
@@ -809,12 +809,22 @@ function HistoryPanel() {
   return (
     <div className="flex flex-col gap-2">
       {transactions.map((tx) => (
-        <div key={tx.id} className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3 flex items-center justify-between gap-2">
-          <div className="flex flex-col gap-0.5 min-w-0">
+        <div key={tx.id} className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3 flex items-start gap-2">
+          {(() => {
+            const isHospitalRelease = tx.type === "hospital_release";
+            const rowIcon = isHospitalRelease ? Plus : tx.type === "sls_sell" ? CircleDollarSign : ArrowLeftRight;
+            const rowIconColor = isHospitalRelease ? "text-[#ef5350]" : "text-[#555]";
+            return (
+              <div className="w-8 h-8 rounded-full bg-black/30 border border-white/10 flex items-center justify-center shrink-0">
+                <rowIcon size={14} className={rowIconColor} />
+              </div>
+            );
+          })()}
+          <div className="flex flex-col gap-0.5 min-w-0 flex-1 text-left">
             <p className="text-[#eee] text-[11px] font-bold truncate">{tx.description}</p>
             <p className="text-[#555] text-[9px]">{formatDate(tx.createdAt)}</p>
           </div>
-          <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+          <div className="flex flex-col items-end gap-0.5 flex-shrink-0 ml-auto text-right">
             {(() => {
               const isHospitalRelease = tx.type === "hospital_release";
               const isDebit = tx.amount < 0 || isHospitalRelease;
@@ -906,8 +916,8 @@ export default function BlackMarketPage() {
 
   const TABS: { id: BlackMarketTab; label: string; icon: typeof ArrowLeftRight }[] = [
     { id: "swap", label: "GET $SLS", icon: ArrowLeftRight },
-    { id: "sell", label: "SELL $SLS", icon: DollarSign },
-    { id: "hospital", label: "HOSPITAL", icon: Clock },
+    { id: "sell", label: "SELL $SLS", icon: CircleDollarSign },
+    { id: "hospital", label: "HOSPITAL", icon: Plus },
     { id: "history", label: "HISTORY", icon: History },
   ];
 
