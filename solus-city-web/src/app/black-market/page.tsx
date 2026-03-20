@@ -24,12 +24,17 @@ import {
 
 const SOL_MINT_STR = "So11111111111111111111111111111111111111112";
 const SLS_MINT_STR = "ELTXCFp1tmtfu39CPw6afnMSjW1BBxjinorJQsKmBAGS";
+const SLS_TO_CASH_RATE = 50;
+const MIN_CASH_PER_TRADE = 1000;
+const MAX_CASH_PER_TRADE = 50000;
+const MIN_SLS_PER_TRADE = MIN_CASH_PER_TRADE * SLS_TO_CASH_RATE;
+const MAX_SLS_PER_TRADE = MAX_CASH_PER_TRADE * SLS_TO_CASH_RATE;
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type BlackMarketTab = "swap" | "hospital" | "history";
+type BlackMarketTab = "swap" | "sell" | "hospital" | "history";
 
 interface MeData extends ProfileStats {
   wallet: string;
@@ -45,6 +50,14 @@ interface SlsQuote {
   [key: string]: unknown;
 }
 
+interface SlsSellQuote {
+  slsAmount: number;
+  cashToReceive: number;
+  transaction: string;
+  blockhash: string;
+  lastValidBlockHeight: number;
+}
+
 interface SlsTransaction {
   id: string;
   type: string;
@@ -55,6 +68,7 @@ interface SlsTransaction {
 }
 
 type SwapPhase = "idle" | "quoting" | "quoted" | "done" | "error";
+type SellPhase = "idle" | "quoting" | "quoted" | "signing" | "confirming" | "done" | "error";
 type ReleasePhase = "idle" | "requesting" | "quoted" | "signing" | "confirming" | "done" | "error";
 
 // ---------------------------------------------------------------------------
@@ -334,6 +348,238 @@ function GetSLSPanel() {
 }
 
 // ---------------------------------------------------------------------------
+// Sell $SLS panel
+// ---------------------------------------------------------------------------
+
+function SellSLSPanel({ onSold }: { onSold: () => void }) {
+  const { connection } = useConnection();
+  const { publicKey, signTransaction, connected } = useWallet();
+  const slsBalance = useSLSBalance();
+
+  const [slsInput, setSlsInput] = useState("");
+  const [phase, setPhase] = useState<SellPhase>("idle");
+  const [quote, setQuote] = useState<SlsSellQuote | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [txSig, setTxSig] = useState<string | null>(null);
+
+  const clampSellAmount = useCallback((value: number) => {
+    if (!Number.isFinite(value)) return MIN_SLS_PER_TRADE;
+    return Math.min(Math.max(value, MIN_SLS_PER_TRADE), MAX_SLS_PER_TRADE);
+  }, []);
+
+  const reset = () => {
+    setQuote(null);
+    setError(null);
+    setTxSig(null);
+  };
+
+  const getQuote = async () => {
+    const amount = parseFloat(slsInput);
+    if (isNaN(amount) || amount <= 0) {
+      setError("Enter a valid $SLS amount.");
+      return;
+    }
+
+    const clampedAmount = clampSellAmount(amount);
+    if (amount !== clampedAmount) {
+      setSlsInput(clampedAmount.toString());
+    }
+    if (slsBalance !== null && clampedAmount > slsBalance) {
+      setError("You do not have enough $SLS to sell.");
+      return;
+    }
+    setPhase("quoting");
+    setError(null);
+
+    try {
+      const res = await api.post<SlsSellQuote>("/sls/sell/quote", { slsAmount: clampedAmount });
+      setQuote(res.data);
+      setPhase("quoted");
+    } catch (e) {
+      setError(extractErrMsg(e, "Failed to create sell quote."));
+      setPhase("error");
+    }
+  };
+
+  const confirmSell = async () => {
+    if (!publicKey || !signTransaction || !quote) return;
+    setPhase("signing");
+    setError(null);
+
+    try {
+      const txBytes = Buffer.from(quote.transaction, "base64");
+      const tx = Transaction.from(txBytes);
+      setPhase("signing");
+      const signed = await signTransaction(tx);
+      setPhase("confirming");
+
+      const sig = await connection.sendRawTransaction(signed.serialize(), {
+        skipPreflight: false,
+        maxRetries: 3,
+      });
+      await connection.confirmTransaction({
+        signature: sig,
+        blockhash: quote.blockhash,
+        lastValidBlockHeight: quote.lastValidBlockHeight,
+      });
+      await api.post("/sls/sell/confirm", { signature: sig });
+
+      setTxSig(sig);
+      setPhase("done");
+      onSold();
+    } catch (e) {
+      setError(extractErrMsg(e, "Sell failed. Please try again."));
+      setPhase("error");
+    }
+  };
+
+  const isLoading = phase === "quoting" || phase === "signing" || phase === "confirming";
+  const isAmountValid = (() => {
+    const amount = parseFloat(slsInput);
+    return (
+      !isNaN(amount)
+      && amount >= MIN_SLS_PER_TRADE
+      && amount <= MAX_SLS_PER_TRADE
+      && (slsBalance === null || amount <= slsBalance)
+      && !isLoading
+    );
+  })();
+
+  if (!connected || !publicKey) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-12">
+        <Wallet size={32} className="text-[#555]" />
+        <p className="text-[#555] text-[11px] font-bold tracking-[2px]">CONNECT WALLET TO SELL</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-2 gap-1.5">
+        <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
+          <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">YOUR $SLS</p>
+          <p className="text-sm font-bold text-[#9945FF]">{slsBalance !== null ? slsBalance.toFixed(2) : "â€”"} $SLS</p>
+        </div>
+        <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
+          <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">RATE</p>
+          <p className="text-sm font-bold text-[#eee]">50 $SLS / 1 CASH</p>
+        </div>
+      </div>
+
+      <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 flex flex-col gap-2">
+          <p className="text-[9px] font-bold tracking-[2px] text-[#555]">SELL $SLS</p>
+          <p className="text-[10px] text-[#555]">
+            Min {MIN_SLS_PER_TRADE.toLocaleString()} $SLS for {MIN_CASH_PER_TRADE} CASH, max {MAX_SLS_PER_TRADE.toLocaleString()} $SLS
+            {" "}| {MAX_CASH_PER_TRADE} CASH.
+          </p>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min={MIN_SLS_PER_TRADE}
+            max={MAX_SLS_PER_TRADE}
+            step="0.01"
+            placeholder="0.00"
+            value={slsInput}
+            onChange={(e) => {
+              setSlsInput(e.target.value);
+              if (phase === "quoted" || phase === "done" || phase === "error") {
+                setPhase("idle");
+                reset();
+              }
+            }}
+            onBlur={() => {
+              const amount = parseFloat(slsInput);
+              if (isNaN(amount)) return;
+              const clampedAmount = clampSellAmount(amount);
+              if (clampedAmount !== amount) {
+                setSlsInput(clampedAmount.toString());
+              }
+              if (phase === "error") {
+                setError(null);
+              }
+            }}
+            disabled={isLoading}
+            className="flex-1 bg-black/20 text-[#eee] border border-white/10 rounded-md px-3 py-2 text-sm font-bold focus:outline-none focus:border-[rgba(153,69,255,0.5)] disabled:opacity-40"
+          />
+          <span className="text-[#888] text-sm font-bold flex-shrink-0">$SLS</span>
+        </div>
+      </div>
+
+      {quote && (
+        <div className="bg-[#0a0a1a] border border-[rgba(153,69,255,0.3)] rounded-md p-3 flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-bold tracking-[2px] text-[#555]">YOU RECEIVE</span>
+            <span className="text-[#66bb6a] text-sm font-black">{quote.cashToReceive.toFixed(2)} CASH</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-bold tracking-[2px] text-[#555]">SELL AMOUNT</span>
+            <span className="text-[#9945FF] text-sm font-black">{quote.slsAmount.toFixed(2)} $SLS</span>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-[#1a0a0a] border border-[#7f1919] rounded-md px-3 py-2">
+          <p className="text-[#ef5350] text-[11px] font-bold">{error}</p>
+        </div>
+      )}
+
+      {phase === "done" && txSig && (
+        <div className="bg-[#0a1a0a] border border-[#1a4a1a] rounded-md px-3 py-2 flex flex-col gap-1">
+          <p className="text-[#66bb6a] text-[11px] font-bold">SLS sold!</p>
+          <p className="text-[#555] text-[9px] font-mono break-all">{txSig}</p>
+        </div>
+      )}
+
+      {phase !== "done" ? (
+        phase === "quoted" && quote ? (
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setPhase("idle");
+                setQuote(null);
+              }}
+              disabled={isLoading}
+              className="flex-1 py-2.5 rounded-md border border-white/10 bg-black/20 text-[#555] text-[11px] font-bold tracking-[2px] hover:text-[#888] disabled:opacity-40 transition-colors"
+            >
+              CANCEL
+            </button>
+            <button
+              onClick={confirmSell}
+              disabled={isLoading}
+              className="flex-1 py-2.5 rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF] text-[11px] font-bold tracking-[2px] flex items-center justify-center gap-1.5 hover:bg-[#2a0a3e] disabled:opacity-40 transition-colors"
+            >
+              {isLoading ? <LoadingSpinner size={16} color="#9945FF" /> : <><DollarSign size={14} /> CONFIRM SELL</>}
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={getQuote}
+            disabled={!isAmountValid}
+            className="w-full py-2.5 rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF] text-[11px] font-bold tracking-[2px] flex items-center justify-center gap-1.5 hover:bg-[#2a0a3e] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {phase === "quoting" ? <LoadingSpinner size={16} color="#9945FF" /> : <><DollarSign size={14} /> SELL FOR CASH</>}
+          </button>
+        )
+      ) : (
+        <button
+          onClick={() => {
+            setPhase("idle");
+            setSlsInput("");
+            setTxSig(null);
+            reset();
+          }}
+          className="w-full py-2.5 rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF] text-[11px] font-bold tracking-[2px] flex items-center justify-center gap-1.5 hover:bg-[#2a0a3e] transition-colors"
+        >
+          <DollarSign size={14} /> SELL AGAIN
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Hospital release panel
 // ---------------------------------------------------------------------------
 
@@ -569,8 +815,18 @@ function HistoryPanel() {
             <p className="text-[#555] text-[9px]">{formatDate(tx.createdAt)}</p>
           </div>
           <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
-            <span className="text-[#ef5350] text-[12px] font-black">-{tx.amount.toFixed(2)} $SLS</span>
-            <span className="text-[#555] text-[9px]">${tx.usdValue.toFixed(2)}</span>
+            <span
+              className={`text-[12px] font-black ${tx.type === "sls_sell" ? "text-[#fdd835]" : "text-[#ef5350]"}`}
+            >
+              {tx.type === "sls_sell" ? "+" : "-"}{Math.abs(tx.amount).toFixed(2)} $SLS
+            </span>
+            <span className="text-[#555] text-[9px]">
+              {tx.type === "sls_sell"
+                ? `+${tx.usdValue.toFixed(2)} CASH`
+                : tx.usdValue > 0
+                  ? `~$${tx.usdValue.toFixed(2)}`
+                  : "$0.00"}
+            </span>
           </div>
         </div>
       ))}
@@ -637,6 +893,7 @@ export default function BlackMarketPage() {
 
   const TABS: { id: BlackMarketTab; label: string; icon: typeof ArrowLeftRight }[] = [
     { id: "swap", label: "GET $SLS", icon: ArrowLeftRight },
+    { id: "sell", label: "SELL $SLS", icon: DollarSign },
     { id: "hospital", label: "HOSPITAL", icon: Clock },
     { id: "history", label: "HISTORY", icon: History },
   ];
@@ -688,6 +945,7 @@ export default function BlackMarketPage() {
         {/* Tab content */}
         <div className="pb-4">
           {tab === "swap" && <GetSLSPanel />}
+          {tab === "sell" && <SellSLSPanel onSold={() => fetchProfile()} />}
           {tab === "hospital" && profile && (
             <HospitalPanel
               profile={profile}
