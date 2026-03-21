@@ -1,7 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { PrismaClient } from "@prisma/client";
 import { requireAuth } from "../lib/auth";
-import { isInHospital } from "../lib/game";
 
 export default async function attackLogsRoutes(
   fastify: FastifyInstance,
@@ -11,59 +10,46 @@ export default async function attackLogsRoutes(
     const { userId } = request.user;
 
     try {
-      const [profile, logs] = await Promise.all([
-        prisma.profile.findUnique({ where: { userId } }),
+      const [logs, revengeMarks] = await Promise.all([
         prisma.attackLog.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 50 }),
+        prisma.revengeMark.findMany({
+          where: { victimUserId: userId, active: true, expiresAt: { gt: new Date() } },
+          orderBy: { createdAt: "desc" },
+        }),
       ]);
 
-      if (!profile) return reply.status(404).send({ error: "Profile not found" });
-      const now = new Date();
+      const revengeByTarget = new Map(revengeMarks.map((mark) => [mark.attackerUserId, mark]));
 
-      const enriched = await Promise.all(
-        logs.map(async (entry) => {
-          let revengeAvailable = !!entry.revengeAvailable;
-          const outcomeType =
-            entry.type === "attack_evaded" || entry.type === "attacked_by_player_evaded" ? "evaded" : undefined;
+      const enriched = logs.map((entry) => {
+        const revenge = entry.revengeTargetId ? revengeByTarget.get(entry.revengeTargetId) : undefined;
+        const outcomeType =
+          entry.type === "attack_evaded" || entry.type === "attacked_by_player_evaded" ? "evaded" : undefined;
 
-          if (entry.targetType === "player" && entry.revengeTargetId && revengeAvailable) {
-            const targetProfile = await prisma.profile.findUnique({ where: { userId: entry.revengeTargetId } });
-            if (
-              !targetProfile ||
-              !["target", "both"].includes(entry.hospitalResult || "none") ||
-              isInHospital(profile) ||
-              isInHospital(targetProfile) ||
-              targetProfile.shieldUntil > now
-            ) {
-              revengeAvailable = false;
-            }
-          } else {
-            revengeAvailable = false;
-          }
-
-          return {
-            id: entry.id,
-            createdAt: entry.createdAt,
-            type: entry.type,
-            attackerName: entry.attackerName,
-            defenderName: entry.defenderName,
-            targetType: entry.targetType,
-            result: entry.result,
-            outcomeType,
-            damageDealt: entry.damageDealt,
-            damageTaken: entry.damageTaken,
-            loot: entry.loot,
-            cashStolen: entry.cashStolen,
-            heatChange: entry.heatChange,
-            rpChange: entry.rpChange,
-            xpGained: entry.xpGained,
-            hospitalResult: entry.hospitalResult,
-            revengeTargetId: entry.revengeTargetId,
-            revengeAvailable,
-            metadata: entry.metadata,
-            protectionTriggered: (entry.metadata as { protectionTriggered?: string[] } | null)?.protectionTriggered ?? [],
-          };
-        })
-      );
+        return {
+          id: entry.id,
+          createdAt: entry.createdAt,
+          type: entry.type,
+          attackerName: entry.attackerName,
+          defenderName: entry.defenderName,
+          targetType: entry.targetType,
+          result: entry.result,
+          outcomeType,
+          damageDealt: entry.damageDealt,
+          damageTaken: entry.damageTaken,
+          loot: entry.loot,
+          cashStolen: entry.cashStolen,
+          heatChange: entry.heatChange,
+          rpChange: entry.rpChange,
+          xpGained: entry.xpGained,
+          hospitalResult: entry.hospitalResult,
+          revengeTargetId: revenge?.attackerUserId ?? entry.revengeTargetId,
+          revengeAvailable: !!revenge,
+          revengeExpiresAt: revenge?.expiresAt ?? null,
+          revengeBonusPreview: revenge?.bonusPercent ?? 0,
+          metadata: entry.metadata,
+          protectionTriggered: (entry.metadata as { protectionTriggered?: string[] } | null)?.protectionTriggered ?? [],
+        };
+      });
 
       return reply.send(enriched);
     } catch (err) {

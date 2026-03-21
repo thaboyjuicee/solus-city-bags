@@ -23,3 +23,24 @@ export const HOSPITAL_PENALTY_DURATION_HOURS = {
 
 export const DAILY_MISSION_COUNT = 3;
 export const WEEKLY_MISSION_COUNT = 2;
+
+export const PERK_POINT_LEVEL_INTERVAL = 5;
+export const PERK_BRANCH_MAX_TIER = 3;
+
+export const REVENGE_WINDOW_HOURS = 24;
+export const REVENGE_BONUS_PERCENT = 0.15;
+export const REVENGE_MIN_LOSS_THRESHOLD = 750;
+
+export const SEASON_SCORE_BATTLE_WIN = 12;
+export const SEASON_SCORE_HOSPITALIZE = 6;
+export const SEASON_SCORE_CRIME_SUCCESS = 4;
+export const SEASON_SCORE_MISSION_CLAIM = 8;
+
+export const MISMATCH_POWER_RATIO_THRESHOLD = 1.8;
+export const MISMATCH_LEVEL_GAP_THRESHOLD = 8;
+export const MISMATCH_LOOT_MULTIPLIER = 0.4;
+export const MISMATCH_SEASON_POINTS_MULTIPLIER = 0.5;
+export const REPEAT_TARGET_SEASON_POINT_MULTIPLIER = 0.5;
+
+export const INVENTORY_DEFAULT_DURABILITY = 100;
+export const INVENTORY_EQUIP_SLOTS = ["weapon", "armor", "utility"] as const;

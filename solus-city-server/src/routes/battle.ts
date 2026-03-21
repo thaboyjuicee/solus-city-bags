@@ -40,6 +40,15 @@ import { fetchActiveProtectionEffects } from "../lib/combat/protection";
 import { ensurePlayerMissionsAssigned } from "../lib/missions/assign";
 import { progressPlayerMissions } from "../lib/missions/progress";
 import { REPEAT_TARGET_LOOT_REDUCTION_WINDOW_MINUTES } from "../lib/config/balance";
+import { getPlayerPerkContext } from "../lib/player/perks";
+import { awardSeasonScore } from "../lib/seasons/scoring";
+import { getMismatchAdjustment } from "../lib/matchmaking";
+import {
+  getActiveRevengeAgainst,
+  getRevengeBonusPercent,
+  maybeCreateRevengeMark,
+  resolveRevenge,
+} from "../lib/combat/revenge";
 
 const attackBody = z.object({
   targetId: z.string().min(1),
@@ -59,7 +68,7 @@ function computeEvasionChance(
   defenderSpeed: number,
   defenderDex: number
 ): number {
-  const advantage = (defenderSpeed + defenderDex) - (attackerSpeed + attackerDex);
+  const advantage = defenderSpeed + defenderDex - (attackerSpeed + attackerDex);
   const rawChance = EVASION_CHANCE_BASE + advantage / 600;
   return clamp(rawChance, EVASION_CHANCE_MIN, EVASION_CHANCE_MAX);
 }
@@ -70,7 +79,7 @@ function computeCritChance(
   defenderSpeed: number,
   defenderDex: number
 ): number {
-  const advantage = (attackerSpeed + attackerDex) - (defenderSpeed + defenderDex);
+  const advantage = attackerSpeed + attackerDex - (defenderSpeed + defenderDex);
   const rawChance = CRIT_CHANCE_BASE + advantage / 700;
   return clamp(rawChance, CRIT_CHANCE_MIN, CRIT_CHANCE_MAX);
 }
@@ -93,7 +102,10 @@ export default async function battleRoutes(
     try {
       await ensurePlayerMissionsAssigned(prisma, userId);
       const now = new Date();
-      const attackerProfileRaw = await prisma.profile.findUnique({ where: { userId } });
+      const [attackerProfileRaw, attackerPerkContext] = await Promise.all([
+        prisma.profile.findUnique({ where: { userId } }),
+        getPlayerPerkContext(userId, prisma),
+      ]);
       if (!attackerProfileRaw) return reply.status(404).send({ error: "Your profile not found" });
 
       const attackerHospitalUpdate = applyHospitalRecovery(attackerProfileRaw);
@@ -137,6 +149,8 @@ export default async function battleRoutes(
 
       const attackerStats = await computeCombatStats(userId, prisma);
       const attackerAP = attackerStats.totalStats.ap;
+      const attackerDP = attackerStats.totalStats.dp;
+      const attackerPower = attackerAP + attackerDP;
       const attackerSpeed = attackerStats.totalStats.speed;
       const attackerDexterity = attackerStats.totalStats.dexterity;
       const isNpc = parsed.data.targetType === "npc";
@@ -147,6 +161,7 @@ export default async function battleRoutes(
       let opponentLevel = 1;
       let opponentRp = 0;
       let opponentDP = 1;
+      let opponentPower = 1;
       let opponentSpeed = 0;
       let opponentDexterity = 0;
       let defenderCash = 0;
@@ -166,6 +181,7 @@ export default async function battleRoutes(
       let defHappinessUpdate: Record<string, unknown> = {};
       let defenderPenaltyType: string | null = null;
       let defenderPenaltyActive = false;
+      let revengeMark = null as Awaited<ReturnType<typeof getActiveRevengeAgainst>>;
 
       if (!isNpc) {
         const defenderProfileRaw = await prisma.profile.findUnique({ where: { userId: parsed.data.targetId } });
@@ -202,6 +218,7 @@ export default async function battleRoutes(
         opponentLevel = recoveredDefender.level;
         opponentRp = recoveredDefender.rp;
         opponentDP = defenderStats.totalStats.dp;
+        opponentPower = defenderStats.totalStats.ap + defenderStats.totalStats.dp;
         opponentSpeed = defenderStats.totalStats.speed;
         opponentDexterity = defenderStats.totalStats.dexterity;
         defenderCash = updatedDefender.cash;
@@ -220,6 +237,7 @@ export default async function battleRoutes(
         });
         defenderPenaltyType = updatedDefender.hospitalExitPenaltyType;
         defenderPenaltyActive = !!updatedDefender.hospitalExitPenaltyUntil && updatedDefender.hospitalExitPenaltyUntil > now;
+        revengeMark = await getActiveRevengeAgainst(prisma, userId, parsed.data.targetId, now);
       } else {
         const template = NPC_POOL.find((npc) => npc.id === parsed.data.targetId);
         if (!template) return reply.status(400).send({ error: "Invalid NPC target" });
@@ -229,11 +247,19 @@ export default async function battleRoutes(
         opponentLevel = npc.level;
         opponentRp = npc.rp;
         opponentDP = npc.defensePower;
+        opponentPower = npc.defensePower * 2;
         opponentSpeed = npc.speed;
         opponentDexterity = npc.dexterity;
         defenderCash = npc.cash;
         defenderHealth = npc.health;
       }
+
+      const mismatch = getMismatchAdjustment({
+        attackerPower,
+        defenderPower: opponentPower,
+        attackerLevel: updatedAttacker.level,
+        defenderLevel: opponentLevel,
+      });
 
       const pWin = attackerAP / (attackerAP + opponentDP);
       const roll = Math.random();
@@ -251,6 +277,7 @@ export default async function battleRoutes(
       let cashStolen = 0;
       let rpChange = 0;
       let xpGained = 0;
+      let revengeBonusApplied = 0;
 
       if (baseWin) {
         evadeChance = computeEvasionChance(attackerSpeed, attackerDexterity, opponentSpeed, opponentDexterity);
@@ -278,11 +305,15 @@ export default async function battleRoutes(
               defenderPenaltyType,
               defenderPenaltyActive,
             });
-            cashStolen = lootResult.cashStolen;
-            loot = lootResult.cashStolen;
+            const revengeBonus = getRevengeBonusPercent(revengeMark) + (attackerPerkContext.effects.revenge_bonus_percent ?? 0);
+            const lootPerk = attackerPerkContext.effects.loot_percent ?? 0;
+            const boostedSteal = Math.floor(lootResult.cashStolen * (1 + lootPerk + revengeBonus));
+            cashStolen = Math.min(defenderCash, Math.max(0, Math.floor(boostedSteal * mismatch.lootMultiplier)));
+            loot = cashStolen;
             lootProtectedAmount = lootResult.lootProtectedAmount;
             protectionTriggered = lootResult.protectionTriggered;
             antiFarmPenaltyApplied = lootResult.antiFarmPenaltyApplied;
+            revengeBonusApplied = revengeBonus;
           } else {
             loot = Math.min(Math.round(defenderCash * LOOT_PERCENT), LOOT_CAP);
             cashStolen = loot;
@@ -312,7 +343,7 @@ export default async function battleRoutes(
         ? new Date(Math.max(defenderHospitalUntil.getTime(), now.getTime() + damageDealt * HOSPITAL_MINUTES_PER_DMG * 60 * 1000))
         : defenderHospitalUntil;
 
-      const attackerHeatDelta = win ? 2 + (defenderHospitalized ? 2 : 0) : 1;
+      const attackerHeatDelta = Math.max(1, win ? 2 + (defenderHospitalized ? 2 : 0) : 1);
       const attackerHeatUpdate = applyHeat(updatedAttacker, attackerHeatDelta, now);
       const newXp = updatedAttacker.xp + xpGained;
       const levelResult = processLevelUp({ ...updatedAttacker, xp: newXp });
@@ -385,6 +416,55 @@ export default async function battleRoutes(
           { goalType: "hospitalize_player", amount: defenderHospitalized && defenderUserId ? 1 : 0 },
         ]);
 
+        let seasonPointsGained = 0;
+        if (win) {
+          const battleSeason = await awardSeasonScore(tx, {
+            userId,
+            category: "battle_win",
+            amount: 1,
+            repeatPenaltyApplied: antiFarmPenaltyApplied || mismatch.mismatchPenaltyApplied,
+          });
+          seasonPointsGained += battleSeason.pointsGained;
+          if (defenderHospitalized && defenderUserId) {
+            const hospitalSeason = await awardSeasonScore(tx, {
+              userId,
+              category: "hospitalize",
+              amount: 1,
+              repeatPenaltyApplied: antiFarmPenaltyApplied || mismatch.mismatchPenaltyApplied,
+            });
+            seasonPointsGained += hospitalSeason.pointsGained;
+          }
+        }
+
+        let revengeResolved = false;
+        if (win && revengeMark) {
+          await resolveRevenge(tx, revengeMark.id, now);
+          revengeResolved = true;
+        }
+
+        let createdRevenge = null;
+        if (defenderUserId && outcomeType !== "evaded") {
+          if (win) {
+            createdRevenge = await maybeCreateRevengeMark(tx, {
+              victimUserId: defenderUserId,
+              attackerUserId: userId,
+              battleId: createdBattle.id,
+              cashLost: cashStolen,
+              hospitalized: defenderHospitalized,
+              now,
+            });
+          } else {
+            createdRevenge = await maybeCreateRevengeMark(tx, {
+              victimUserId: userId,
+              attackerUserId: defenderUserId,
+              battleId: createdBattle.id,
+              cashLost: 0,
+              hospitalized: attackerHospitalized,
+              now,
+            });
+          }
+        }
+
         const attackMetadata = {
           protectionTriggered,
           lootProtectedAmount,
@@ -392,6 +472,8 @@ export default async function battleRoutes(
           targetHeatBand,
           outcomeType,
           criticalHit,
+          revengeBonusApplied,
+          mismatchPenaltyApplied: mismatch.mismatchPenaltyApplied,
         };
 
         await tx.eventLog.create({
@@ -407,6 +489,9 @@ export default async function battleRoutes(
               battleId: createdBattle.id,
               cashStolen,
               heatChange: attackerHeatDelta,
+              seasonPointsGained,
+              revengeResolved,
+              revengeCreated: !!createdRevenge,
               ...attackMetadata,
             },
           },
@@ -432,7 +517,7 @@ export default async function battleRoutes(
             xpGained,
             hospitalResult,
             revengeTargetId: defenderUserId,
-            revengeAvailable: false,
+            revengeAvailable: !!createdRevenge,
           },
         });
 
@@ -452,6 +537,7 @@ export default async function battleRoutes(
                 protectionTriggered,
                 lootProtectedAmount,
                 targetHeatBand,
+                revengeCreated: !!createdRevenge,
               },
             },
           });
@@ -471,39 +557,17 @@ export default async function battleRoutes(
               loot: -loot,
               cashStolen: loot,
               heatChange: 0,
-              metadata: { protectionTriggered, lootProtectedAmount, targetHeatBand },
+              metadata: { protectionTriggered, lootProtectedAmount, targetHeatBand, revengeCreated: !!createdRevenge },
               rpChange: 0,
               xpGained: 0,
               hospitalResult,
               revengeTargetId: userId,
-              revengeAvailable: defenderHospitalized,
+              revengeAvailable: !!createdRevenge,
             },
           });
         }
 
-        if (attackerHospitalized) {
-          await tx.eventLog.create({
-            data: {
-              userId,
-              type: "hospital",
-              message: "Hospitalized from battle injuries",
-              metadata: { battleId: createdBattle.id, method: "battle" },
-            },
-          });
-        }
-
-        if (defenderHospitalized && defenderUserId) {
-          await tx.eventLog.create({
-            data: {
-              userId: defenderUserId,
-              type: "hospital",
-              message: `Hospitalized after attack by ${attackerProfileRaw.name || "a rival"}`,
-              metadata: { battleId: createdBattle.id, method: "battle" },
-            },
-          });
-        }
-
-        return { finalAttacker, createdBattle, missionUpdates };
+        return { finalAttacker, createdBattle, missionUpdates, seasonPointsGained, revengeResolved, revengeCreated: !!createdRevenge };
       });
 
       const finalCombat = await computeCombatStats(userId, prisma);
@@ -527,7 +591,12 @@ export default async function battleRoutes(
         targetHeatBand,
         protectionTriggered,
         antiFarmPenaltyApplied,
+        mismatchPenaltyApplied: mismatch.mismatchPenaltyApplied,
         missionUpdates: txResult.missionUpdates,
+        revengeCreated: txResult.revengeCreated,
+        revengeResolved: txResult.revengeResolved,
+        revengeBonusApplied,
+        seasonPointsGained: txResult.seasonPointsGained,
         rpChange,
         xpGained,
         attackerAP,

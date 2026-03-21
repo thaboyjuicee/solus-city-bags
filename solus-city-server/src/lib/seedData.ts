@@ -11,6 +11,7 @@ type SeedItem = {
   price: number;
   levelRequirement: number;
   rarity: string;
+  slot: string | null;
   description: string;
   effectType: string | null;
   effectValue: number | null;
@@ -20,6 +21,8 @@ type SeedItem = {
   blackMarketOnly: boolean;
   consumable: boolean;
   stealable: boolean;
+  tradable: boolean;
+  maxStack: number | null;
   stackable: boolean;
   isUnique: boolean;
 };
@@ -34,6 +37,17 @@ type SeedMissionDefinition = {
   rewardCash: number;
   rewardRp: number;
   rewardItemName: string | null;
+};
+
+type SeedPerkDefinition = {
+  branch: string;
+  code: string;
+  name: string;
+  description: string;
+  effectType: string;
+  effectValue: number;
+  tier: number;
+  prerequisiteCode: string | null;
 };
 
 const defaultItems: SeedItem[] = ([
@@ -61,6 +75,7 @@ const defaultItems: SeedItem[] = ([
   price,
   levelRequirement,
   rarity,
+  slot: subCategory === "weapon" ? "weapon" : subCategory === "armor" ? "armor" : category === "equipment" ? "utility" : null,
   description,
   effectType: null,
   effectValue: null,
@@ -70,6 +85,8 @@ const defaultItems: SeedItem[] = ([
   blackMarketOnly: false,
   consumable: false,
   stealable: true,
+  tradable: category !== "consumable",
+  maxStack: category === "equipment" ? 1 : 25,
   stackable: true,
   isUnique: false,
 }));
@@ -86,6 +103,7 @@ const waveOneItems: SeedItem[] = [
     price: 900,
     levelRequirement: 2,
     rarity: "uncommon",
+    slot: null,
     description: "Reduce a hospital timer with quick street treatment.",
     effectType: "hospital_release_partial",
     effectValue: 0.5,
@@ -95,6 +113,8 @@ const waveOneItems: SeedItem[] = [
     blackMarketOnly: true,
     consumable: true,
     stealable: true,
+    tradable: false,
+    maxStack: 10,
     stackable: true,
     isUnique: false,
   },
@@ -109,6 +129,7 @@ const waveOneItems: SeedItem[] = [
     price: 2200,
     levelRequirement: 4,
     rarity: "rare",
+    slot: null,
     description: "Force an immediate discharge from the hospital.",
     effectType: "hospital_release_full",
     effectValue: 1,
@@ -118,6 +139,8 @@ const waveOneItems: SeedItem[] = [
     blackMarketOnly: true,
     consumable: true,
     stealable: true,
+    tradable: false,
+    maxStack: 5,
     stackable: true,
     isUnique: false,
   },
@@ -132,6 +155,7 @@ const waveOneItems: SeedItem[] = [
     price: 1600,
     levelRequirement: 3,
     rarity: "rare",
+    slot: "utility",
     description: "Softens heat spikes after dirty deals.",
     effectType: "heat_mask_percent",
     effectValue: 0.15,
@@ -141,6 +165,8 @@ const waveOneItems: SeedItem[] = [
     blackMarketOnly: true,
     consumable: false,
     stealable: false,
+    tradable: true,
+    maxStack: 1,
     stackable: false,
     isUnique: false,
   },
@@ -155,6 +181,7 @@ const waveOneItems: SeedItem[] = [
     price: 1400,
     levelRequirement: 3,
     rarity: "uncommon",
+    slot: "utility",
     description: "Sacrifice dummy cash so thieves get less of the real thing.",
     effectType: "decoy_wallet_percent",
     effectValue: 0.2,
@@ -164,6 +191,8 @@ const waveOneItems: SeedItem[] = [
     blackMarketOnly: true,
     consumable: false,
     stealable: true,
+    tradable: true,
+    maxStack: 1,
     stackable: true,
     isUnique: false,
   },
@@ -178,6 +207,7 @@ const waveOneItems: SeedItem[] = [
     price: 1800,
     levelRequirement: 4,
     rarity: "uncommon",
+    slot: "utility",
     description: "Spoofs comms and trims a bit of PvP loot exposure.",
     effectType: "loot_reduction_percent",
     effectValue: 0.08,
@@ -187,6 +217,8 @@ const waveOneItems: SeedItem[] = [
     blackMarketOnly: true,
     consumable: false,
     stealable: true,
+    tradable: true,
+    maxStack: 1,
     stackable: true,
     isUnique: false,
   },
@@ -201,6 +233,7 @@ const waveOneItems: SeedItem[] = [
     price: 2600,
     levelRequirement: 5,
     rarity: "rare",
+    slot: "utility",
     description: "Carries illicit gear while taking the edge off raids.",
     effectType: "loot_reduction_percent",
     effectValue: 0.12,
@@ -210,6 +243,8 @@ const waveOneItems: SeedItem[] = [
     blackMarketOnly: true,
     consumable: false,
     stealable: true,
+    tradable: true,
+    maxStack: 1,
     stackable: true,
     isUnique: false,
   },
@@ -224,6 +259,7 @@ const waveOneItems: SeedItem[] = [
     price: 1100,
     levelRequirement: 2,
     rarity: "common",
+    slot: null,
     description: "Low-grade reinforcement that trims cash losses in a fight.",
     effectType: "loot_reduction_percent",
     effectValue: 0.15,
@@ -233,6 +269,8 @@ const waveOneItems: SeedItem[] = [
     blackMarketOnly: true,
     consumable: true,
     stealable: true,
+    tradable: false,
+    maxStack: 10,
     stackable: true,
     isUnique: false,
   },
@@ -247,6 +285,7 @@ const waveOneItems: SeedItem[] = [
     price: 3000,
     levelRequirement: 6,
     rarity: "epic",
+    slot: null,
     description: "Packed with hot goods that attract heat and side profits.",
     effectType: "contraband_drop",
     effectValue: 1,
@@ -256,6 +295,8 @@ const waveOneItems: SeedItem[] = [
     blackMarketOnly: true,
     consumable: true,
     stealable: true,
+    tradable: false,
+    maxStack: 5,
     stackable: true,
     isUnique: false,
   },
@@ -294,6 +335,24 @@ const defaultMissionDefinitions: SeedMissionDefinition[] = ([
   rewardItemName,
 }));
 
+const defaultPerkDefinitions: SeedPerkDefinition[] = [
+  { branch: "enforcer", code: "enforcer_loot_plus_1", name: "Shake Down I", description: "Boost PvP wallet steals a little.", effectType: "loot_percent", effectValue: 0.08, tier: 1, prerequisiteCode: null },
+  { branch: "enforcer", code: "enforcer_battle_edge_1", name: "Battle Edge I", description: "Gain a small AP edge.", effectType: "battle_ap_percent", effectValue: 0.06, tier: 1, prerequisiteCode: null },
+  { branch: "enforcer", code: "enforcer_revenge_bonus_1", name: "Score to Settle", description: "Improve revenge payouts.", effectType: "revenge_bonus_percent", effectValue: 0.08, tier: 1, prerequisiteCode: null },
+  { branch: "enforcer", code: "enforcer_loot_plus_2", name: "Shake Down II", description: "Further improve PvP loot.", effectType: "loot_percent", effectValue: 0.1, tier: 2, prerequisiteCode: "enforcer_loot_plus_1" },
+  { branch: "enforcer", code: "enforcer_battle_edge_2", name: "Battle Edge II", description: "A stronger AP bonus.", effectType: "battle_ap_percent", effectValue: 0.08, tier: 2, prerequisiteCode: "enforcer_battle_edge_1" },
+  { branch: "hustler", code: "hustler_crime_payout_1", name: "Fast Hands", description: "Increase crime payouts slightly.", effectType: "crime_payout_percent", effectValue: 0.1, tier: 1, prerequisiteCode: null },
+  { branch: "hustler", code: "hustler_heat_reduction_1", name: "Keep It Quiet", description: "Trim heat gained from shady activity.", effectType: "heat_reduction_percent", effectValue: 0.12, tier: 1, prerequisiteCode: null },
+  { branch: "hustler", code: "hustler_black_market_discount_1", name: "Connected Buyer", description: "Unlock small black market discounts.", effectType: "black_market_discount_percent", effectValue: 0.08, tier: 1, prerequisiteCode: null },
+  { branch: "hustler", code: "hustler_crime_payout_2", name: "Fast Hands II", description: "A stronger crime payout bonus.", effectType: "crime_payout_percent", effectValue: 0.12, tier: 2, prerequisiteCode: "hustler_crime_payout_1" },
+  { branch: "hustler", code: "hustler_heat_reduction_2", name: "Keep It Quiet II", description: "Further reduce heat spikes.", effectType: "heat_reduction_percent", effectValue: 0.14, tier: 2, prerequisiteCode: "hustler_heat_reduction_1" },
+  { branch: "grinder", code: "grinder_training_efficiency_1", name: "Solid Routine", description: "Prepare for future training gains.", effectType: "training_efficiency_percent", effectValue: 0.08, tier: 1, prerequisiteCode: null },
+  { branch: "grinder", code: "grinder_recovery_efficiency_1", name: "Tough Recovery", description: "Prepare for better recovery efficiency.", effectType: "recovery_efficiency_percent", effectValue: 0.08, tier: 1, prerequisiteCode: null },
+  { branch: "grinder", code: "grinder_hospital_reduction_1", name: "Bounce Back", description: "Reduce hospital time when released by items.", effectType: "hospital_time_reduction_percent", effectValue: 0.12, tier: 1, prerequisiteCode: null },
+  { branch: "grinder", code: "grinder_recovery_efficiency_2", name: "Tough Recovery II", description: "A stronger recovery boost.", effectType: "recovery_efficiency_percent", effectValue: 0.1, tier: 2, prerequisiteCode: "grinder_recovery_efficiency_1" },
+  { branch: "grinder", code: "grinder_hospital_reduction_2", name: "Bounce Back II", description: "Further reduce hospital release friction.", effectType: "hospital_time_reduction_percent", effectValue: 0.14, tier: 2, prerequisiteCode: "grinder_hospital_reduction_1" },
+];
+
 export async function ensureSeedData(prisma: PrismaClient) {
   const items = [...defaultItems, ...waveOneItems];
 
@@ -307,6 +366,42 @@ export async function ensureSeedData(prisma: PrismaClient) {
         data: item,
       });
     }
+  }
+
+  const seededPerks = new Map<string, string>();
+  for (const perk of defaultPerkDefinitions) {
+    const created = await prisma.perkDefinition.upsert({
+      where: { code: perk.code },
+      update: {
+        branch: perk.branch,
+        name: perk.name,
+        description: perk.description,
+        effectType: perk.effectType,
+        effectValue: perk.effectValue,
+        tier: perk.tier,
+        active: true,
+      },
+      create: {
+        branch: perk.branch,
+        code: perk.code,
+        name: perk.name,
+        description: perk.description,
+        effectType: perk.effectType,
+        effectValue: perk.effectValue,
+        tier: perk.tier,
+        active: true,
+      },
+    });
+    seededPerks.set(perk.code, created.id);
+  }
+
+  for (const perk of defaultPerkDefinitions) {
+    await prisma.perkDefinition.update({
+      where: { code: perk.code },
+      data: {
+        prerequisitePerkId: perk.prerequisiteCode ? seededPerks.get(perk.prerequisiteCode) ?? null : null,
+      },
+    });
   }
 
   const crimeCount = await prisma.crime.count();
@@ -343,6 +438,26 @@ export async function ensureSeedData(prisma: PrismaClient) {
         rewardRp: definition.rewardRp,
         rewardItemId: rewardItem?.id ?? null,
         active: true,
+      },
+    });
+  }
+
+  const now = new Date();
+  const activeSeason = await prisma.season.findFirst({
+    where: { status: "active", startsAt: { lte: now }, endsAt: { gt: now } },
+  });
+
+  if (!activeSeason) {
+    const startsAt = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
+    const endsAt = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0, 0));
+    await prisma.season.create({
+      data: {
+        name: `${startsAt.toLocaleString("en-US", { month: "long" })} Dev Season`,
+        status: "active",
+        startsAt,
+        endsAt,
+        rewardJson: { top1: "Bragging rights", top10: "Future prestige preview" },
+        prestigeEnabled: false,
       },
     });
   }

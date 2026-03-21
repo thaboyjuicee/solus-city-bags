@@ -25,6 +25,9 @@ type SerializeMeInput = {
     hospitalUntil: Date;
     heat: number;
     wantedTier: string;
+    seasonScore: number;
+    availablePerkPoints: number;
+    prestigeLevel: number;
     hospitalExitPenaltyType: string | null;
     hospitalExitPenaltyUntil: Date | null;
   };
@@ -48,6 +51,9 @@ type SerializeMeInput = {
   }>;
   missionsPreview: unknown[];
   blackMarketEndsAt: Date | null;
+  currentSeason: unknown;
+  unlockedPerkSummary: { total: number; branches: Record<string, number> };
+  equipmentSummary: Array<{ itemId: string; name: string; slot: string | null; rarity: string | null }>;
 };
 
 export function serializeMeDashboard(input: SerializeMeInput) {
@@ -94,9 +100,15 @@ export function serializeMeDashboard(input: SerializeMeInput) {
     syndicate: input.syndicate,
     heat: profile.heat,
     wantedTier: profile.wantedTier,
+    seasonScore: profile.seasonScore,
+    availablePerkPoints: profile.availablePerkPoints,
+    prestigeLevel: profile.prestigeLevel,
     hospitalExitPenalty: activePenalty,
     activeProtectionEffects: input.activeProtectionEffects,
     missionsPreview: input.missionsPreview,
     blackMarketEndsAt: input.blackMarketEndsAt,
+    currentSeason: input.currentSeason,
+    unlockedPerkSummary: input.unlockedPerkSummary,
+    equipmentSummary: input.equipmentSummary,
   };
 }

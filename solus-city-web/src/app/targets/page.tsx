@@ -87,16 +87,14 @@ export default function TargetsPage() {
   return (
     <div className="flex flex-col gap-3">
       <StatusBars profile={profile} />
-
       <div className="h-28 rounded-lg overflow-hidden border border-white/10 bg-black/20 backdrop-blur-sm flex items-end relative">
         <Image src="/assets/images/arena_banner.png" alt="Battle banner" fill className="object-cover opacity-50" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
         <div className="relative z-10 px-3 pb-3">
           <p className="text-[10px] font-black text-[#eee] tracking-[3px] uppercase">Targets</p>
-          <p className="text-[11px] font-semibold text-text-dim">Band-based scouting only. No exact combat math.</p>
+          <p className="text-[11px] font-semibold text-text-dim">Bands stay visible, but anti-whale penalties now hide weak targets’ value.</p>
         </div>
       </div>
-
       <div className="flex flex-col gap-2">
         {targets.map((target) => {
           const state = attackState[target.id];
@@ -105,48 +103,20 @@ export default function TargetsPage() {
               <div className="flex items-center justify-between gap-2">
                 <div>
                   <p className="text-[14px] font-bold text-[#eee]">{target.displayName}</p>
-                  <p className="text-[10px] text-[#555]">LV {target.level} â€¢ {target.rp} RP</p>
+                  <p className="text-[10px] text-[#555]">LV {target.level} • {target.rp} RP</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${
-                      target.type === "npc"
-                        ? "bg-[#14F19520] text-[#14F195]"
-                        : "bg-[#9945FF20] text-[#9945FF]"
-                    }`}
-                  >
-                    {target.type.toUpperCase()}
-                  </span>
-                  {target.syndicateBadge && <span className="text-[9px] font-bold tracking-[2px] text-[#9945FF]">{target.syndicateBadge}</span>}
-                </div>
+                <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${target.type === "npc" ? "bg-[#14F19520] text-[#14F195]" : "bg-[#9945FF20] text-[#9945FF]"}`}>
+                  {target.type.toUpperCase()}
+                </span>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                <span
-                  title="Threat level â€” how dangerous this target is to attack"
-                  className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${bandClass(target.winChanceBand)}`}
-                >
-                  THREAT Â· {target.winChanceBand.toUpperCase()}
-                </span>
-                <span
-                  title="Loot potential â€” how much cash you can steal"
-                  className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${bandClass(target.lootBand)}`}
-                >
-                  LOOT Â· {target.lootBand.toUpperCase()}
-                </span>
-                <span
-                  title="Defence band â€” how hard this target is to beat"
-                  className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${bandClass(target.heatBand)}`}
-                >
-                  DEF Â· {target.heatBand.toUpperCase()}
-                </span>
+                <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${bandClass(target.winChanceBand)}`}>WIN · {target.winChanceBand.toUpperCase()}</span>
+                <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${bandClass(target.lootBand)}`}>LOOT · {target.lootBand.toUpperCase()}</span>
+                <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${bandClass(target.heatBand)}`}>HEAT · {target.heatBand.toUpperCase()}</span>
               </div>
               {target.recentlyFarmedPenalty && <p className="text-[10px] text-[#ff9800] font-bold">Repeat-target penalty likely active.</p>}
-              {target.flavor && <p className="text-[10px] text-[#888]">{target.flavor}</p>}
-              <button
-                onClick={() => attack(target)}
-                disabled={!!state?.attacking || profile.inHospital}
-                className="w-full py-2.5 rounded border border-[#7f1919] bg-black/20 text-[#ef5350] text-[11px] font-bold tracking-[2px] flex items-center justify-center gap-1.5 disabled:opacity-40"
-              >
+              {target.mismatchPenaltyApplied && <p className="text-[10px] text-[#ef5350] font-bold">Very weak target. Rewards likely dampened.</p>}
+              <button onClick={() => attack(target)} disabled={!!state?.attacking || profile.inHospital} className="w-full py-2.5 rounded border border-[#7f1919] bg-black/20 text-[#ef5350] text-[11px] font-bold tracking-[2px] flex items-center justify-center gap-1.5 disabled:opacity-40">
                 {state?.attacking ? <LoadingSpinner size={16} color="#ef5350" /> : <><Swords size={14} /> ATTACK</>}
               </button>
               {state?.error && <p className="text-[10px] font-bold text-[#ef5350]">{state.error}</p>}
@@ -154,7 +124,6 @@ export default function TargetsPage() {
           );
         })}
       </div>
-      <div className="h-16 md:hidden" />
     </div>
   );
 }

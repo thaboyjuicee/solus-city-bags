@@ -31,6 +31,7 @@ type SerializeTargetInput = {
   heatBand: string;
   recentlyFarmedPenalty: boolean;
   syndicateBadge: string | null;
+  mismatchPenaltyApplied?: boolean;
 };
 
 export function serializeTargetPreview(input: SerializeTargetInput) {
@@ -50,6 +51,7 @@ export function serializeTargetPreview(input: SerializeTargetInput) {
     heatBand: input.heatBand,
     recentlyFarmedPenalty: input.recentlyFarmedPenalty,
     syndicateBadge: input.syndicateBadge,
+    mismatchPenaltyApplied: input.mismatchPenaltyApplied ?? false,
   };
 }
 

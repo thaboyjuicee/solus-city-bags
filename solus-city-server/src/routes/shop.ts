@@ -25,7 +25,6 @@ export default async function shopRoutes(
   fastify: FastifyInstance,
   { prisma }: { prisma: PrismaClient }
 ) {
-  // GET /shop/items — list all items with owned qty
   fastify.get("/shop/items", { preHandler: requireAuth }, async (request, reply) => {
     const { userId } = request.user;
     try {
@@ -38,37 +37,36 @@ export default async function shopRoutes(
       if (!profile) return reply.status(404).send({ error: "Profile not found" });
       const ownedMap = new Map(inventory.map((inv) => [inv.itemId, inv.qty]));
 
-      const enriched = items.map((item) => {
-        const owned = ownedMap.get(item.id) ?? 0;
-        const projectedQty = owned + 1;
-        const apDelta = item.atk;
-        const dpDelta = item.def;
-
-        return {
-          id: item.id,
-          category: item.category,
-          name: item.name,
-          atk: item.atk,
-          def: item.def,
-          speed: item.speed,
-          dex: item.dex,
-          price: item.price,
-          levelRequirement: item.levelRequirement,
-          rarity: item.rarity,
-          description: item.description,
-          stackable: item.stackable,
-          isUnique: item.isUnique,
-          owned,
-          locked: profile.level < item.levelRequirement,
-          powerPreview: {
-            apNow: beforeStats.totalStats.ap,
-            apAfterOne: beforeStats.totalStats.ap + apDelta,
-            dpNow: beforeStats.totalStats.dp,
-            dpAfterOne: beforeStats.totalStats.dp + dpDelta,
-            projectedQty,
-          },
-        };
-      });
+      const enriched = items.map((item) => ({
+        id: item.id,
+        category: item.category,
+        subCategory: item.subCategory,
+        name: item.name,
+        atk: item.atk,
+        def: item.def,
+        speed: item.speed,
+        dex: item.dex,
+        price: item.price,
+        levelRequirement: item.levelRequirement,
+        rarity: item.rarity,
+        slot: item.slot,
+        tradable: item.tradable,
+        maxStack: item.maxStack,
+        description: item.description,
+        consumable: item.consumable,
+        effectType: item.effectType,
+        effectValue: item.effectValue,
+        stackable: item.stackable,
+        isUnique: item.isUnique,
+        owned: ownedMap.get(item.id) ?? 0,
+        locked: profile.level < item.levelRequirement,
+        powerPreview: {
+          apNow: beforeStats.totalStats.ap,
+          apAfterOne: beforeStats.totalStats.ap + item.atk,
+          dpNow: beforeStats.totalStats.dp,
+          dpAfterOne: beforeStats.totalStats.dp + item.def,
+        },
+      }));
 
       return reply.send({
         units: enriched.filter((i) => i.category === "unit"),
@@ -81,10 +79,8 @@ export default async function shopRoutes(
     }
   });
 
-  // POST /shop/buy — purchase units
   fastify.post("/shop/buy", { preHandler: requireAuth }, async (request, reply) => {
     const { userId } = request.user;
-
     const parsed = buyBody.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
@@ -97,25 +93,17 @@ export default async function shopRoutes(
       const totalCost = item.price * qty;
 
       const updatedProfile = await prisma.$transaction(async (tx) => {
-        await tx.$queryRaw`SELECT "userId" FROM "Profile" WHERE "userId" = ${userId} FOR UPDATE`;
-
         const profile = await tx.profile.findUnique({ where: { userId } });
-        if (!profile) {
-          throw new ShopRouteError(404, "Profile not found");
-        }
-        if (profile.level < item.levelRequirement) {
-          throw new ShopRouteError(400, `Requires level ${item.levelRequirement}`);
-        }
+        if (!profile) throw new ShopRouteError(404, "Profile not found");
+        if (profile.level < item.levelRequirement) throw new ShopRouteError(400, `Requires level ${item.levelRequirement}`);
 
         const existing = await tx.inventory.findUnique({ where: { userId_itemId: { userId, itemId } } });
-        if (item.isUnique && (existing?.qty ?? 0) > 0) {
-          throw new ShopRouteError(400, "Unique item already owned");
-        }
+        if (item.isUnique && (existing?.qty ?? 0) > 0) throw new ShopRouteError(400, "Unique item already owned");
+        if (item.maxStack && (existing?.qty ?? 0) + qty > item.maxStack) throw new ShopRouteError(400, `Max stack is ${item.maxStack}`);
 
         const incomeUpdate = applyIncome(profile);
         const happinessUpdate = applyHappiness({ ...profile, ...incomeUpdate });
         const currentCash = profile.cash + (incomeUpdate.cash! - profile.cash);
-
         if (currentCash < totalCost) {
           await tx.profile.update({ where: { userId }, data: { ...incomeUpdate, ...happinessUpdate } });
           throw new ShopRouteError(400, "Insufficient cash");
@@ -128,8 +116,8 @@ export default async function shopRoutes(
 
         await tx.inventory.upsert({
           where: { userId_itemId: { userId, itemId } },
-          update: { qty: { increment: qty } },
-          create: { userId, itemId, qty },
+          update: { qty: { increment: qty }, sourceType: "shop", durability: item.slot ? 100 : null },
+          create: { userId, itemId, qty, sourceType: "shop", durability: item.slot ? 100 : null },
         });
 
         await tx.eventLog.create({
@@ -137,6 +125,7 @@ export default async function shopRoutes(
             userId,
             type: item.category === "equipment" ? "bought_equipment" : "shop",
             message: `Bought ${qty}x ${item.name}`,
+            metadata: { itemId: item.id, qty, pricePaid: totalCost, slot: item.slot, rarity: item.rarity },
           },
         });
 
@@ -152,11 +141,18 @@ export default async function shopRoutes(
           id: item.id,
           name: item.name,
           category: item.category,
+          subCategory: item.subCategory,
           atk: item.atk,
           def: item.def,
           speed: item.speed,
           dex: item.dex,
           price: item.price,
+          rarity: item.rarity,
+          slot: item.slot,
+          tradable: item.tradable,
+          maxStack: item.maxStack,
+          effectType: item.effectType,
+          effectValue: item.effectValue,
         },
         qty,
         newCombat: {

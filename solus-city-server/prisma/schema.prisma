@@ -26,6 +26,11 @@ model User {
   slsTransactions   SlsTransaction[]
   blackMarketPurchases BlackMarketPurchase[]
   playerMissions    PlayerMission[]
+  playerPerks       PlayerPerk[]
+  revengeMarksAsVictim   RevengeMark[] @relation("RevengeVictim")
+  revengeMarksAsAttacker RevengeMark[] @relation("RevengeAttacker")
+  seasonParticipations   SeasonParticipation[]
+  seasonLeaderboardSnapshots SeasonLeaderboardSnapshot[]
 }
 
 model Profile {
@@ -38,6 +43,9 @@ model Profile {
   rp           Int      @default(100)
   heat         Int      @default(0)
   wantedTier   String   @default("low")
+  seasonScore  Int      @default(0)
+  availablePerkPoints Int @default(0)
+  prestigeLevel Int     @default(0)
 
   // Bars (Torn-style)
   health       Int      @default(100)
@@ -90,6 +98,7 @@ model Item {
   price     Int
   levelRequirement Int  @default(1)
   rarity    String?
+  slot      String?
   description String?   @default("")
   effectType String?
   effectValue Float?
@@ -99,6 +108,8 @@ model Item {
   blackMarketOnly Boolean @default(false)
   consumable Boolean @default(false)
   stealable Boolean @default(true)
+  tradable  Boolean @default(false)
+  maxStack  Int?
   stackable Boolean     @default(true)
   isUnique  Boolean     @default(false)
   inventory Inventory[]
@@ -106,6 +117,7 @@ model Item {
   blackMarketListings BlackMarketListing[]
   blackMarketPurchases BlackMarketPurchase[]
   missionRewards MissionDefinition[] @relation("MissionRewardItem")
+  perkSources   PerkDefinition[] @relation("PerkPrerequisite")
 }
 
 model Inventory {
@@ -114,6 +126,8 @@ model Inventory {
   qty    Int    @default(0)
   expiresAt DateTime?
   sourceType String?
+  equipped Boolean @default(false)
+  durability Int?
 
   user User @relation(fields: [userId], references: [id])
   item Item @relation(fields: [itemId], references: [id])
@@ -345,4 +359,98 @@ model PlayerMission {
 
   @@index([userId, completed, claimed])
   @@index([userId, startsAt, endsAt])
+}
+
+model PerkDefinition {
+  id                 String   @id @default(cuid())
+  branch             String
+  code               String   @unique
+  name               String
+  description        String
+  effectType         String
+  effectValue        Float
+  tier               Int
+  prerequisitePerkId String?
+  active             Boolean  @default(true)
+
+  prerequisitePerk   PerkDefinition?  @relation("PerkPrerequisite", fields: [prerequisitePerkId], references: [id])
+  unlockedChildren   PerkDefinition[] @relation("PerkPrerequisite")
+  playerPerks        PlayerPerk[]
+}
+
+model PlayerPerk {
+  id               String   @id @default(cuid())
+  userId           String
+  perkDefinitionId String
+  unlockedAt       DateTime @default(now())
+
+  user           User           @relation(fields: [userId], references: [id])
+  perkDefinition PerkDefinition @relation(fields: [perkDefinitionId], references: [id])
+
+  @@unique([userId, perkDefinitionId])
+}
+
+model RevengeMark {
+  id             String   @id @default(cuid())
+  victimUserId   String
+  attackerUserId String
+  battleId       String
+  active         Boolean  @default(true)
+  bonusPercent   Float    @default(0)
+  expiresAt      DateTime
+  resolvedAt     DateTime?
+  createdAt      DateTime @default(now())
+
+  victim   User @relation("RevengeVictim", fields: [victimUserId], references: [id])
+  attacker User @relation("RevengeAttacker", fields: [attackerUserId], references: [id])
+
+  @@index([victimUserId, active])
+  @@index([attackerUserId, active])
+}
+
+model Season {
+  id              String   @id @default(cuid())
+  name            String
+  status          String
+  startsAt        DateTime
+  endsAt          DateTime
+  rewardJson      Json?
+  prestigeEnabled Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  participations  SeasonParticipation[]
+  snapshots       SeasonLeaderboardSnapshot[]
+}
+
+model SeasonParticipation {
+  id            String   @id @default(cuid())
+  seasonId      String
+  userId        String
+  score         Int      @default(0)
+  pvpScore      Int      @default(0)
+  crimeScore    Int      @default(0)
+  missionScore  Int      @default(0)
+  finalRank     Int?
+  rewardClaimed Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  season Season @relation(fields: [seasonId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([seasonId, userId])
+}
+
+model SeasonLeaderboardSnapshot {
+  id         String   @id @default(cuid())
+  seasonId   String
+  userId     String?
+  rank       Int
+  score      Int
+  category   String
+  capturedAt DateTime
+
+  season Season @relation(fields: [seasonId], references: [id])
+  user   User?  @relation(fields: [userId], references: [id])
+
+  @@index([seasonId, category, capturedAt])
 }

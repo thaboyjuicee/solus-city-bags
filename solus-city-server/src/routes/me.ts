@@ -16,6 +16,9 @@ import { fetchActiveProtectionEffects } from "../lib/combat/protection";
 import { ensurePlayerMissionsAssigned } from "../lib/missions/assign";
 import { getActiveRotation } from "../lib/economy/blackMarket";
 import { serializeMeDashboard } from "../lib/serializers/me";
+import { getAvailablePerkPoints } from "../lib/player/perks";
+import { getCurrentSeason } from "../lib/seasons/scoring";
+import { serializeSeasonSummary } from "../lib/serializers/seasons";
 
 const updateProfileBody = z.object({
   name: z
@@ -81,6 +84,9 @@ export default async function meRoutes(
         activeProtectionEffects,
         missionsPreview,
         rotation,
+        unlockedPerks,
+        equippedInventory,
+        season,
       ] = await Promise.all([
         computeCombatStats(userId, prisma),
         prisma.user.findUnique({ where: { id: userId } }),
@@ -108,15 +114,46 @@ export default async function meRoutes(
           take: 5,
         }),
         getActiveRotation(prisma).catch(() => null),
+        prisma.playerPerk.findMany({ where: { userId }, include: { perkDefinition: true } }),
+        prisma.inventory.findMany({ where: { userId, equipped: true }, include: { item: true } }),
+        getCurrentSeason(prisma),
       ]);
 
       const totalNegativeSpend = Math.abs(negativeSlsSpend._sum.amount ?? 0);
       const totalHospitalReleaseSpend = Math.abs(hospitalReleaseSpend._sum.amount ?? 0);
+      const availablePerkPoints = getAvailablePerkPoints(updatedProfile, unlockedPerks.length);
+
+      let currentSeason = null;
+      if (season) {
+        const [participation, ranks] = await Promise.all([
+          prisma.seasonParticipation.findUnique({ where: { seasonId_userId: { seasonId: season.id, userId } } }),
+          prisma.seasonParticipation.findMany({
+            where: { seasonId: season.id },
+            orderBy: [{ score: "desc" }, { createdAt: "asc" }],
+            select: { userId: true },
+          }),
+        ]);
+        const rank = ranks.findIndex((entry) => entry.userId === userId) + 1;
+        currentSeason = serializeSeasonSummary({
+          season,
+          participation,
+          rank: rank > 0 ? rank : null,
+        });
+      }
+
+      const unlockedPerkSummary = unlockedPerks.reduce(
+        (acc, perk) => {
+          acc.total += 1;
+          acc.branches[perk.perkDefinition.branch] = (acc.branches[perk.perkDefinition.branch] ?? 0) + 1;
+          return acc;
+        },
+        { total: 0, branches: {} as Record<string, number> }
+      );
 
       return reply.send(
         serializeMeDashboard({
           wallet: user?.wallet ?? "",
-          profile: updatedProfile,
+          profile: { ...updatedProfile, availablePerkPoints },
           combat,
           statBreakdown: combat,
           incomePerHour: BASE_INCOME_PER_HOUR,
@@ -151,6 +188,14 @@ export default async function meRoutes(
             },
           })),
           blackMarketEndsAt: rotation?.endsAt ?? null,
+          currentSeason,
+          unlockedPerkSummary,
+          equipmentSummary: equippedInventory.map((row) => ({
+            itemId: row.item.id,
+            name: row.item.name,
+            slot: row.item.slot ?? null,
+            rarity: row.item.rarity ?? null,
+          })),
         })
       );
     } catch (err) {

@@ -1,5 +1,6 @@
 import { Prisma, PlayerMission } from "@prisma/client";
 import { progressPlayerMissions } from "./progress";
+import { awardSeasonScore } from "../seasons/scoring";
 
 export function assertClaimableMission(mission: Pick<PlayerMission, "completed" | "claimed">) {
   if (!mission.completed) {
@@ -73,6 +74,8 @@ export async function claimMissionReward(
     await progressPlayerMissions(prisma, userId, [{ goalType: "daily_claim", amount: 1 }], now);
   }
 
+  const season = await awardSeasonScore(prisma, { userId, category: "mission_claim", amount: 1 }, now);
+
   return {
     mission: updatedMission,
     rewards: {
@@ -81,5 +84,6 @@ export async function claimMissionReward(
       item: rewardItem ? { id: rewardItem.id, name: rewardItem.name } : null,
     },
     profile: updatedProfile,
+    seasonPointsGained: season.pointsGained,
   };
 }

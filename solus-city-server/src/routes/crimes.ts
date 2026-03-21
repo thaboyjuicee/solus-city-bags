@@ -6,6 +6,8 @@ import { applyEnergy, applyHappiness, applyHospitalRecovery, applyIncome, applyN
 import { applyHeat, decayHeat } from "../lib/player/heat";
 import { ensurePlayerMissionsAssigned } from "../lib/missions/assign";
 import { progressPlayerMissions } from "../lib/missions/progress";
+import { getPlayerPerkContext } from "../lib/player/perks";
+import { awardSeasonScore } from "../lib/seasons/scoring";
 
 const commitBody = z.object({
   crimeId: z.string().min(1),
@@ -47,10 +49,11 @@ export default async function crimeRoutes(
     try {
       await ensurePlayerMissionsAssigned(prisma, userId);
 
-      const [profile, crime, contrabandItem] = await Promise.all([
+      const [profile, crime, contrabandItem, perkContext] = await Promise.all([
         prisma.profile.findUnique({ where: { userId } }),
         prisma.crime.findUnique({ where: { id: parsed.data.crimeId } }),
         prisma.item.findFirst({ where: { name: "Contraband Bundle" } }),
+        getPlayerPerkContext(userId, prisma),
       ]);
 
       if (!profile) return reply.status(404).send({ error: "Profile not found" });
@@ -104,10 +107,12 @@ export default async function crimeRoutes(
 
       const roll = Math.random();
       const success = roll < crime.successRate;
+      const crimePayoutBonus = perkContext.effects.crime_payout_percent ?? 0;
+      const heatReduction = Math.min(0.4, perkContext.effects.heat_reduction_percent ?? 0);
       let cashGained = success
-        ? crime.cashMin + Math.floor(Math.random() * (crime.cashMax - crime.cashMin + 1))
+        ? Math.round((crime.cashMin + Math.floor(Math.random() * (crime.cashMax - crime.cashMin + 1))) * (1 + crimePayoutBonus))
         : 0;
-      let xpGained = success ? crime.xpReward : Math.floor(crime.xpReward / 2);
+      const xpGained = success ? crime.xpReward : Math.floor(crime.xpReward / 2);
       let heatChange = Math.max(1, Math.round(crime.nerveCost / 2)) + (success ? 0 : 2);
       let specialOutcome: string | null = null;
       let contrabandDrop: string | null = null;
@@ -119,6 +124,8 @@ export default async function crimeRoutes(
         specialOutcome = "police_attention";
         heatChange += 3;
       }
+
+      heatChange = Math.max(0, Math.round(heatChange * (1 - heatReduction)));
 
       if (success && crime.levelReq >= 5 && contrabandItem && Math.random() < 0.12) {
         contrabandDrop = contrabandItem.name;
@@ -164,6 +171,10 @@ export default async function crimeRoutes(
           ]
         );
 
+        const seasonResult = success
+          ? await awardSeasonScore(tx, { userId, category: "crime_success", amount: 1 })
+          : { pointsGained: 0 };
+
         await tx.eventLog.create({
           data: {
             userId,
@@ -182,6 +193,8 @@ export default async function crimeRoutes(
               wantedTier: heatUpdate.wantedTier,
               specialOutcome,
               contrabandDrop,
+              crimePayoutBonus,
+              seasonPointsGained: seasonResult.pointsGained,
             },
           },
         });
@@ -197,7 +210,7 @@ export default async function crimeRoutes(
           });
         }
 
-        return { finalProfile, missionUpdates };
+        return { finalProfile, missionUpdates, seasonPointsGained: seasonResult.pointsGained };
       });
 
       return reply.send({
@@ -213,6 +226,7 @@ export default async function crimeRoutes(
         specialOutcome,
         contrabandDrop,
         missionUpdates: txResult.missionUpdates,
+        seasonPointsGained: txResult.seasonPointsGained,
         profile: {
           nerve: txResult.finalProfile.nerve,
           cash: txResult.finalProfile.cash,

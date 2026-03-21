@@ -21,6 +21,9 @@ import slsRoutes from "./routes/sls";
 import vaultRoutes from "./routes/vault";
 import blackMarketRoutes from "./routes/blackMarket";
 import missionsRoutes from "./routes/missions";
+import perksRoutes from "./routes/perks";
+import inventoryRoutes from "./routes/inventory";
+import seasonsRoutes from "./routes/seasons";
 import { runBlackMarketRotationJob } from "./jobs/blackMarketRotation";
 import { runDailyMissionReset } from "./jobs/dailyMissionReset";
 import { runHeatDecay } from "./jobs/heatDecay";
@@ -135,29 +138,11 @@ fastify.addHook("onRequest", async (request, reply) => {
   rateBuckets.set(key, current);
 });
 
-// Health check — no auth required
-fastify.get("/health", async (_request, _reply) => {
-  return { status: "ok" };
-});
+fastify.get("/health", async () => ({ status: "ok" }));
+fastify.get("/", async () => ({ service: "Solus City API", status: "ok" }));
+fastify.get("/null", async (_request, reply) => reply.status(204).send());
+fastify.get("/favicon.ico", async (_request, reply) => reply.status(204).send());
 
-fastify.get("/", async (_request, _reply) => {
-  return {
-    service: "Solus City API",
-    status: "ok",
-  };
-});
-
-// Some mobile wallet adapters may probe /null or /favicon.ico from identity metadata.
-// Return a tiny no-content response to avoid noisy 404s in edge logs.
-fastify.get("/null", async (_request, reply) => {
-  return reply.status(204).send();
-});
-
-fastify.get("/favicon.ico", async (_request, reply) => {
-  return reply.status(204).send();
-});
-
-// Register route plugins with shared prisma instance
 const pluginOpts = { prisma };
 fastify.register(authRoutes, pluginOpts);
 fastify.register(meRoutes, pluginOpts);
@@ -176,8 +161,10 @@ fastify.register(slsRoutes, pluginOpts);
 fastify.register(vaultRoutes, pluginOpts);
 fastify.register(blackMarketRoutes, pluginOpts);
 fastify.register(missionsRoutes, pluginOpts);
+fastify.register(perksRoutes, pluginOpts);
+fastify.register(inventoryRoutes, pluginOpts);
+fastify.register(seasonsRoutes, pluginOpts);
 
-// Global error handler — never leak raw Prisma errors
 fastify.setErrorHandler((error, _request, reply) => {
   fastify.log.error(error);
   reply.status(500).send({ error: "Internal server error" });
@@ -191,16 +178,15 @@ const start = async () => {
     await fastify.listen({ port: PORT, host: "0.0.0.0" });
     fastify.log.info(`Solus City API running on port ${PORT}`);
 
-    // Scheduler jobs — run immediately on start, then on intervals
     const runJob = (name: string, fn: () => Promise<unknown>, intervalMs: number) => {
       fn().catch((err) => fastify.log.error(err, `${name} initial run failed`));
       setInterval(() => fn().catch((err) => fastify.log.error(err, `${name} failed`)), intervalMs);
     };
 
-    runJob("runHeatDecay",               () => runHeatDecay(prisma),                  5 * 60 * 1000);
-    runJob("runBlackMarketRotationJob",  () => runBlackMarketRotationJob(prisma),      5 * 60 * 1000);
-    runJob("runDailyMissionReset",       () => runDailyMissionReset(prisma),           5 * 60 * 1000);
-    runJob("runWeeklyMissionReset",      () => runWeeklyMissionReset(prisma),         10 * 60 * 1000);
+    runJob("runHeatDecay", () => runHeatDecay(prisma), 5 * 60 * 1000);
+    runJob("runBlackMarketRotationJob", () => runBlackMarketRotationJob(prisma), 5 * 60 * 1000);
+    runJob("runDailyMissionReset", () => runDailyMissionReset(prisma), 5 * 60 * 1000);
+    runJob("runWeeklyMissionReset", () => runWeeklyMissionReset(prisma), 10 * 60 * 1000);
   } catch (err) {
     if (err instanceof Error) {
       fastify.log.error(err.message);

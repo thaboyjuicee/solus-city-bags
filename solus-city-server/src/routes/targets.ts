@@ -1,12 +1,13 @@
 import { FastifyInstance } from "fastify";
 import { PrismaClient } from "@prisma/client";
 import { requireAuth } from "../lib/auth";
-import { applyEnergy, applyHappiness, applyIncome, computeAPDP } from "../lib/game";
+import { applyEnergy, applyHappiness, applyIncome, computeCombatStats } from "../lib/game";
 import { RP_BAND_FRACTION, RP_BAND_MIN, TARGET_COUNT } from "../lib/constants";
 import { buildNpcForPlayer, NPC_POOL } from "../lib/npcs";
 import { decayHeat } from "../lib/player/heat";
 import { REPEAT_TARGET_LOOT_REDUCTION_WINDOW_MINUTES } from "../lib/config/balance";
 import { getHeatBand, getLootBand, getWinChanceBand, serializeTargetPreview } from "../lib/serializers/targets";
+import { getMismatchAdjustment } from "../lib/matchmaking";
 
 export default async function targetsRoutes(
   fastify: FastifyInstance,
@@ -28,7 +29,9 @@ export default async function targetsRoutes(
         data: { ...incomeUpdate, ...energyUpdate, ...happinessUpdate, heat: heatUpdate.heat, wantedTier: heatUpdate.wantedTier, lastHeatDecayAt: heatUpdate.lastHeatDecayAt },
       });
 
-      const { ap: attackerAp } = await computeAPDP(userId, prisma);
+      const attackerStats = await computeCombatStats(userId, prisma);
+      const attackerAp = attackerStats.totalStats.ap;
+      const attackerPower = attackerStats.totalStats.ap + attackerStats.totalStats.dp;
       const rp = attackerProfile.rp;
       const band = Math.max(rp * RP_BAND_FRACTION, RP_BAND_MIN);
       const rpMin = Math.max(0, rp - band);
@@ -49,8 +52,8 @@ export default async function targetsRoutes(
 
       const playerTargets = await Promise.all(
         candidates.map(async (target) => {
-          const [{ dp }, farmedCount, membership] = await Promise.all([
-            computeAPDP(target.userId, prisma),
+          const [stats, farmedCount, membership] = await Promise.all([
+            computeCombatStats(target.userId, prisma),
             prisma.attackLog.count({
               where: {
                 userId,
@@ -65,8 +68,14 @@ export default async function targetsRoutes(
             }),
           ]);
 
-          const winChance = attackerAp / (attackerAp + dp);
-          const estimatedLoot = Math.min(target.cash * 0.08, 5000);
+          const mismatch = getMismatchAdjustment({
+            attackerPower,
+            defenderPower: stats.totalStats.ap + stats.totalStats.dp,
+            attackerLevel: attackerProfile.level,
+            defenderLevel: target.level,
+          });
+          const winChance = attackerAp / (attackerAp + stats.totalStats.dp);
+          const estimatedLoot = Math.min(target.cash * 0.08, 5000) * mismatch.lootMultiplier;
 
           return serializeTargetPreview({
             id: target.userId,
@@ -82,6 +91,7 @@ export default async function targetsRoutes(
             heatBand: getHeatBand(target.heat),
             recentlyFarmedPenalty: farmedCount > 0,
             syndicateBadge: membership?.syndicate.name ?? null,
+            mismatchPenaltyApplied: mismatch.mismatchPenaltyApplied,
           });
         })
       );
@@ -105,6 +115,7 @@ export default async function targetsRoutes(
           heatBand: "low",
           recentlyFarmedPenalty: false,
           syndicateBadge: null,
+          mismatchPenaltyApplied: false,
         });
       });
 

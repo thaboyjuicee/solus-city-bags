@@ -38,6 +38,10 @@ export function serializeMarketListing(listing: {
     riskType: string | null;
     riskValue: number | null;
     consumable: boolean;
+    rarity?: string | null;
+    slot?: string | null;
+    tradable?: boolean;
+    maxStack?: number | null;
   };
 }) {
   return {
@@ -51,6 +55,12 @@ export function serializeMarketListing(listing: {
     requiredLevelMin: listing.requiredLevelMin,
     listingType: listing.listingType,
     active: listing.active,
-    item: listing.item,
+    item: {
+      ...listing.item,
+      rarity: listing.item.rarity ?? null,
+      slot: listing.item.slot ?? null,
+      tradable: listing.item.tradable ?? false,
+      maxStack: listing.item.maxStack ?? null,
+    },
   };
 }

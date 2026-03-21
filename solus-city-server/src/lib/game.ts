@@ -14,6 +14,7 @@ import {
   MAX_LEVEL,
   SYNDICATE_AP_BUFF,
 } from "./constants";
+import { getPlayerPerkContext } from "./player/perks";
 
 interface CombatBreakdown {
   baseStats: {
@@ -201,15 +202,20 @@ export async function computeCombatStats(
     dexBonus += (inv.item.dex ?? 0) * inv.qty;
   }
 
-  const member = await prisma.syndicateMember.findUnique({ where: { userId } });
+  const [member, perkContext] = await Promise.all([
+    prisma.syndicateMember.findUnique({ where: { userId } }),
+    getPlayerPerkContext(userId, prisma),
+  ]);
   const buffMultiplier = member ? 1 + SYNDICATE_AP_BUFF : 1;
 
   const speedApBonus = Math.floor(speedBonus / 2);
   const dexDpBonus = Math.floor(dexBonus / 2);
   const baseAp = BASE_ATK + baseStrength + Math.floor(baseSpeed / 2);
   const baseDp = BASE_DEF + baseDefense + Math.floor(baseDexterity / 2);
-  const totalAp = Math.round((baseAp + atkBonus + speedApBonus) * buffMultiplier);
-  const totalDp = baseDp + defBonus + dexDpBonus;
+  const apPerkMultiplier = 1 + (perkContext.effects.battle_ap_percent ?? 0);
+  const dpPerkMultiplier = 1 + (perkContext.effects.battle_dp_percent ?? 0);
+  const totalAp = Math.round((baseAp + atkBonus + speedApBonus) * buffMultiplier * apPerkMultiplier);
+  const totalDp = Math.round((baseDp + defBonus + dexDpBonus) * dpPerkMultiplier);
 
   return {
     baseStats: {

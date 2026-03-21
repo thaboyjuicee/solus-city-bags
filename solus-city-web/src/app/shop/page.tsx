@@ -1,429 +1,76 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
-import Image from "next/image";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
-import { StatusBars, type ProfileStats } from "@/components/ui/StatusBars";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import {
-  ArrowRight,
-  CircleDollarSign,
-  Clock3,
-  Crosshair,
-  Package,
-  ShieldCheck,
-  ShoppingCart,
-  Swords,
-  Trophy,
-} from "lucide-react";
+import { RarityBadge } from "@/components/game/RarityBadge";
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-interface PowerPreview {
-  apNow: number;
-  apAfterOne: number;
-  dpNow: number;
-  dpAfterOne: number;
-  projectedQty: number;
-}
-
-interface ShopItem {
+type ShopItem = {
   id: string;
-  category: "unit" | "equipment";
+  category: string;
+  subCategory?: string | null;
   name: string;
-  atk: number;
-  def: number;
-  speed: number;
-  dex: number;
   price: number;
   levelRequirement: number;
-  rarity: string;
-  description?: string;
-  stackable: boolean;
-  isUnique: boolean;
+  rarity?: string | null;
+  slot?: string | null;
+  description?: string | null;
+  consumable?: boolean;
+  effectType?: string | null;
+  effectValue?: number | null;
   owned: number;
   locked: boolean;
-  powerPreview: PowerPreview;
-}
-
-interface BuyResponse {
-  success: boolean;
-  newCash: number;
-  item: { id: string; name: string; category: string; atk: number; def: number; speed: number; dex: number; price: number };
-  qty: number;
-  newCombat: { ap: number; dp: number };
-}
-
-type ItemResult =
-  | { ok: true; data: BuyResponse }
-  | { ok: false; msg: string };
-
-type ShopTab = "unit" | "equipment";
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// StatChip
-// ---------------------------------------------------------------------------
-
-function StatChip({
-  value,
-  color,
-  label,
-  icon,
-}: {
-  value: number;
-  color: string;
-  label: string;
-  icon: ReactNode;
-}) {
-  return (
-    <span className="flex items-center gap-1 text-[12px] font-bold" style={{ color }}>
-      {icon}
-      <span>{label} +{value}</span>
-    </span>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// ItemCard
-// ---------------------------------------------------------------------------
-
-function ItemCard({
-  item,
-  profile,
-  qty,
-  buying,
-  result,
-  onQtyChange,
-  onBuy,
-}: {
-  item: ShopItem;
-  profile: ProfileStats;
-  qty: string;
-  buying: boolean;
-  result: ItemResult | undefined;
-  onQtyChange: (id: string, v: string) => void;
-  onBuy: (item: ShopItem) => void;
-}) {
-  const alreadyUnique = item.isUnique && item.owned > 0;
-  const cannotBuy = item.locked || alreadyUnique;
-  const insufficientCash = !cannotBuy && profile.cash < item.price * Math.max(1, parseInt(qty, 10) || 1);
-
-  let buyLabel = "BUY";
-  if (item.locked) buyLabel = "LOCKED";
-  else if (alreadyUnique) buyLabel = "OWNED";
-
-  const { apNow, apAfterOne, dpNow, dpAfterOne } = item.powerPreview;
-  const showPreview = item.atk > 0 || item.def > 0;
-
-  return (
-    <div
-      className={`bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3.5 flex flex-col gap-2 ${item.locked ? "opacity-45" : ""}`}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          {item.category === "unit" ? (
-            <ShieldCheck className="w-4 h-4 text-[#eee] flex-shrink-0" />
-          ) : (
-            <Trophy className="w-4 h-4 text-[#eee] flex-shrink-0" />
-          )}
-          <span className="text-[#eee] text-[15px] font-bold truncate">{item.name}</span>
-        </div>
-        <span className="flex-shrink-0 bg-[#9945FF20] text-[#9945FF] text-[9px] font-bold px-2 py-0.5 rounded tracking-wide">
-          {item.owned} OWNED
-        </span>
-      </div>
-
-      {/* Stats chips */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        {item.atk > 0 && (
-          <StatChip value={item.atk} color="#ef5350" label="ATK" icon={<Swords className="w-3 h-3" />} />
-        )}
-        {item.def > 0 && (
-          <StatChip value={item.def} color="#1e88e5" label="DEF" icon={<ShieldCheck className="w-3 h-3" />} />
-        )}
-        {item.speed > 0 && (
-          <StatChip value={item.speed} color="#9945FF" label="SPD" icon={<Clock3 className="w-3 h-3" />} />
-        )}
-        {item.dex > 0 && (
-          <StatChip value={item.dex} color="#fdd835" label="DEX" icon={<Crosshair className="w-3 h-3" />} />
-        )}
-        <span className="flex items-center gap-1 text-[12px] font-bold text-[#66bb6a]">
-          <CircleDollarSign className="w-3 h-3" />
-          ${item.price.toLocaleString()}
-        </span>
-      </div>
-
-      {/* Power preview */}
-      {showPreview && (
-        <div className="flex items-center gap-3 text-[10px] font-bold text-text-dim">
-          <span>
-            AP <span className="text-[#ef5350]">{apNow}</span>{" "}
-            <ArrowRight className="w-3 h-3 inline-block align-middle text-text-dim" />
-            <span className="text-[#66bb6a]">{apAfterOne}</span>
-          </span>
-          <span>
-            DP <span className="text-[#1e88e5]">{dpNow}</span>{" "}
-            <ArrowRight className="w-3 h-3 inline-block align-middle text-text-dim" />
-            <span className="text-[#66bb6a]">{dpAfterOne}</span>
-          </span>
-        </div>
-      )}
-
-      {/* Description */}
-      {item.description && (
-        <p className="text-text-dim text-[10px]">{item.description}</p>
-      )}
-
-      {/* Level requirement */}
-      <p className="text-text-dim text-[9px] font-black tracking-[2px]">
-        LV REQ {item.levelRequirement}
-        {item.isUnique && <span className="ml-2 text-[#fdd835]">UNIQUE</span>}
-      </p>
-
-      {/* Buy row */}
-      <div className="flex items-center gap-2">
-        <input
-          type="number"
-          min={1}
-          max={100}
-          value={qty}
-          onChange={(e) => onQtyChange(item.id, e.target.value)}
-          disabled={cannotBuy || buying}
-          className="w-16 bg-black/20 backdrop-blur-sm text-[#eee] border border-white/10 rounded-lg px-2 py-2 text-center text-sm font-bold
-                     focus:outline-none focus:border-accent disabled:opacity-40"
-        />
-        <button
-          onClick={() => onBuy(item)}
-          disabled={cannotBuy || buying}
-          className={`flex-1 py-2.5 rounded-lg border flex items-center justify-center gap-1 text-[11px] font-bold tracking-[2px] transition-opacity ${
-            cannotBuy
-              ? "bg-black/20 border-white/10 text-text-dim opacity-40 cursor-not-allowed"
-              : insufficientCash
-              ? "bg-[#1a0a2e] border-[rgba(153,69,255,0.3)] text-[#9945FF] opacity-60"
-              : "bg-[#1a0e2e] border-[rgba(153,69,255,0.3)] text-[#9945FF] hover:bg-[#2a0a3e]"
-          } ${buying ? "opacity-40" : ""}`}
-        >
-          {buying ? (
-            <LoadingSpinner size={16} color="#9945FF" />
-          ) : insufficientCash && !cannotBuy ? (
-            "LOW CASH"
-          ) : (
-            <>
-              <ShoppingCart className="w-3.5 h-3.5" />
-              {buyLabel}
-            </>
-          )}
-        </button>
-      </div>
-
-      {/* Inline result */}
-      {result && (
-        <div
-          className={`rounded px-3 py-2 border text-[11px] font-bold flex flex-col gap-0.5 ${
-            result.ok
-              ? "bg-[#0a1a0a] border-[#1a4a1a] text-[#66bb6a]"
-              : "bg-[#1a0a0a] border-[#7f1919] text-[#ef5350]"
-          }`}
-        >
-          {result.ok ? (
-            <>
-              <span>Bought {result.data.qty}x {result.data.item.name}</span>
-              <span className="text-[#eee]">
-                Cash: ${Math.floor(result.data.newCash).toLocaleString()} · AP {result.data.newCombat.ap} · DP {result.data.newCombat.dp}
-              </span>
-            </>
-          ) : (
-            <span>{result.msg}</span>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Page
-// ---------------------------------------------------------------------------
+};
 
 export default function ShopPage() {
-  const [profile, setProfile] = useState<ProfileStats | null>(null);
   const [items, setItems] = useState<ShopItem[]>([]);
-  const [tab, setTab] = useState<ShopTab>("unit");
   const [loading, setLoading] = useState(true);
-  const [pageError, setPageError] = useState<string | null>(null);
-  const [quantities, setQuantities] = useState<Record<string, string>>({});
-  const [buying, setBuying] = useState<Record<string, boolean>>({});
-  const [results, setResults] = useState<Record<string, ItemResult>>({});
 
-  const fetchData = useCallback(async () => {
-    setPageError(null);
-    try {
-      const [profileRes, itemsRes] = await Promise.all([
-        api.get<ProfileStats>("/me"),
-        api.get<{ all: ShopItem[] }>("/shop/items"),
-      ]);
-      setProfile(profileRes.data);
-      const data = itemsRes.data.all;
-      setItems(data);
-      setQuantities((prev) => {
-        const init: Record<string, string> = {};
-        data.forEach((item) => { init[item.id] = "1"; });
-        return { ...init, ...prev };
-      });
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Failed to load shop.";
-      setPageError(msg);
-    } finally {
-      setLoading(false);
-    }
+  const fetchItems = useCallback(async () => {
+    const res = await api.get<{ all: ShopItem[] }>("/shop/items");
+    setItems(res.data.all);
+    setLoading(false);
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchItems();
+  }, [fetchItems]);
 
   const buy = async (item: ShopItem) => {
-    const qty = parseInt(quantities[item.id] ?? "1", 10);
-    if (isNaN(qty) || qty < 1 || qty > 100) {
-      setResults((prev) => ({ ...prev, [item.id]: { ok: false, msg: "Quantity must be between 1 and 100." } }));
-      return;
-    }
-    setBuying((prev) => ({ ...prev, [item.id]: true }));
-    setResults((prev) => { const next = { ...prev }; delete next[item.id]; return next; });
-    try {
-      const res = await api.post<BuyResponse>("/shop/buy", { itemId: item.id, qty });
-      const data = res.data;
-      setProfile((prev) =>
-        prev ? { ...prev, cash: data.newCash, ap: data.newCombat.ap, dp: data.newCombat.dp } : prev
-      );
-      setItems((prev) =>
-        prev.map((i) => i.id === item.id ? { ...i, owned: i.owned + qty } : i)
-      );
-      setResults((prev) => ({ ...prev, [item.id]: { ok: true, data } }));
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Purchase failed. Please try again.";
-      setResults((prev) => ({ ...prev, [item.id]: { ok: false, msg } }));
-    } finally {
-      setBuying((prev) => ({ ...prev, [item.id]: false }));
-    }
+    await api.post("/shop/buy", { itemId: item.id, qty: 1 });
+    await fetchItems();
   };
 
-  if (loading) {
-    return (
-      <div className="flex min-h-dvh bg-transparent items-center justify-center">
-        <LoadingSpinner size={32} />
-      </div>
-    );
-  }
-
-  if (pageError) {
-    return (
-      <div className="flex flex-col min-h-dvh bg-background items-center justify-center gap-4 px-6">
-        <p className="text-danger text-sm text-center">{pageError}</p>
-        <button
-          onClick={() => { setLoading(true); fetchData(); }}
-          className="px-5 py-2.5 bg-accent rounded-lg text-white font-semibold text-sm"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
-
-  const visibleItems = items.filter((i) => i.category === tab);
+  if (loading) return <div className="flex min-h-dvh items-center justify-center"><LoadingSpinner size={32} /></div>;
 
   return (
-    <div className="flex flex-col bg-transparent min-h-dvh">
-      {profile && <StatusBars profile={profile} />}
-
-      <div className="flex flex-col gap-3">
-        {/* Hero */}
-        <div className="h-28 rounded-lg overflow-hidden border border-white/10 bg-black/20 backdrop-blur-sm flex items-end relative">
-          <Image
-            src="/assets/images/shop_banner.png"
-            alt="Shop banner"
-            fill
-            className="object-cover opacity-50"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-          <div className="relative z-10 px-3 pb-3">
-            <p className="text-[10px] font-black text-[#eee] tracking-[3px] uppercase mb-1">Item Shop</p>
-            <p className="text-[11px] font-semibold text-text-dim">Buy units and equipment</p>
+    <div className="flex flex-col gap-3">
+      <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+        <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Shop</p>
+        <p className="text-[12px] text-[#888] mt-1">Wave 2 now exposes item rarity, slot, and effect hints.</p>
+      </div>
+      <div className="grid gap-2 md:grid-cols-2">
+        {items.map((item) => (
+          <div key={item.id} className="rounded-lg border border-white/10 bg-black/20 p-3 flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-[13px] font-bold text-[#eee]">{item.name}</p>
+                <p className="text-[10px] text-[#777]">LV {item.levelRequirement} � Owned {item.owned}</p>
+              </div>
+              <RarityBadge rarity={item.rarity} />
+            </div>
+            <p className="text-[10px] text-[#666]">{item.description}</p>
+            <div className="flex flex-wrap gap-2 text-[10px] font-bold">
+              <span className="text-[#66bb6a]">${item.price.toLocaleString()}</span>
+              {item.slot && <span className="text-[#42a5f5]">Slot {item.slot}</span>}
+              {item.subCategory && <span className="text-[#9945FF]">{item.subCategory}</span>}
+              {item.effectType && <span className="text-[#14F195]">{item.effectType.replaceAll("_", " ")}</span>}
+            </div>
+            <button disabled={item.locked} onClick={() => buy(item)} className="w-full py-2 rounded border border-white/10 text-[10px] font-black tracking-[2px] text-[#fdd835] disabled:opacity-40">
+              {item.locked ? "LOCKED" : "BUY"}
+            </button>
           </div>
-        </div>
-
-        {/* Cash balance */}
-        <div className="flex items-center justify-between bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg px-3 py-2">
-          <span className="text-text-dim text-[11px] font-bold tracking-wide">Your Cash</span>
-          <span className="text-[#66bb6a] text-[15px] font-black">
-            ${Math.floor(profile?.cash ?? 0).toLocaleString()}
-          </span>
-        </div>
-
-        {/* Tab bar */}
-        <div className="flex gap-2">
-          <button
-            onClick={() => setTab("unit")}
-            className={`flex-1 py-2 rounded-lg border text-[10px] font-black tracking-[2px] uppercase transition-colors ${
-              tab === "unit"
-                ? "bg-[#1a0a2e] border-[rgba(153,69,255,0.3)] text-[#9945FF]"
-                : "bg-black/20 backdrop-blur-sm border border-white/10 text-text-dim hover:text-text-secondary"
-            }`}
-          >
-            <span className="inline-flex items-center justify-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              Units
-            </span>
-          </button>
-          <button
-            onClick={() => setTab("equipment")}
-            className={`flex-1 py-2 rounded-lg border text-[10px] font-black tracking-[2px] uppercase transition-colors ${
-              tab === "equipment"
-                ? "bg-[#1a0a2e] border-[rgba(153,69,255,0.3)] text-[#9945FF]"
-                : "bg-black/20 backdrop-blur-sm border border-white/10 text-text-dim hover:text-text-secondary"
-            }`}
-          >
-            <span className="inline-flex items-center justify-center gap-1">
-              <Package className="w-3.5 h-3.5" />
-              Equipment
-            </span>
-          </button>
-        </div>
-
-        {/* Tab content */}
-        {visibleItems.length === 0 ? (
-          <p className="text-text-dim text-sm text-center py-8">
-            No {tab === "unit" ? "units" : "equipment"} available.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {visibleItems.map((item) => (
-              <ItemCard
-                key={item.id}
-                item={item}
-                profile={profile!}
-                qty={quantities[item.id] ?? "1"}
-                buying={buying[item.id] ?? false}
-                result={results[item.id]}
-                onQtyChange={(id, v) => setQuantities((prev) => ({ ...prev, [id]: v }))}
-                onBuy={buy}
-              />
-            ))}
-          </div>
-        )}
-
-        <div className="h-16 md:hidden" />
+        ))}
       </div>
     </div>
   );

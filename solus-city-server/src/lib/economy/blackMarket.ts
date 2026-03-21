@@ -6,6 +6,7 @@ import {
 } from "../config/balance";
 import { applyHeat, decayHeat } from "../player/heat";
 import { calculateBlackMarketHeatGain, calculateBlackMarketPrice } from "./marketPricing";
+import { getPlayerPerkContext } from "../player/perks";
 
 export class BlackMarketError extends Error {
   status: number;
@@ -132,11 +133,27 @@ export async function getBlackMarketListings(prisma: PrismaClient, userId?: stri
     orderBy: [{ finalPrice: "asc" }, { createdAt: "asc" }],
   });
 
-  const profile = userId ? await prisma.profile.findUnique({ where: { userId } }) : null;
+  const [profile, perkContext] = userId
+    ? await Promise.all([
+        prisma.profile.findUnique({ where: { userId } }),
+        getPlayerPerkContext(userId, prisma),
+      ])
+    : [null, null];
 
   return {
     rotation,
-    listings,
+    listings: listings.map((listing) => ({
+      ...listing,
+      finalPrice:
+        perkContext && perkContext.effects.black_market_discount_percent
+          ? Math.max(
+              1,
+              Math.round(
+                listing.finalPrice * (1 - Math.min(0.35, perkContext.effects.black_market_discount_percent))
+              )
+            )
+          : listing.finalPrice,
+    })),
     profile,
   };
 }
@@ -158,7 +175,10 @@ export async function buyBlackMarketListing(
       where: { id: listingId },
       include: { item: true },
     });
-    const profile = await tx.profile.findUnique({ where: { userId } });
+    const [profile, perkContext] = await Promise.all([
+      tx.profile.findUnique({ where: { userId } }),
+      getPlayerPerkContext(userId, tx),
+    ]);
 
     if (!listing || !listing.active || listing.rotationId !== rotation.id || listing.remainingStock <= 0) {
       throw new BlackMarketError(404, "Listing is not available");
@@ -177,7 +197,8 @@ export async function buyBlackMarketListing(
 
     reserveListingStock(listing.remainingStock, qty);
 
-    const pricePaid = listing.finalPrice * qty;
+    const perkDiscount = Math.min(0.35, perkContext.effects.black_market_discount_percent ?? 0);
+    const pricePaid = Math.max(1, Math.round(listing.finalPrice * (1 - perkDiscount))) * qty;
     if (profile.cash < pricePaid) {
       throw new BlackMarketError(400, "Insufficient wallet cash");
     }
@@ -250,6 +271,7 @@ export async function buyBlackMarketListing(
           pricePaid,
           heatChange,
           stingTriggered,
+          perkDiscount,
         },
       },
     });

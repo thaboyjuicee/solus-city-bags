@@ -19,7 +19,12 @@ export interface BattleResult {
   targetHeatBand: string;
   protectionTriggered: string[];
   antiFarmPenaltyApplied: boolean;
+  mismatchPenaltyApplied: boolean;
   missionUpdates: Array<{ id: string; code: string; name: string; progress: number; goalValue: number; completed: boolean; claimed: boolean; type: string }>;
+  revengeCreated: boolean;
+  revengeResolved: boolean;
+  revengeBonusApplied: number;
+  seasonPointsGained: number;
   rpChange: number;
   xpGained: number;
   attackerAP: number;

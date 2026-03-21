@@ -5,6 +5,9 @@ import { calculateWalletCashSteal } from "./lib/combat/loot";
 import { applyVaultTransfer } from "./lib/economy/vault";
 import { reserveListingStock } from "./lib/economy/blackMarket";
 import { assertClaimableMission } from "./lib/missions/rewards";
+import { getAvailablePerkPoints } from "./lib/player/perks";
+import { qualifiesForRevenge, getRevengeBonusPercent } from "./lib/combat/revenge";
+import { getMismatchAdjustment } from "./lib/matchmaking";
 
 test("heat clamps and maps to wanted tiers", () => {
   assert.equal(clampHeat(130), 100);
@@ -69,4 +72,35 @@ test("mission claim cannot happen twice", () => {
   assert.throws(() => assertClaimableMission({ completed: true, claimed: true }));
   assert.throws(() => assertClaimableMission({ completed: false, claimed: false }));
   assert.doesNotThrow(() => assertClaimableMission({ completed: true, claimed: false }));
+});
+
+test("perk points are enforced by level cadence and unlock count", () => {
+  assert.equal(getAvailablePerkPoints({ level: 10, availablePerkPoints: 0 }, 1), 1);
+  assert.equal(getAvailablePerkPoints({ level: 4, availablePerkPoints: 0 }, 0), 0);
+});
+
+test("revenge marks only qualify for meaningful losses", () => {
+  assert.equal(qualifiesForRevenge(100, false), false);
+  assert.equal(qualifiesForRevenge(1000, false), true);
+  assert.equal(qualifiesForRevenge(0, true), true);
+  assert.equal(getRevengeBonusPercent({ bonusPercent: 0.15 }), 0.15);
+});
+
+test("mismatch penalty reduces rewards for much weaker targets", () => {
+  const severe = getMismatchAdjustment({
+    attackerPower: 400,
+    defenderPower: 100,
+    attackerLevel: 20,
+    defenderLevel: 5,
+  });
+  const fair = getMismatchAdjustment({
+    attackerPower: 180,
+    defenderPower: 150,
+    attackerLevel: 12,
+    defenderLevel: 10,
+  });
+
+  assert.equal(severe.mismatchPenaltyApplied, true);
+  assert.ok(severe.lootMultiplier < 1);
+  assert.equal(fair.mismatchPenaltyApplied, false);
 });

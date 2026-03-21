@@ -16,6 +16,7 @@ import { api } from "@/lib/api/client";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { StatusBars } from "@/components/ui/StatusBars";
 import { HospitalOptionsCard } from "@/components/game/HospitalOptionsCard";
+import { RarityBadge } from "@/components/game/RarityBadge";
 import { useSLSBalance } from "@/hooks/useSLSBalance";
 import {
   BlackMarketListing,
@@ -188,13 +189,18 @@ function ListingsPanel({
                     <p className="text-[13px] font-bold text-[#eee]">{listing.item.name}</p>
                     <p className="text-[10px] text-[#555]">{listing.item.description}</p>
                   </div>
-                  <span className="text-[10px] font-black text-[#66bb6a]">${Math.floor(listing.finalPrice).toLocaleString()}</span>
+                  <div className="flex flex-col items-end gap-1">
+                    <RarityBadge rarity={listing.item.rarity} />
+                    <span className="text-[10px] font-black text-[#66bb6a]">${Math.floor(listing.finalPrice).toLocaleString()}</span>
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-2 text-[10px] font-bold">
                   <span className="text-[#42a5f5]">Stock {listing.remainingStock}/{listing.stock}</span>
                   <span className="text-[#fdd835]">Heat {listing.requiredHeatMin}+</span>
                   <span className="text-[#ff9800]">Level {listing.requiredLevelMin}+</span>
                   <span className="text-[#ef5350]">Risk {listing.riskPercent}%</span>
+                  {listing.item.slot && <span className="text-[#9945FF]">Slot {listing.item.slot}</span>}
+                  {listing.item.effectType && <span className="text-[#14F195]">{listing.item.effectType.replaceAll("_", " ")}</span>}
                 </div>
                 <button
                   onClick={() => onBuy(listing)}

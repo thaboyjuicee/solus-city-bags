@@ -51,10 +51,16 @@ export interface MeResponse {
   slsSpent: number;
   heat: number;
   wantedTier: string;
+  seasonScore: number;
+  availablePerkPoints: number;
+  prestigeLevel: number;
   hospitalExitPenalty: { type: string | null; until: string } | null;
   activeProtectionEffects: Array<{ id: string; type: string; value: number; endsAt: string; sourceName?: string }>;
   missionsPreview: Mission[];
   blackMarketEndsAt: string | null;
+  currentSeason: SeasonSummary | null;
+  unlockedPerkSummary: { total: number; branches: Record<string, number> };
+  equipmentSummary: Array<{ itemId: string; name: string; slot: string | null; rarity: string | null }>;
   syndicate: {
     id: string;
     name: string;
@@ -98,6 +104,7 @@ export interface TargetPreview {
   heatBand: "low" | "watched" | "wanted" | "dangerous" | "most_wanted";
   recentlyFarmedPenalty: boolean;
   syndicateBadge: string | null;
+  mismatchPenaltyApplied?: boolean;
 }
 
 export interface BlackMarketRotation {
@@ -133,6 +140,10 @@ export interface BlackMarketListing {
     riskType: string | null;
     riskValue: number | null;
     consumable: boolean;
+    rarity: string | null;
+    slot: string | null;
+    tradable: boolean;
+    maxStack: number | null;
   };
 }
 
@@ -155,6 +166,107 @@ export interface AttackLogEntry {
   hospitalResult: string;
   revengeTargetId?: string;
   revengeAvailable: boolean;
+  revengeExpiresAt?: string | null;
+  revengeBonusPreview?: number;
   metadata?: Record<string, unknown> | null;
   protectionTriggered?: string[];
+}
+
+export interface PerkDefinition {
+  id: string;
+  branch: string;
+  code: string;
+  name: string;
+  description: string;
+  effectType: string;
+  effectValue: number;
+  tier: number;
+  active: boolean;
+  prerequisitePerk?: { id: string; code: string; name: string } | null;
+}
+
+export interface PlayerPerk {
+  id: string;
+  unlockedAt: string;
+  perkDefinition: PerkDefinition;
+}
+
+export interface PerksResponse {
+  branches: Array<{ code: string; name: string; description: string }>;
+  definitions: PerkDefinition[];
+  unlocked: PlayerPerk[];
+  availablePoints: number;
+}
+
+export interface InventoryRow {
+  id: string;
+  inventoryItemId: string;
+  itemId: string;
+  qty: number;
+  equipped: boolean;
+  durability: number | null;
+  expiresAt: string | null;
+  sourceType: string | null;
+  item: {
+    id: string;
+    name: string;
+    category: string;
+    subCategory: string | null;
+    rarity: string | null;
+    slot: string | null;
+    description: string | null;
+    effectType: string | null;
+    effectValue: number | null;
+    effectDurationSecs: number | null;
+    tradable: boolean;
+    consumable: boolean;
+  };
+}
+
+export interface InventoryResponse {
+  equipped: InventoryRow[];
+  consumables: InventoryRow[];
+  utilities: InventoryRow[];
+  contraband: InventoryRow[];
+  protection: InventoryRow[];
+  general: InventoryRow[];
+}
+
+export interface SeasonSummary {
+  id: string;
+  name: string;
+  status: string;
+  startsAt: string;
+  endsAt: string;
+  timeRemainingMs: number;
+  rewardPreview: unknown;
+  prestigeEnabled: boolean;
+  player: {
+    rank: number | null;
+    score: number;
+    pvpScore: number;
+    crimeScore: number;
+    missionScore: number;
+  } | null;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  name: string;
+  wallet: string;
+  level: number;
+  rp?: number;
+  score?: number;
+  seasonScore?: number;
+  pvpScore?: number;
+  crimeScore?: number;
+  missionScore?: number;
+  isMe: boolean;
+}
+
+export interface LeaderboardResponse {
+  type: "season" | "pvp" | "crime";
+  seasonId?: string;
+  entries: LeaderboardEntry[];
 }
