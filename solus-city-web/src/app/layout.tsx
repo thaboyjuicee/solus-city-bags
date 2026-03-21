@@ -21,6 +21,10 @@ const GamePageChrome = dynamic(
 export const metadata: Metadata = {
   title: "Solus City",
   description: "The web client for Solus City — the on-chain crime RPG",
+  icons: {
+    icon: "/assets/images/app_icon.png",
+    apple: "/assets/images/app_icon.png",
+  },
 };
 
 export default function RootLayout({

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
@@ -108,8 +109,9 @@ export function Navigation() {
         <div className="h-full px-3 flex items-center justify-between gap-3 relative">
           <Link
             href="/home"
-            className="text-[#eee] font-black tracking-[3px] text-sm flex-shrink-0"
+            className="flex items-center gap-2 text-[#eee] font-black tracking-[3px] text-sm flex-shrink-0"
           >
+            <Image src="/assets/images/app_icon.png" alt="Solus City" width={32} height={32} className="rounded-md" />
             SOLUS CITY
           </Link>
 
@@ -144,8 +146,9 @@ export function Navigation() {
         <div className="h-full px-3 flex items-center justify-between gap-3">
           <Link
             href="/home"
-            className="text-[#eee] font-black tracking-[3px] text-sm flex-shrink-0"
+            className="flex items-center gap-2 text-[#eee] font-black tracking-[3px] text-sm flex-shrink-0"
           >
+            <Image src="/assets/images/app_icon.png" alt="Solus City" width={32} height={32} className="rounded-md" />
             SOLUS CITY
           </Link>
 
@@ -197,8 +200,9 @@ export function Navigation() {
       <nav className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-black/25 backdrop-blur-sm border-b border-white/10 z-50 flex items-center justify-center">
         <Link
           href="/home"
-          className="text-[#eee] font-black tracking-[3px] text-sm"
+          className="flex items-center gap-2 text-[#eee] font-black tracking-[3px] text-sm"
         >
+          <Image src="/assets/images/app_icon.png" alt="Solus City" width={32} height={32} className="rounded-md" />
           SOLUS CITY
         </Link>
       </nav>
