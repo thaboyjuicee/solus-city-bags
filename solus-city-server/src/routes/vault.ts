@@ -60,15 +60,17 @@ export default async function vaultRoutes(
     const { userId } = request.user;
 
     try {
+      await ensurePlayerMissionsAssigned(prisma, userId);
       const profile = await prisma.profile.findUnique({ where: { userId } });
       if (!profile) return reply.status(404).send({ error: "Profile not found" });
       const balances = applyVaultTransfer(profile.cash, profile.vaultCash, parsed.data.amount, "withdraw");
 
-      const updated = await prisma.$transaction(async (tx) => {
-        const next = await tx.profile.update({
+      const result = await prisma.$transaction(async (tx) => {
+        const updated = await tx.profile.update({
           where: { userId },
           data: { cash: balances.walletCash, vaultCash: balances.vaultCash },
         });
+        const missionUpdates = await progressPlayerMissions(tx, userId, [{ goalType: "vault_withdraw", amount: 1 }]);
         await tx.eventLog.create({
           data: {
             userId,
@@ -77,10 +79,10 @@ export default async function vaultRoutes(
             metadata: { amount: parsed.data.amount, walletCash: balances.walletCash, vaultCash: balances.vaultCash },
           },
         });
-        return next;
+        return { updated, missionUpdates };
       });
 
-      return reply.send({ walletCash: updated.cash, vaultCash: updated.vaultCash });
+      return reply.send({ walletCash: result.updated.cash, vaultCash: result.updated.vaultCash, missionUpdates: result.missionUpdates });
     } catch (err) {
       return reply.status(400).send({ error: err instanceof Error ? err.message : "Vault withdraw failed" });
     }

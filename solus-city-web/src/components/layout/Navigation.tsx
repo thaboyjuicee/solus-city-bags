@@ -79,12 +79,18 @@ function isActive(href: string, path: string) {
   return path === href || path.startsWith(`${href}/`);
 }
 
+function formatSls(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return n.toFixed(2);
+}
+
 function SLSBadge() {
   const balance = useSLSBalance();
   if (balance === null) return null;
   return (
     <span className="flex-shrink-0 px-2.5 py-1 rounded-sm bg-[#1a0a2e] border border-[rgba(153,69,255,0.3)] text-[#9945FF] text-[11px] font-bold tracking-[1px] whitespace-nowrap">
-      {balance.toFixed(2)} $SLS
+      {formatSls(balance)} $SLS
     </span>
   );
 }

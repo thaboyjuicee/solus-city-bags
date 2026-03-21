@@ -21,6 +21,10 @@ import slsRoutes from "./routes/sls";
 import vaultRoutes from "./routes/vault";
 import blackMarketRoutes from "./routes/blackMarket";
 import missionsRoutes from "./routes/missions";
+import { runBlackMarketRotationJob } from "./jobs/blackMarketRotation";
+import { runDailyMissionReset } from "./jobs/dailyMissionReset";
+import { runHeatDecay } from "./jobs/heatDecay";
+import { runWeeklyMissionReset } from "./jobs/weeklyMissionReset";
 
 const fastify = Fastify({ logger: true });
 
@@ -186,6 +190,17 @@ const start = async () => {
     await ensureSeedData(prisma);
     await fastify.listen({ port: PORT, host: "0.0.0.0" });
     fastify.log.info(`Solus City API running on port ${PORT}`);
+
+    // Scheduler jobs — run immediately on start, then on intervals
+    const runJob = (name: string, fn: () => Promise<unknown>, intervalMs: number) => {
+      fn().catch((err) => fastify.log.error(err, `${name} initial run failed`));
+      setInterval(() => fn().catch((err) => fastify.log.error(err, `${name} failed`)), intervalMs);
+    };
+
+    runJob("runHeatDecay",               () => runHeatDecay(prisma),                  5 * 60 * 1000);
+    runJob("runBlackMarketRotationJob",  () => runBlackMarketRotationJob(prisma),      5 * 60 * 1000);
+    runJob("runDailyMissionReset",       () => runDailyMissionReset(prisma),           5 * 60 * 1000);
+    runJob("runWeeklyMissionReset",      () => runWeeklyMissionReset(prisma),         10 * 60 * 1000);
   } catch (err) {
     if (err instanceof Error) {
       fastify.log.error(err.message);

@@ -8,22 +8,25 @@ import { api } from "@/lib/api/client";
 import { BATTLE_RESULT_KEY, BattleResult, formatHospitalMessage } from "@/lib/battle";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { StatusBars } from "@/components/ui/StatusBars";
-import { LootBandBadge } from "@/components/game/LootBandBadge";
 import { MeResponse, TargetPreview } from "@/lib/gameApi";
 
+const BAND_CLASS: Record<string, string> = {
+  safe: "bg-[#66bb6a20] text-[#66bb6a]",
+  favorable: "bg-[#42a5f520] text-[#42a5f5]",
+  even: "bg-[#fdd83520] text-[#fdd835]",
+  risky: "bg-[#ff980020] text-[#ff9800]",
+  dangerous: "bg-[#ef535020] text-[#ef5350]",
+  low: "bg-[#66bb6a20] text-[#66bb6a]",
+  medium: "bg-[#42a5f520] text-[#42a5f5]",
+  high: "bg-[#ff980020] text-[#ff9800]",
+  jackpot: "bg-[#fdd83520] text-[#fdd835]",
+  watched: "bg-[#fdd83520] text-[#fdd835]",
+  wanted: "bg-[#ff980020] text-[#ff9800]",
+  most_wanted: "bg-[#ef535020] text-[#ef5350]",
+};
+
 function bandClass(value: string) {
-  const map: Record<string, string> = {
-    safe: "bg-[#66bb6a20] text-[#66bb6a]",
-    favorable: "bg-[#42a5f520] text-[#42a5f5]",
-    even: "bg-[#fdd83520] text-[#fdd835]",
-    risky: "bg-[#ff980020] text-[#ff9800]",
-    dangerous: "bg-[#ef535020] text-[#ef5350]",
-    low: "bg-[#66bb6a20] text-[#66bb6a]",
-    watched: "bg-[#fdd83520] text-[#fdd835]",
-    wanted: "bg-[#ff980020] text-[#ff9800]",
-    most_wanted: "bg-[#ef535020] text-[#ef5350]",
-  };
-  return map[value] ?? "bg-[#1e1e1e] text-[#aaa]";
+  return BAND_CLASS[value] ?? "bg-[#1e1e1e] text-[#aaa]";
 }
 
 export default function TargetsPage() {
@@ -118,9 +121,24 @@ export default function TargetsPage() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${bandClass(target.winChanceBand)}`}>{target.winChanceBand.toUpperCase()}</span>
-                <LootBandBadge band={target.lootBand} />
-                <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${bandClass(target.heatBand)}`}>{target.heatBand.toUpperCase()}</span>
+                <span
+                  title="Threat level — how dangerous this target is to attack"
+                  className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${bandClass(target.winChanceBand)}`}
+                >
+                  THREAT · {target.winChanceBand.toUpperCase()}
+                </span>
+                <span
+                  title="Loot potential — how much cash you can steal"
+                  className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${bandClass(target.lootBand)}`}
+                >
+                  LOOT · {target.lootBand.toUpperCase()}
+                </span>
+                <span
+                  title="Defence band — how hard this target is to beat"
+                  className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${bandClass(target.heatBand)}`}
+                >
+                  DEF · {target.heatBand.toUpperCase()}
+                </span>
               </div>
               {target.recentlyFarmedPenalty && <p className="text-[10px] text-[#ff9800] font-bold">Repeat-target penalty likely active.</p>}
               {target.flavor && <p className="text-[10px] text-[#888]">{target.flavor}</p>}

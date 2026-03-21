@@ -103,7 +103,7 @@ export default async function meRoutes(
             startsAt: { lte: new Date() },
             endsAt: { gt: new Date() },
           },
-          include: { missionDefinition: true },
+          include: { missionDefinition: { include: { rewardItem: true } } },
           orderBy: [{ completed: "asc" }, { endsAt: "asc" }],
           take: 5,
         }),
@@ -145,7 +145,9 @@ export default async function meRoutes(
             rewards: {
               cash: mission.missionDefinition.rewardCash,
               rp: mission.missionDefinition.rewardRp,
-              item: null,
+              item: mission.missionDefinition.rewardItem
+                ? { id: mission.missionDefinition.rewardItem.id, name: mission.missionDefinition.rewardItem.name }
+                : null,
             },
           })),
           blackMarketEndsAt: rotation?.endsAt ?? null,

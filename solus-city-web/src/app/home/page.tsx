@@ -23,6 +23,16 @@ interface EventItem {
   ts: string;
 }
 
+function eventColor(type: string): string {
+  if (["attack_win", "attacked_npc"].includes(type)) return "bg-[#66bb6a]";
+  if (["attack_loss", "attack_evaded", "attacked", "attacked_by_player", "attacked_by_player_evaded", "hospital"].includes(type)) return "bg-[#ef5350]";
+  if (type === "crime") return "bg-[#fdd835]";
+  if (type === "gym") return "bg-[#ff9800]";
+  if (type === "level_up") return "bg-[#9945FF]";
+  if (["shop", "bought_equipment"].includes(type)) return "bg-[#42a5f5]";
+  return "bg-[#9945FF]";
+}
+
 function timeAgo(ts: string): string {
   const diff = Date.now() - new Date(ts).getTime();
   const mins = Math.floor(diff / 60000);
@@ -147,7 +157,7 @@ export default function HomePage() {
           ) : (
             events.map((evt, i) => (
               <div key={evt.id} className={`flex items-start gap-2 ${i < events.length - 1 ? "pb-2 border-b border-[#1e1e1e]" : ""}`}>
-                <div className="w-2 h-2 rounded-full mt-1 bg-[#9945FF]" />
+                <div className={`w-2 h-2 rounded-full mt-1 flex-shrink-0 ${eventColor(evt.type)}`} />
                 <p className="text-[11px] flex-1 leading-snug text-[#ddd]">{evt.message}</p>
                 <span className="text-[9px] whitespace-nowrap text-[#555]">{timeAgo(evt.ts)}</span>
               </div>
