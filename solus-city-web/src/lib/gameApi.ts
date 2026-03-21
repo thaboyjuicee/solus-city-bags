@@ -61,12 +61,41 @@ export interface MeResponse {
   currentSeason: SeasonSummary | null;
   unlockedPerkSummary: { total: number; branches: Record<string, number> };
   equipmentSummary: Array<{ itemId: string; name: string; slot: string | null; rarity: string | null }>;
+  activeTerritoryBonuses?: Array<{ territoryId: string; territoryName: string; bonusType: string; bonusValue: number }>;
+  currentWarSummary?: {
+    id: string;
+    status: string;
+    startsAt: string;
+    endsAt: string;
+    attackerScore: number;
+    defenderScore: number;
+    territory?: { id: string; name: string; code: string } | null;
+    attackerSyndicate?: { id: string; name: string } | null;
+    defenderSyndicate?: { id: string; name: string } | null;
+  } | null;
+  syndicateVaultSummary?: {
+    vaultCash: number;
+    seasonPoints: number;
+    territoryCount: number;
+    warRating: number;
+  } | null;
+  currentSyndicateRole?: string | null;
   syndicate: {
     id: string;
     name: string;
     role: string;
     buffType: string;
     buffValue: number;
+    vaultCash?: number;
+    seasonPoints?: number;
+    territoryCount?: number;
+    warRating?: number;
+    permissions?: {
+      manageRoles: boolean;
+      withdrawVault: boolean;
+      manageWar: boolean;
+      recruit: boolean;
+    };
   } | null;
 }
 
