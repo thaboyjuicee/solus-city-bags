@@ -85,7 +85,7 @@ const defaultItems: SeedItem[] = ([
   blackMarketOnly: false,
   consumable: false,
   stealable: true,
-  tradable: category !== "consumable",
+  tradable: true,
   maxStack: category === "equipment" ? 1 : 25,
   stackable: true,
   isUnique: false,

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
@@ -40,3 +40,4 @@ export default function SeasonsPage() {
     </div>
   );
 }
+

@@ -117,7 +117,6 @@ model Item {
   blackMarketListings BlackMarketListing[]
   blackMarketPurchases BlackMarketPurchase[]
   missionRewards MissionDefinition[] @relation("MissionRewardItem")
-  perkSources   PerkDefinition[] @relation("PerkPrerequisite")
 }
 
 model Inventory {

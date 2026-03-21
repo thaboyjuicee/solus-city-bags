@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
@@ -47,7 +47,7 @@ export default function LeaderboardPage() {
             <div key={entry.userId} className={`rounded-lg border p-3 flex items-center justify-between gap-3 ${entry.isMe ? "border-[rgba(153,69,255,0.3)] bg-[#1a0a2e]" : "border-white/10 bg-black/20"}`}>
               <div>
                 <p className="text-[12px] font-bold text-[#eee]">#{entry.rank} {entry.name}</p>
-                <p className="text-[10px] text-[#777]">LV {entry.level} � RP {entry.rp ?? 0}</p>
+                <p className="text-[10px] text-[#777]">LV {entry.level} • RP {entry.rp ?? 0}</p>
               </div>
               <div className="text-right">
                 <p className="text-[14px] font-black text-[#fdd835]">{entry.score ?? entry.seasonScore ?? entry.rp ?? 0}</p>
@@ -60,3 +60,4 @@ export default function LeaderboardPage() {
     </div>
   );
 }
+

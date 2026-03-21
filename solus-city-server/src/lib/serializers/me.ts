@@ -1,36 +1,9 @@
+import type { Profile } from "@prisma/client";
 import { isInHospital, nextEnergyAt, nextHappinessAt, nextNerveAt } from "../game";
 
 type SerializeMeInput = {
   wallet: string;
-  profile: {
-    name: string;
-    cash: number;
-    vaultCash: number;
-    rp: number;
-    level: number;
-    xp: number;
-    health: number;
-    maxHealth: number;
-    energy: number;
-    maxEnergy: number;
-    nerve: number;
-    maxNerve: number;
-    happiness: number;
-    maxHappiness: number;
-    strength: number;
-    speed: number;
-    defense: number;
-    dexterity: number;
-    shieldUntil: Date;
-    hospitalUntil: Date;
-    heat: number;
-    wantedTier: string;
-    seasonScore: number;
-    availablePerkPoints: number;
-    prestigeLevel: number;
-    hospitalExitPenaltyType: string | null;
-    hospitalExitPenaltyUntil: Date | null;
-  };
+  profile: Profile;
   combat: { totalStats: { ap: number; dp: number } };
   statBreakdown: unknown;
   incomePerHour: number;

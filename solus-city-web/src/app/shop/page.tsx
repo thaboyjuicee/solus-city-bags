@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
@@ -55,7 +55,7 @@ export default function ShopPage() {
             <div className="flex items-center justify-between gap-2">
               <div>
                 <p className="text-[13px] font-bold text-[#eee]">{item.name}</p>
-                <p className="text-[10px] text-[#777]">LV {item.levelRequirement} � Owned {item.owned}</p>
+                <p className="text-[10px] text-[#777]">LV {item.levelRequirement} • Owned {item.owned}</p>
               </div>
               <RarityBadge rarity={item.rarity} />
             </div>
@@ -75,3 +75,4 @@ export default function ShopPage() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
@@ -81,3 +81,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

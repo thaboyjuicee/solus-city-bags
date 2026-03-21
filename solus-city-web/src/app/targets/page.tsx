@@ -1,4 +1,4 @@
-"use client";
+ï»¿"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
@@ -92,7 +92,7 @@ export default function TargetsPage() {
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
         <div className="relative z-10 px-3 pb-3">
           <p className="text-[10px] font-black text-[#eee] tracking-[3px] uppercase">Targets</p>
-          <p className="text-[11px] font-semibold text-text-dim">Bands stay visible, but anti-whale penalties now hide weak targets’ value.</p>
+          <p className="text-[11px] font-semibold text-text-dim">Bands stay visible, but anti-whale penalties now hide weak targetsâ€™ value.</p>
         </div>
       </div>
       <div className="flex flex-col gap-2">
@@ -103,16 +103,16 @@ export default function TargetsPage() {
               <div className="flex items-center justify-between gap-2">
                 <div>
                   <p className="text-[14px] font-bold text-[#eee]">{target.displayName}</p>
-                  <p className="text-[10px] text-[#555]">LV {target.level} • {target.rp} RP</p>
+                  <p className="text-[10px] text-[#555]">LV {target.level} â€¢ {target.rp} RP</p>
                 </div>
                 <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${target.type === "npc" ? "bg-[#14F19520] text-[#14F195]" : "bg-[#9945FF20] text-[#9945FF]"}`}>
                   {target.type.toUpperCase()}
                 </span>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${bandClass(target.winChanceBand)}`}>WIN · {target.winChanceBand.toUpperCase()}</span>
-                <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${bandClass(target.lootBand)}`}>LOOT · {target.lootBand.toUpperCase()}</span>
-                <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${bandClass(target.heatBand)}`}>HEAT · {target.heatBand.toUpperCase()}</span>
+                <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${bandClass(target.winChanceBand)}`}>WIN Â· {target.winChanceBand.toUpperCase()}</span>
+                <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${bandClass(target.lootBand)}`}>LOOT Â· {target.lootBand.toUpperCase()}</span>
+                <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${bandClass(target.heatBand)}`}>HEAT Â· {target.heatBand.toUpperCase()}</span>
               </div>
               {target.recentlyFarmedPenalty && <p className="text-[10px] text-[#ff9800] font-bold">Repeat-target penalty likely active.</p>}
               {target.mismatchPenaltyApplied && <p className="text-[10px] text-[#ef5350] font-bold">Very weak target. Rewards likely dampened.</p>}
@@ -127,3 +127,4 @@ export default function TargetsPage() {
     </div>
   );
 }
+

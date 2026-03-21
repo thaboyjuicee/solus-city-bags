@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -81,3 +81,4 @@ export default function AttackLogsPage() {
     </div>
   );
 }
+
