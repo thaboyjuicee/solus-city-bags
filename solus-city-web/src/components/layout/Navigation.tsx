@@ -8,6 +8,7 @@ import {
   Crosshair,
   Dumbbell,
   Home,
+  ListTodo,
   MoreHorizontal,
   ScrollText,
   ShoppingBag,
@@ -35,7 +36,8 @@ type NavTab = {
     | "attackLogs"
     | "profile"
     | "syndicates"
-    | "result";
+    | "result"
+    | "missions";
 };
 
 const NAV_TABS: NavTab[] = [
@@ -47,6 +49,7 @@ const NAV_TABS: NavTab[] = [
   { href: "/black-market", label: "Black Market", icon: "blackMarket" },
   { href: "/leaderboard", label: "Leaderboard", icon: "leaderboard" },
   { href: "/attack-logs", label: "Attack Logs", icon: "attackLogs" },
+  { href: "/missions", label: "Missions", icon: "missions" },
   { href: "/profile", label: "Profile", icon: "profile" },
   { href: "/syndicates", label: "Syndicates", icon: "syndicates" },
   { href: "/battle-result", label: "Battle Result", icon: "result" },
@@ -64,6 +67,7 @@ const ICONS: Record<NonNullable<NavTab["icon"]>, typeof Home> = {
   profile: UserRound,
   syndicates: Users,
   result: History,
+  missions: ListTodo,
 };
 
 function Icon({ name }: { name: NavTab["icon"] }) {

@@ -1,0 +1,25 @@
+export const HEAT_MAX = 100;
+export const HEAT_DECAY_PER_INTERVAL = 2;
+export const HEAT_DECAY_INTERVAL_MINUTES = 30;
+
+export const PVP_STEAL_MIN_PERCENT = 0.03;
+export const PVP_STEAL_MAX_PERCENT = 0.1;
+export const REPEAT_TARGET_LOOT_REDUCTION_WINDOW_MINUTES = 60;
+export const REPEAT_TARGET_LOOT_REDUCTION_MULTIPLIER = 0.45;
+export const NEWBIE_PROTECTION_LEVEL_MAX = 5;
+
+export const BLACK_MARKET_ROTATION_HOURS = 6;
+export const BLACK_MARKET_MAX_LISTINGS = 6;
+export const BLACK_MARKET_STING_MAX_PERCENT = 22;
+
+export const HOSPITAL_CASH_RELEASE_BASE = 250;
+export const HOSPITAL_CASH_RELEASE_PER_LEVEL = 25;
+export const HOSPITAL_CASH_RELEASE_PER_MINUTE = 5;
+export const HOSPITAL_PENALTY_DURATION_HOURS = {
+  weakened: 4,
+  shaken: 6,
+  exposed: 8,
+} as const;
+
+export const DAILY_MISSION_COUNT = 3;
+export const WEEKLY_MISSION_COUNT = 2;

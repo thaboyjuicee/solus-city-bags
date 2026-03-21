@@ -6,7 +6,6 @@ export default async function eventsRoutes(
   fastify: FastifyInstance,
   { prisma }: { prisma: PrismaClient }
 ) {
-  // GET /events — recent event log for the user
   fastify.get("/events", { preHandler: requireAuth }, async (request, reply) => {
     const { userId } = request.user;
 

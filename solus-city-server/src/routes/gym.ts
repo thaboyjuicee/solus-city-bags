@@ -2,8 +2,11 @@ import { FastifyInstance } from "fastify";
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { requireAuth } from "../lib/auth";
-import { applyIncome, applyEnergy, applyNerve, applyHappiness, applyHospitalRecovery, isInHospital, processLevelUp } from "../lib/game";
-import { GYM_ENERGY_COST, GYM_STAT_GAIN_MIN, GYM_STAT_GAIN_MAX, GYM_XP_REWARD, GYM_HAPPY_COST } from "../lib/constants";
+import { applyEnergy, applyHappiness, applyHospitalRecovery, applyIncome, applyNerve, isInHospital, processLevelUp } from "../lib/game";
+import { GYM_ENERGY_COST, GYM_HAPPY_COST, GYM_STAT_GAIN_MAX, GYM_STAT_GAIN_MIN, GYM_XP_REWARD } from "../lib/constants";
+import { decayHeat } from "../lib/player/heat";
+import { ensurePlayerMissionsAssigned } from "../lib/missions/assign";
+import { progressPlayerMissions } from "../lib/missions/progress";
 
 const trainBody = z.object({
   stat: z.enum(["strength", "speed", "defense", "dexterity"]),
@@ -13,17 +16,15 @@ export default async function gymRoutes(
   fastify: FastifyInstance,
   { prisma }: { prisma: PrismaClient }
 ) {
-  // POST /gym/train — spend energy to train a combat stat
   fastify.post("/gym/train", { preHandler: requireAuth }, async (request, reply) => {
     const { userId } = request.user;
-
     const parsed = trainBody.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: "Invalid stat. Choose: strength, speed, defense, dexterity" });
     }
-    const { stat } = parsed.data;
 
     try {
+      await ensurePlayerMissionsAssigned(prisma, userId);
       const profile = await prisma.profile.findUnique({ where: { userId } });
       if (!profile) return reply.status(404).send({ error: "Profile not found" });
 
@@ -37,6 +38,7 @@ export default async function gymRoutes(
               userId,
               type: "hospital",
               message: "Discharged from hospital. Health fully restored.",
+              metadata: { method: "natural_recovery" },
             },
           }),
         ]);
@@ -46,82 +48,90 @@ export default async function gymRoutes(
         return reply.status(400).send({ error: "You are in the hospital and cannot train" });
       }
 
-      // Apply regen
       const incomeUpdate = applyIncome(recoveredProfile);
       const energyUpdate = applyEnergy({ ...recoveredProfile, ...incomeUpdate });
       const nerveUpdate = applyNerve({ ...recoveredProfile, ...incomeUpdate, ...energyUpdate });
       const happinessUpdate = applyHappiness({ ...recoveredProfile, ...incomeUpdate, ...energyUpdate, ...nerveUpdate });
-      const updated = { ...recoveredProfile, ...incomeUpdate, ...energyUpdate, ...nerveUpdate, ...happinessUpdate };
+      const heatUpdate = decayHeat({ ...recoveredProfile, ...incomeUpdate, ...energyUpdate, ...nerveUpdate, ...happinessUpdate });
+      const updated = { ...recoveredProfile, ...incomeUpdate, ...energyUpdate, ...nerveUpdate, ...happinessUpdate, ...heatUpdate };
 
       if (updated.energy < GYM_ENERGY_COST) {
-        await prisma.profile.update({ where: { userId }, data: { ...incomeUpdate, ...energyUpdate, ...nerveUpdate, ...happinessUpdate } });
+        await prisma.profile.update({
+          where: { userId },
+          data: { ...incomeUpdate, ...energyUpdate, ...nerveUpdate, ...happinessUpdate, heat: heatUpdate.heat, wantedTier: heatUpdate.wantedTier, lastHeatDecayAt: heatUpdate.lastHeatDecayAt },
+        });
         return reply.status(400).send({ error: `Not enough energy (need ${GYM_ENERGY_COST})` });
       }
 
-      // Calculate stat gain (higher with happiness)
       const baseGain = GYM_STAT_GAIN_MIN + Math.floor(Math.random() * (GYM_STAT_GAIN_MAX - GYM_STAT_GAIN_MIN + 1));
       const happyBonus = updated.happiness >= GYM_HAPPY_COST ? 1 : 0;
       const totalGain = baseGain + happyBonus;
       const happySpent = happyBonus > 0 ? GYM_HAPPY_COST : 0;
-
-      // Apply XP and check level up
       const newXp = updated.xp + GYM_XP_REWARD;
       const levelResult = processLevelUp({ ...updated, xp: newXp });
 
-      const updateData: Record<string, unknown> = {
-        ...incomeUpdate,
-        ...energyUpdate,
-        ...nerveUpdate,
-        ...happinessUpdate,
-        energy: updated.energy - GYM_ENERGY_COST,
-        happiness: Math.max(0, updated.happiness - happySpent),
-        xp: levelResult.xp ?? newXp,
-        level: levelResult.level ?? updated.level,
-        maxHealth: levelResult.maxHealth ?? updated.maxHealth,
-        [stat]: (updated as Record<string, unknown>)[stat] as number + totalGain,
-      };
-
-      const finalProfile = await prisma.profile.update({
-        where: { userId },
-        data: updateData,
-      });
-
-      // Log event
-      await prisma.eventLog.create({
-        data: {
-          userId,
-          type: "gym",
-          message: `Trained ${stat} and gained +${totalGain} points`,
-        },
-      });
-
-      // Log level up
-      if (levelResult.level && levelResult.level > updated.level) {
-        await prisma.eventLog.create({
+      const txResult = await prisma.$transaction(async (tx) => {
+        const finalProfile = await tx.profile.update({
+          where: { userId },
           data: {
-            userId,
-            type: "level_up",
-            message: `Reached level ${levelResult.level}!`,
+            ...incomeUpdate,
+            ...energyUpdate,
+            ...nerveUpdate,
+            ...happinessUpdate,
+            energy: updated.energy - GYM_ENERGY_COST,
+            happiness: Math.max(0, updated.happiness - happySpent),
+            xp: levelResult.xp ?? newXp,
+            level: levelResult.level ?? updated.level,
+            maxHealth: levelResult.maxHealth ?? updated.maxHealth,
+            heat: heatUpdate.heat,
+            wantedTier: heatUpdate.wantedTier,
+            lastHeatDecayAt: heatUpdate.lastHeatDecayAt,
+            [parsed.data.stat]: (updated as Record<string, unknown>)[parsed.data.stat] as number + totalGain,
           },
         });
-      }
+
+        const missionUpdates = await progressPlayerMissions(tx, userId, [{ goalType: "gym_train", amount: 1 }]);
+
+        await tx.eventLog.create({
+          data: {
+            userId,
+            type: "gym",
+            message: `Trained ${parsed.data.stat} and gained +${totalGain} points`,
+            metadata: { stat: parsed.data.stat, gained: totalGain, xpGained: GYM_XP_REWARD },
+          },
+        });
+
+        if (levelResult.level && levelResult.level > updated.level) {
+          await tx.eventLog.create({
+            data: {
+              userId,
+              type: "level_up",
+              message: `Reached level ${levelResult.level}!`,
+              metadata: { level: levelResult.level },
+            },
+          });
+        }
+
+        return { finalProfile, missionUpdates };
+      });
 
       return reply.send({
-        stat,
+        stat: parsed.data.stat,
         gained: totalGain,
         happyBonus: happyBonus > 0,
         xpGained: GYM_XP_REWARD,
         leveledUp: levelResult.level ? levelResult.level > updated.level : false,
-        newLevel: finalProfile.level,
+        newLevel: txResult.finalProfile.level,
+        missionUpdates: txResult.missionUpdates,
         profile: {
-          energy: finalProfile.energy,
-          happiness: finalProfile.happiness,
-          strength: finalProfile.strength,
-          speed: finalProfile.speed,
-          defense: finalProfile.defense,
-          dexterity: finalProfile.dexterity,
-          xp: finalProfile.xp,
-          level: finalProfile.level,
+          energy: txResult.finalProfile.energy,
+          happiness: txResult.finalProfile.happiness,
+          strength: txResult.finalProfile.strength,
+          speed: txResult.finalProfile.speed,
+          defense: txResult.finalProfile.defense,
+          dexterity: txResult.finalProfile.dexterity,
+          xp: txResult.finalProfile.xp,
+          level: txResult.finalProfile.level,
         },
       });
     } catch (err) {

@@ -17,6 +17,8 @@ const PAGE_IMAGE: Record<string, string> = {
   "/profile": "/assets/images/home_skyline.png",
   "/syndicates": "/assets/images/home_skyline.png",
   "/battle-result": "/assets/images/arena_banner.png",
+  "/black-market": "/assets/images/shop_banner.png",
+  "/missions": "/assets/images/home_skyline.png",
 };
 
 export function GamePageChrome({ children }: { children: ReactNode }) {

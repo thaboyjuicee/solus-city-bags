@@ -27,7 +27,6 @@ export default async function attackLogsRoutes(
 
           if (entry.targetType === "player" && entry.revengeTargetId && revengeAvailable) {
             const targetProfile = await prisma.profile.findUnique({ where: { userId: entry.revengeTargetId } });
-
             if (
               !targetProfile ||
               !["target", "both"].includes(entry.hospitalResult || "none") ||
@@ -53,11 +52,15 @@ export default async function attackLogsRoutes(
             damageDealt: entry.damageDealt,
             damageTaken: entry.damageTaken,
             loot: entry.loot,
+            cashStolen: entry.cashStolen,
+            heatChange: entry.heatChange,
             rpChange: entry.rpChange,
             xpGained: entry.xpGained,
             hospitalResult: entry.hospitalResult,
             revengeTargetId: entry.revengeTargetId,
             revengeAvailable,
+            metadata: entry.metadata,
+            protectionTriggered: (entry.metadata as { protectionTriggered?: string[] } | null)?.protectionTriggered ?? [],
           };
         })
       );

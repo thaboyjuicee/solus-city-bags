@@ -1,13 +1,13 @@
 import { FastifyInstance } from "fastify";
-import { Prisma, PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { requireAuth } from "../lib/auth";
 import {
-  applyIncome,
   applyEnergy,
-  applyNerve,
   applyHappiness,
   applyHospitalRecovery,
+  applyIncome,
+  applyNerve,
   clamp,
   computeCombatStats,
   isInHospital,
@@ -16,24 +16,30 @@ import {
 import {
   BATTLE_DAMAGE_MAX,
   BATTLE_DAMAGE_MIN,
-  LOOT_PERCENT,
-  LOOT_CAP,
-  RP_WIN_BASE,
-  RP_WIN_CLAMP_MIN,
-  RP_WIN_CLAMP_MAX,
-  RP_LOSS,
   CRIT_CHANCE_BASE,
-  CRIT_CHANCE_MIN,
   CRIT_CHANCE_MAX,
+  CRIT_CHANCE_MIN,
   CRIT_DAMAGE_MULTIPLIER,
   CRIT_XP_BONUS,
   EVASION_CHANCE_BASE,
-  EVASION_CHANCE_MIN,
   EVASION_CHANCE_MAX,
+  EVASION_CHANCE_MIN,
   EVASION_XP_REWARD,
   HOSPITAL_MINUTES_PER_DMG,
+  LOOT_CAP,
+  LOOT_PERCENT,
+  RP_LOSS,
+  RP_WIN_BASE,
+  RP_WIN_CLAMP_MAX,
+  RP_WIN_CLAMP_MIN,
 } from "../lib/constants";
 import { buildNpcForPlayer, NPC_POOL } from "../lib/npcs";
+import { applyHeat, decayHeat } from "../lib/player/heat";
+import { calculateWalletCashSteal } from "../lib/combat/loot";
+import { fetchActiveProtectionEffects } from "../lib/combat/protection";
+import { ensurePlayerMissionsAssigned } from "../lib/missions/assign";
+import { progressPlayerMissions } from "../lib/missions/progress";
+import { REPEAT_TARGET_LOOT_REDUCTION_WINDOW_MINUTES } from "../lib/config/balance";
 
 const attackBody = z.object({
   targetId: z.string().min(1),
@@ -69,48 +75,29 @@ function computeCritChance(
   return clamp(rawChance, CRIT_CHANCE_MIN, CRIT_CHANCE_MAX);
 }
 
-function getRepeatedAttackRewardMultiplier(consecutiveAttackCount: number): number {
-  if (consecutiveAttackCount <= 1) return 1;
-  if (consecutiveAttackCount === 2) return 0.6;
-  if (consecutiveAttackCount === 3) return 0.3;
-  return 0.2;
-}
-
-function getRepeatedAttackWindowStart(now: Date): Date {
-  const windowStart = new Date(now);
-  windowStart.setMinutes(windowStart.getMinutes() - 15);
-  return windowStart;
-}
-
 export default async function battleRoutes(
   fastify: FastifyInstance,
   { prisma }: { prisma: PrismaClient }
 ) {
   fastify.post("/battle/attack", { preHandler: requireAuth }, async (request, reply) => {
     const { userId } = request.user;
-
     const parsed = attackBody.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
     }
 
-    const targetId = parsed.data.targetId;
-    const targetTypeHint = parsed.data.targetType;
-    if (!targetId) {
-      return reply.status(400).send({ error: "targetId is required" });
-    }
-
-    if (targetId === userId) {
+    if (parsed.data.targetType === "player" && parsed.data.targetId === userId) {
       return reply.status(400).send({ error: "Cannot attack yourself" });
     }
 
     try {
+      await ensurePlayerMissionsAssigned(prisma, userId);
       const now = new Date();
       const attackerProfileRaw = await prisma.profile.findUnique({ where: { userId } });
       if (!attackerProfileRaw) return reply.status(404).send({ error: "Your profile not found" });
 
       const attackerHospitalUpdate = applyHospitalRecovery(attackerProfileRaw);
-      const attackerProfile = { ...attackerProfileRaw, ...attackerHospitalUpdate };
+      const recoveredAttacker = { ...attackerProfileRaw, ...attackerHospitalUpdate };
       if (attackerHospitalUpdate.health !== undefined) {
         await prisma.$transaction([
           prisma.profile.update({ where: { userId }, data: attackerHospitalUpdate }),
@@ -119,27 +106,32 @@ export default async function battleRoutes(
               userId,
               type: "hospital",
               message: "Discharged from hospital. Health fully restored.",
+              metadata: { method: "natural_recovery" },
             },
           }),
         ]);
       }
 
-      if (isInHospital(attackerProfile)) {
+      if (isInHospital(recoveredAttacker)) {
         return reply.status(400).send({
           code: "IN_HOSPITAL",
           error: "You are in the hospital",
-          recoverAt: attackerProfile.hospitalUntil.toISOString(),
+          recoverAt: recoveredAttacker.hospitalUntil.toISOString(),
         });
       }
 
-      const atkIncomeUpdate = applyIncome(attackerProfile);
-      const atkEnergyUpdate = applyEnergy({ ...attackerProfile, ...atkIncomeUpdate });
-      const atkNerveUpdate = applyNerve({ ...attackerProfile, ...atkIncomeUpdate, ...atkEnergyUpdate });
-      const atkHappinessUpdate = applyHappiness({ ...attackerProfile, ...atkIncomeUpdate, ...atkEnergyUpdate, ...atkNerveUpdate });
-      const updatedAttacker = { ...attackerProfile, ...atkIncomeUpdate, ...atkEnergyUpdate, ...atkNerveUpdate, ...atkHappinessUpdate };
+      const atkIncomeUpdate = applyIncome(recoveredAttacker);
+      const atkEnergyUpdate = applyEnergy({ ...recoveredAttacker, ...atkIncomeUpdate });
+      const atkNerveUpdate = applyNerve({ ...recoveredAttacker, ...atkIncomeUpdate, ...atkEnergyUpdate });
+      const atkHappinessUpdate = applyHappiness({ ...recoveredAttacker, ...atkIncomeUpdate, ...atkEnergyUpdate, ...atkNerveUpdate });
+      const atkHeatState = decayHeat({ ...recoveredAttacker, ...atkIncomeUpdate, ...atkEnergyUpdate, ...atkNerveUpdate, ...atkHappinessUpdate }, now);
+      const updatedAttacker = { ...recoveredAttacker, ...atkIncomeUpdate, ...atkEnergyUpdate, ...atkNerveUpdate, ...atkHappinessUpdate, ...atkHeatState };
 
       if (updatedAttacker.energy < 1) {
-        await prisma.profile.update({ where: { userId }, data: { ...atkIncomeUpdate, ...atkEnergyUpdate, ...atkNerveUpdate, ...atkHappinessUpdate } });
+        await prisma.profile.update({
+          where: { userId },
+          data: { ...atkIncomeUpdate, ...atkEnergyUpdate, ...atkNerveUpdate, ...atkHappinessUpdate, heat: atkHeatState.heat, wantedTier: atkHeatState.wantedTier, lastHeatDecayAt: atkHeatState.lastHeatDecayAt },
+        });
         return reply.status(400).send({ error: "Not enough energy" });
       }
 
@@ -147,78 +139,91 @@ export default async function battleRoutes(
       const attackerAP = attackerStats.totalStats.ap;
       const attackerSpeed = attackerStats.totalStats.speed;
       const attackerDexterity = attackerStats.totalStats.dexterity;
+      const isNpc = parsed.data.targetType === "npc";
+      const repeatWindowStart = new Date(now.getTime() - REPEAT_TARGET_LOOT_REDUCTION_WINDOW_MINUTES * 60 * 1000);
 
-      const isNpc = targetTypeHint === "npc";
-
-      let opponentId: string;
-      let opponentName: string;
-      let opponentLevel: number;
-      let opponentRp: number;
-      let opponentDP: number;
-      let opponentSpeed: number;
-      let opponentDexterity: number;
-      let defenderCash: number;
-      let defenderHealth: number;
-      let defenderHospitalUntil = new Date("1970-01-01T00:00:00.000Z");
-      let updatedDefenderHospitalUntil = new Date("1970-01-01T00:00:00.000Z");
-      let defenderProfileUserId: string | null = null;
+      let opponentId = parsed.data.targetId;
+      let opponentName = "Target";
+      let opponentLevel = 1;
+      let opponentRp = 0;
+      let opponentDP = 1;
+      let opponentSpeed = 0;
+      let opponentDexterity = 0;
+      let defenderCash = 0;
+      let defenderHealth = 0;
+      let defenderHospitalUntil = new Date(0);
+      let defenderUserId: string | null = null;
+      let targetHeatBand = "low";
+      let defenderProtectionEffects = [] as Awaited<ReturnType<typeof fetchActiveProtectionEffects>>;
+      let lootProtectedAmount = 0;
+      let protectionTriggered: string[] = [];
+      let antiFarmPenaltyApplied = false;
+      let recentAttackCount = 0;
+      let defenderHeatState = { heat: 0, wantedTier: "low", lastHeatDecayAt: now, decayedBy: 0 };
       let defIncomeUpdate: Record<string, unknown> = {};
       let defEnergyUpdate: Record<string, unknown> = {};
       let defNerveUpdate: Record<string, unknown> = {};
       let defHappinessUpdate: Record<string, unknown> = {};
+      let defenderPenaltyType: string | null = null;
+      let defenderPenaltyActive = false;
 
       if (!isNpc) {
-        const defenderProfileRaw = await prisma.profile.findUnique({ where: { userId: targetId } });
+        const defenderProfileRaw = await prisma.profile.findUnique({ where: { userId: parsed.data.targetId } });
         if (!defenderProfileRaw) return reply.status(404).send({ error: "Target not found" });
 
         const defenderHospitalUpdate = applyHospitalRecovery(defenderProfileRaw);
-        const defenderProfile = { ...defenderProfileRaw, ...defenderHospitalUpdate };
+        const recoveredDefender = { ...defenderProfileRaw, ...defenderHospitalUpdate };
         if (defenderHospitalUpdate.health !== undefined) {
           await prisma.$transaction([
-            prisma.profile.update({ where: { userId: targetId }, data: defenderHospitalUpdate }),
+            prisma.profile.update({ where: { userId: parsed.data.targetId }, data: defenderHospitalUpdate }),
             prisma.eventLog.create({
               data: {
-                userId: targetId,
+                userId: parsed.data.targetId,
                 type: "hospital",
                 message: "Discharged from hospital. Health fully restored.",
+                metadata: { method: "natural_recovery" },
               },
             }),
           ]);
         }
 
-        if (defenderProfile.shieldUntil > now) {
-          return reply.status(400).send({ error: "Target is shielded" });
-        }
-        if (isInHospital(defenderProfile)) {
-          return reply.status(400).send({ error: "Target is in hospital" });
-        }
+        if (recoveredDefender.shieldUntil > now) return reply.status(400).send({ error: "Target is shielded" });
+        if (isInHospital(recoveredDefender)) return reply.status(400).send({ error: "Target is in hospital" });
 
-        defIncomeUpdate = applyIncome(defenderProfile);
-        defEnergyUpdate = applyEnergy({ ...defenderProfile, ...defIncomeUpdate });
-        defNerveUpdate = applyNerve({ ...defenderProfile, ...defIncomeUpdate, ...defEnergyUpdate });
-        defHappinessUpdate = applyHappiness({ ...defenderProfile, ...defIncomeUpdate, ...defEnergyUpdate, ...defNerveUpdate });
-        const updatedDefender = { ...defenderProfile, ...defIncomeUpdate, ...defEnergyUpdate, ...defNerveUpdate, ...defHappinessUpdate };
-        const defenderStats = await computeCombatStats(targetId, prisma);
+        defIncomeUpdate = applyIncome(recoveredDefender);
+        defEnergyUpdate = applyEnergy({ ...recoveredDefender, ...defIncomeUpdate });
+        defNerveUpdate = applyNerve({ ...recoveredDefender, ...defIncomeUpdate, ...defEnergyUpdate });
+        defHappinessUpdate = applyHappiness({ ...recoveredDefender, ...defIncomeUpdate, ...defEnergyUpdate, ...defNerveUpdate });
+        defenderHeatState = decayHeat({ ...recoveredDefender, ...defIncomeUpdate, ...defEnergyUpdate, ...defNerveUpdate, ...defHappinessUpdate }, now);
+        const updatedDefender = { ...recoveredDefender, ...defIncomeUpdate, ...defEnergyUpdate, ...defNerveUpdate, ...defHappinessUpdate, ...defenderHeatState };
+        const defenderStats = await computeCombatStats(parsed.data.targetId, prisma);
 
-        opponentId = targetId;
-        opponentName = defenderProfile.name || "Player";
-        opponentLevel = defenderProfile.level;
-        opponentRp = defenderProfile.rp;
+        opponentName = recoveredDefender.name || "Player";
+        opponentLevel = recoveredDefender.level;
+        opponentRp = recoveredDefender.rp;
         opponentDP = defenderStats.totalStats.dp;
         opponentSpeed = defenderStats.totalStats.speed;
         opponentDexterity = defenderStats.totalStats.dexterity;
         defenderCash = updatedDefender.cash;
         defenderHealth = updatedDefender.health;
-        updatedDefenderHospitalUntil = updatedDefender.hospitalUntil;
         defenderHospitalUntil = updatedDefender.hospitalUntil;
-        defenderProfileUserId = targetId;
+        defenderUserId = parsed.data.targetId;
+        targetHeatBand = updatedDefender.wantedTier;
+        defenderProtectionEffects = await fetchActiveProtectionEffects(prisma, parsed.data.targetId, now);
+        recentAttackCount = await prisma.attackLog.count({
+          where: {
+            userId,
+            defenderId: parsed.data.targetId,
+            result: "win",
+            createdAt: { gte: repeatWindowStart },
+          },
+        });
+        defenderPenaltyType = updatedDefender.hospitalExitPenaltyType;
+        defenderPenaltyActive = !!updatedDefender.hospitalExitPenaltyUntil && updatedDefender.hospitalExitPenaltyUntil > now;
       } else {
-        const template = NPC_POOL.find((n) => n.id === targetId);
-        if (!template) {
-          return reply.status(400).send({ error: "Invalid NPC target" });
-        }
+        const template = NPC_POOL.find((npc) => npc.id === parsed.data.targetId);
+        if (!template) return reply.status(400).send({ error: "Invalid NPC target" });
         const npc = buildNpcForPlayer(updatedAttacker.level, updatedAttacker.rp, template);
-
         opponentId = npc.id;
         opponentName = npc.displayName;
         opponentLevel = npc.level;
@@ -230,31 +235,10 @@ export default async function battleRoutes(
         defenderHealth = npc.health;
       }
 
-      let repeatedAttackMultiplier = 1;
-      if (defenderProfileUserId) {
-        const repeatedWindowStart = getRepeatedAttackWindowStart(now);
-        const recentAttackLogs = await prisma.attackLog.findMany({
-          where: {
-            userId,
-            defenderId: defenderProfileUserId,
-            targetType: "player",
-            createdAt: { gte: repeatedWindowStart },
-          },
-          orderBy: { createdAt: "desc" },
-          select: { defenderId: true },
-        });
-
-        repeatedAttackMultiplier = getRepeatedAttackRewardMultiplier(recentAttackLogs.length + 1);
-      }
-
       const pWin = attackerAP / (attackerAP + opponentDP);
       const roll = Math.random();
       const baseWin = roll < pWin;
-
       const baseDmg = BATTLE_DAMAGE_MIN + Math.floor(Math.random() * (BATTLE_DAMAGE_MAX - BATTLE_DAMAGE_MIN + 1));
-      const winnerDmg = Math.floor(baseDmg * 0.3);
-      const loserDmg = baseDmg;
-
       let damageDealt = 0;
       let damageTaken = 0;
       let outcomeType: "win" | "loss" | "evaded" = baseWin ? "win" : "loss";
@@ -264,24 +248,19 @@ export default async function battleRoutes(
       let evadeRoll = 0;
       let critRoll = 0;
       let loot = 0;
+      let cashStolen = 0;
       let rpChange = 0;
       let xpGained = 0;
 
       if (baseWin) {
         evadeChance = computeEvasionChance(attackerSpeed, attackerDexterity, opponentSpeed, opponentDexterity);
         evadeRoll = Math.random();
-        const evaded = evadeRoll < evadeChance;
-
-        if (evaded) {
+        if (evadeRoll < evadeChance) {
           outcomeType = "evaded";
           xpGained = EVASION_XP_REWARD;
-          damageDealt = 0;
-          damageTaken = 0;
-          rpChange = 0;
-          loot = 0;
         } else {
-          damageDealt = loserDmg;
-          damageTaken = winnerDmg;
+          damageDealt = baseDmg;
+          damageTaken = Math.floor(baseDmg * 0.3);
           critChance = computeCritChance(attackerSpeed, attackerDexterity, opponentSpeed, opponentDexterity);
           critRoll = Math.random();
           criticalHit = critRoll < critChance;
@@ -289,252 +268,248 @@ export default async function battleRoutes(
             damageDealt = Math.floor(damageDealt * CRIT_DAMAGE_MULTIPLIER);
           }
 
-          loot = Math.min(Math.round(defenderCash * LOOT_PERCENT), LOOT_CAP);
-          const baseRpChange = Math.round(
-            RP_WIN_BASE + clamp((opponentRp - updatedAttacker.rp) / 50, RP_WIN_CLAMP_MIN, RP_WIN_CLAMP_MAX)
-          );
-          let baseXpGain = 15 + Math.floor(Math.random() * 10);
-          if (criticalHit) {
-            baseXpGain += CRIT_XP_BONUS;
+          if (defenderUserId) {
+            const lootResult = calculateWalletCashSteal({
+              availableWalletCash: defenderCash,
+              defenderHeat: defenderHeatState.heat,
+              defenderLevel: opponentLevel,
+              recentAttackCount,
+              protectionEffects: defenderProtectionEffects,
+              defenderPenaltyType,
+              defenderPenaltyActive,
+            });
+            cashStolen = lootResult.cashStolen;
+            loot = lootResult.cashStolen;
+            lootProtectedAmount = lootResult.lootProtectedAmount;
+            protectionTriggered = lootResult.protectionTriggered;
+            antiFarmPenaltyApplied = lootResult.antiFarmPenaltyApplied;
+          } else {
+            loot = Math.min(Math.round(defenderCash * LOOT_PERCENT), LOOT_CAP);
+            cashStolen = loot;
           }
-          rpChange = Math.max(0, Math.floor(baseRpChange * repeatedAttackMultiplier));
-          loot = Math.floor(loot * repeatedAttackMultiplier);
-          xpGained = Math.floor(baseXpGain * repeatedAttackMultiplier);
+
+          rpChange = Math.max(0, Math.round(
+            RP_WIN_BASE + clamp((opponentRp - updatedAttacker.rp) / 50, RP_WIN_CLAMP_MIN, RP_WIN_CLAMP_MAX)
+          ));
+          xpGained = 15 + Math.floor(Math.random() * 10) + (criticalHit ? CRIT_XP_BONUS : 0);
         }
       } else {
-        damageDealt = winnerDmg;
-        damageTaken = loserDmg;
+        damageDealt = Math.floor(baseDmg * 0.3);
+        damageTaken = baseDmg;
         rpChange = RP_LOSS;
         xpGained = 5;
       }
 
       const win = outcomeType === "win";
-      const evaded = outcomeType === "evaded";
       const newAttackerHealth = Math.max(0, updatedAttacker.health - damageTaken);
       const newDefenderHealth = Math.max(0, defenderHealth - damageDealt);
-
       const attackerHospitalized = newAttackerHealth === 0;
       const defenderHospitalized = newDefenderHealth === 0;
-
       const attackerHospitalUntil = attackerHospitalized
         ? new Date(now.getTime() + damageTaken * HOSPITAL_MINUTES_PER_DMG * 60 * 1000)
         : updatedAttacker.hospitalUntil;
-      const computedDefHospitalUntil = defenderProfileUserId
-        ? defenderHospitalized
-          ? new Date(
-            Math.max(
-              updatedDefenderHospitalUntil.getTime(),
-              now.getTime() + damageDealt * HOSPITAL_MINUTES_PER_DMG * 60 * 1000
-            )
-          )
-          : updatedDefenderHospitalUntil
+      const computedDefenderHospitalUntil = defenderHospitalized
+        ? new Date(Math.max(defenderHospitalUntil.getTime(), now.getTime() + damageDealt * HOSPITAL_MINUTES_PER_DMG * 60 * 1000))
         : defenderHospitalUntil;
 
-      const newAttackerRp = Math.max(0, updatedAttacker.rp + rpChange);
+      const attackerHeatDelta = win ? 2 + (defenderHospitalized ? 2 : 0) : 1;
+      const attackerHeatUpdate = applyHeat(updatedAttacker, attackerHeatDelta, now);
       const newXp = updatedAttacker.xp + xpGained;
       const levelResult = processLevelUp({ ...updatedAttacker, xp: newXp });
+      const newAttackerRp = Math.max(0, updatedAttacker.rp + rpChange);
+      const hospitalResult = computeHospitalResult(defenderHospitalized, attackerHospitalized);
 
-      let finalAttacker: Awaited<ReturnType<typeof prisma.profile.update>>;
-      let createdBattle: Awaited<ReturnType<typeof prisma.battle.create>>;
+      const txResult = await prisma.$transaction(async (tx) => {
+        const finalAttacker = await tx.profile.update({
+          where: { userId },
+          data: {
+            ...atkIncomeUpdate,
+            ...atkEnergyUpdate,
+            ...atkNerveUpdate,
+            ...atkHappinessUpdate,
+            cash: updatedAttacker.cash + loot,
+            rp: newAttackerRp,
+            energy: updatedAttacker.energy - 1,
+            health: newAttackerHealth,
+            hospitalUntil: attackerHospitalUntil,
+            xp: levelResult.xp ?? newXp,
+            level: levelResult.level ?? updatedAttacker.level,
+            maxHealth: levelResult.maxHealth ?? updatedAttacker.maxHealth,
+            heat: attackerHeatUpdate.heat,
+            wantedTier: attackerHeatUpdate.wantedTier,
+            lastHeatDecayAt: attackerHeatUpdate.lastHeatDecayAt,
+          },
+        });
 
-      if (defenderProfileUserId) {
-        const txResult = await prisma.$transaction(async (tx) => {
-          const attacker = await tx.profile.update({
-            where: { userId },
-            data: {
-              ...atkIncomeUpdate,
-              ...atkEnergyUpdate,
-              ...atkNerveUpdate,
-              ...atkHappinessUpdate,
-              cash: updatedAttacker.cash + loot,
-              rp: newAttackerRp,
-              energy: updatedAttacker.energy - 1,
-              health: newAttackerHealth,
-              hospitalUntil: attackerHospitalUntil,
-              xp: levelResult.xp ?? newXp,
-              level: levelResult.level ?? updatedAttacker.level,
-              maxHealth: levelResult.maxHealth ?? updatedAttacker.maxHealth,
-            },
-          });
-
+        if (defenderUserId) {
           await tx.profile.update({
-            where: { userId: defenderProfileUserId },
+            where: { userId: defenderUserId },
             data: {
               ...defIncomeUpdate,
               ...defEnergyUpdate,
               ...defNerveUpdate,
               ...defHappinessUpdate,
-              cash: Math.max(0, defenderCash - loot),
+              cash: Math.max(0, defenderCash - cashStolen),
               health: newDefenderHealth,
-              hospitalUntil: computedDefHospitalUntil,
+              hospitalUntil: computedDefenderHospitalUntil,
+              heat: defenderHeatState.heat,
+              wantedTier: defenderHeatState.wantedTier,
+              lastHeatDecayAt: defenderHeatState.lastHeatDecayAt,
             },
           });
+        }
 
-          const battle = await tx.battle.create({
-            data: {
-              attackerId: userId,
-              defenderId: defenderProfileUserId,
-              defenderType: isNpc ? "npc" : "player",
-              defenderNpcId: isNpc ? opponentId : null,
-              defenderName: opponentName,
-              win,
-              loot,
-              rpDelta: rpChange,
-              xpGained,
-              damageDealt,
-              damageTaken,
-              hospitalizedTarget: defenderHospitalized,
-              hospitalizedSelf: attackerHospitalized,
-              aAP: attackerAP,
-              dDP: opponentDP,
-            },
-          });
-
-          return { attacker, battle };
-        });
-
-        finalAttacker = txResult.attacker;
-        createdBattle = txResult.battle;
-      } else {
-        [finalAttacker, createdBattle] = await prisma.$transaction([
-          prisma.profile.update({
-            where: { userId },
-            data: {
-              ...atkIncomeUpdate,
-              ...atkEnergyUpdate,
-              ...atkNerveUpdate,
-              ...atkHappinessUpdate,
-              cash: updatedAttacker.cash + loot,
-              rp: newAttackerRp,
-              energy: updatedAttacker.energy - 1,
-              health: newAttackerHealth,
-              hospitalUntil: attackerHospitalUntil,
-              xp: levelResult.xp ?? newXp,
-              level: levelResult.level ?? updatedAttacker.level,
-              maxHealth: levelResult.maxHealth ?? updatedAttacker.maxHealth,
-            },
-          }),
-          prisma.battle.create({
-            data: {
-              attackerId: userId,
-              defenderId: null,
-              defenderType: "npc",
-              defenderNpcId: opponentId,
-              defenderName: opponentName,
-              win,
-              loot,
-              rpDelta: rpChange,
-              xpGained,
-              damageDealt,
-              damageTaken,
-              hospitalizedTarget: defenderHospitalized,
-              hospitalizedSelf: attackerHospitalized,
-              aAP: attackerAP,
-              dDP: opponentDP,
-            },
-          }),
-        ]);
-      }
-
-      const hospitalResult = computeHospitalResult(defenderHospitalized, attackerHospitalized);
-      const shouldEnableRevenge = hospitalResult === "target" || hospitalResult === "both";
-      const attackerName = attackerProfile.name || "You";
-
-      const attackerAttackType = evaded ? "attack_evaded" : isNpc ? "attacked_npc" : win ? "attack_win" : "attack_loss";
-      const attackerAttackMessage = evaded
-        ? `Attacked ${opponentName}, but they evaded.`
-        : win
-          ? `Attacked ${opponentName} and won. Looted $${loot.toLocaleString()}`
-          : `Attacked ${opponentName} and lost.`;
-
-      await prisma.eventLog.create({
-        data: {
-          userId,
-          type: attackerAttackType,
-          message: attackerAttackMessage,
-        },
-      });
-
-      await prisma.attackLog.create({
-        data: {
-          userId,
-          type: attackerAttackType,
-          attackerId: userId,
-          defenderId: defenderProfileUserId,
-          attackerName,
-          defenderName: opponentName,
-          targetType: isNpc ? "npc" : "player",
-          result: win ? "win" : "loss",
-          damageDealt,
-          damageTaken,
-          loot,
-          rpChange,
-          xpGained,
-          hospitalResult,
-          revengeTargetId: defenderProfileUserId,
-          revengeAvailable: false,
-        },
-      });
-
-      if (defenderProfileUserId) {
-        const defenderLogType = evaded ? "attacked_by_player_evaded" : "attacked_by_player";
-        const defenderResult = evaded ? "win" : win ? "loss" : "win";
-        const defenderMessage = evaded
-          ? `${attackerName} attacked you and you evaded.`
-          : win
-            ? `${attackerName} attacked you and stole $${loot.toLocaleString()}`
-            : `${attackerName} attacked you and lost`;
-
-        await prisma.eventLog.create({
+        const createdBattle = await tx.battle.create({
           data: {
-            userId: defenderProfileUserId,
-            type: "attacked",
-            message: defenderMessage,
-          },
-        });
-
-        await prisma.attackLog.create({
-          data: {
-            userId: defenderProfileUserId,
-          type: defenderLogType,
             attackerId: userId,
-            defenderId: defenderProfileUserId,
-            attackerName,
+            defenderId: defenderUserId,
+            defenderType: isNpc ? "npc" : "player",
+            defenderNpcId: isNpc ? opponentId : null,
             defenderName: opponentName,
-            targetType: "player",
-            result: defenderResult,
-            damageDealt: damageTaken,
-            damageTaken: damageDealt,
-            loot: -loot,
-            rpChange: 0,
-            xpGained: 0,
-            hospitalResult,
-            revengeTargetId: userId,
-            revengeAvailable: shouldEnableRevenge,
+            win,
+            loot,
+            rpDelta: rpChange,
+            xpGained,
+            damageDealt,
+            damageTaken,
+            hospitalizedTarget: defenderHospitalized,
+            hospitalizedSelf: attackerHospitalized,
+            aAP: attackerAP,
+            dDP: opponentDP,
           },
         });
-      }
 
-      if (attackerHospitalized) {
-        await prisma.eventLog.create({
-          data: { userId, type: "hospital", message: "Hospitalized from battle injuries" },
-        });
-      }
+        const missionUpdates = await progressPlayerMissions(tx, userId, [
+          { goalType: "battle_win", amount: win ? 1 : 0 },
+          { goalType: "cash_earned", amount: loot },
+          { goalType: "hospitalize_player", amount: defenderHospitalized && defenderUserId ? 1 : 0 },
+        ]);
 
-      if (defenderHospitalized && defenderProfileUserId) {
-        await prisma.eventLog.create({
+        const attackMetadata = {
+          protectionTriggered,
+          lootProtectedAmount,
+          antiFarmPenaltyApplied,
+          targetHeatBand,
+          outcomeType,
+          criticalHit,
+        };
+
+        await tx.eventLog.create({
           data: {
-            userId: defenderProfileUserId,
-            type: "hospital",
-            message: `Hospitalized after attack by ${attackerName}`,
+            userId,
+            type: isNpc ? "attacked_npc" : win ? "attack_win" : "attack_loss",
+            message: win
+              ? `Attacked ${opponentName} and stole $${loot.toLocaleString()}`
+              : outcomeType === "evaded"
+                ? `Attacked ${opponentName}, but they evaded.`
+                : `Attacked ${opponentName} and lost.`,
+            metadata: {
+              battleId: createdBattle.id,
+              cashStolen,
+              heatChange: attackerHeatDelta,
+              ...attackMetadata,
+            },
           },
         });
-      }
+
+        await tx.attackLog.create({
+          data: {
+            userId,
+            type: outcomeType === "evaded" ? "attack_evaded" : isNpc ? "attacked_npc" : win ? "attack_win" : "attack_loss",
+            attackerId: userId,
+            defenderId: defenderUserId,
+            attackerName: attackerProfileRaw.name || "You",
+            defenderName: opponentName,
+            targetType: isNpc ? "npc" : "player",
+            result: win ? "win" : "loss",
+            damageDealt,
+            damageTaken,
+            loot,
+            cashStolen,
+            heatChange: attackerHeatDelta,
+            metadata: attackMetadata,
+            rpChange,
+            xpGained,
+            hospitalResult,
+            revengeTargetId: defenderUserId,
+            revengeAvailable: false,
+          },
+        });
+
+        if (defenderUserId) {
+          await tx.eventLog.create({
+            data: {
+              userId: defenderUserId,
+              type: "attacked",
+              message: win
+                ? `${attackerProfileRaw.name || "A rival"} attacked you and stole $${loot.toLocaleString()}`
+                : outcomeType === "evaded"
+                  ? `${attackerProfileRaw.name || "A rival"} attacked you and you evaded.`
+                  : `${attackerProfileRaw.name || "A rival"} attacked you and lost.`,
+              metadata: {
+                battleId: createdBattle.id,
+                cashStolen,
+                protectionTriggered,
+                lootProtectedAmount,
+                targetHeatBand,
+              },
+            },
+          });
+
+          await tx.attackLog.create({
+            data: {
+              userId: defenderUserId,
+              type: outcomeType === "evaded" ? "attacked_by_player_evaded" : "attacked_by_player",
+              attackerId: userId,
+              defenderId: defenderUserId,
+              attackerName: attackerProfileRaw.name || "Rival",
+              defenderName: opponentName,
+              targetType: "player",
+              result: outcomeType === "evaded" ? "win" : win ? "loss" : "win",
+              damageDealt: damageTaken,
+              damageTaken: damageDealt,
+              loot: -loot,
+              cashStolen: loot,
+              heatChange: 0,
+              metadata: { protectionTriggered, lootProtectedAmount, targetHeatBand },
+              rpChange: 0,
+              xpGained: 0,
+              hospitalResult,
+              revengeTargetId: userId,
+              revengeAvailable: defenderHospitalized,
+            },
+          });
+        }
+
+        if (attackerHospitalized) {
+          await tx.eventLog.create({
+            data: {
+              userId,
+              type: "hospital",
+              message: "Hospitalized from battle injuries",
+              metadata: { battleId: createdBattle.id, method: "battle" },
+            },
+          });
+        }
+
+        if (defenderHospitalized && defenderUserId) {
+          await tx.eventLog.create({
+            data: {
+              userId: defenderUserId,
+              type: "hospital",
+              message: `Hospitalized after attack by ${attackerProfileRaw.name || "a rival"}`,
+              metadata: { battleId: createdBattle.id, method: "battle" },
+            },
+          });
+        }
+
+        return { finalAttacker, createdBattle, missionUpdates };
+      });
 
       const finalCombat = await computeCombatStats(userId, prisma);
 
       return reply.send({
-        battleId: createdBattle.id,
+        battleId: txResult.createdBattle.id,
         opponent: {
           id: opponentId,
           type: isNpc ? "npc" : "player",
@@ -543,8 +518,16 @@ export default async function battleRoutes(
         },
         result: win ? "win" : "loss",
         win,
-        outcomeType: evaded ? "evaded" : win ? "win" : "loss",
+        outcomeType: outcomeType === "evaded" ? "evaded" : win ? "win" : "loss",
         loot,
+        cashStolen,
+        lootProtectedAmount,
+        heatChange: attackerHeatDelta,
+        newHeat: txResult.finalAttacker.heat,
+        targetHeatBand,
+        protectionTriggered,
+        antiFarmPenaltyApplied,
+        missionUpdates: txResult.missionUpdates,
         rpChange,
         xpGained,
         attackerAP,
@@ -564,13 +547,13 @@ export default async function battleRoutes(
         defenderHospitalized,
         eventTimestamp: now.toISOString(),
         updatedProfile: {
-          cash: finalAttacker.cash,
-          rp: finalAttacker.rp,
-          energy: finalAttacker.energy,
-          health: finalAttacker.health,
-          maxHealth: finalAttacker.maxHealth,
-          level: finalAttacker.level,
-          xp: finalAttacker.xp,
+          cash: txResult.finalAttacker.cash,
+          rp: txResult.finalAttacker.rp,
+          energy: txResult.finalAttacker.energy,
+          health: txResult.finalAttacker.health,
+          maxHealth: txResult.finalAttacker.maxHealth,
+          level: txResult.finalAttacker.level,
+          xp: txResult.finalAttacker.xp,
           ap: finalCombat.totalStats.ap,
           dp: finalCombat.totalStats.dp,
         },

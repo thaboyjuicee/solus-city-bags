@@ -18,6 +18,9 @@ import syndicateRoutes from "./routes/syndicates";
 import bagsRoutes from "./routes/bags";
 import hospitalRoutes from "./routes/hospital";
 import slsRoutes from "./routes/sls";
+import vaultRoutes from "./routes/vault";
+import blackMarketRoutes from "./routes/blackMarket";
+import missionsRoutes from "./routes/missions";
 
 const fastify = Fastify({ logger: true });
 
@@ -166,6 +169,9 @@ fastify.register(syndicateRoutes, pluginOpts);
 fastify.register(bagsRoutes, pluginOpts);
 fastify.register(hospitalRoutes, pluginOpts);
 fastify.register(slsRoutes, pluginOpts);
+fastify.register(vaultRoutes, pluginOpts);
+fastify.register(blackMarketRoutes, pluginOpts);
+fastify.register(missionsRoutes, pluginOpts);
 
 // Global error handler — never leak raw Prisma errors
 fastify.setErrorHandler((error, _request, reply) => {

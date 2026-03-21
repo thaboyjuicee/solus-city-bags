@@ -1,35 +1,20 @@
-﻿"use client";
+"use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { api } from "@/lib/api/client";
 import { TOKEN_KEY } from "@/lib/config";
-import { StatusBars, type ProfileStats } from "@/components/ui/StatusBars";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { StatusBars } from "@/components/ui/StatusBars";
 import { StatCard } from "@/components/game/StatCard";
-import { useSLSBalance } from "@/hooks/useSLSBalance";
-
-interface Profile extends ProfileStats {
-  wallet: string;
-  name: string;
-  rp: number;
-  strength: number;
-  speed: number;
-  defense: number;
-  dexterity: number;
-  incomePerHour: number;
-  shieldUntil: string;
-  hospitalUntil: string | null;
-  syndicate: {
-    id: string;
-    name: string;
-    role: string;
-    buffType: string;
-    buffValue: number;
-  } | null;
-}
+import { HeatMeter } from "@/components/game/HeatMeter";
+import { WantedBadge } from "@/components/game/WantedBadge";
+import { VaultCard } from "@/components/game/VaultCard";
+import { HospitalOptionsCard } from "@/components/game/HospitalOptionsCard";
+import { MissionCard } from "@/components/game/MissionCard";
+import { MeResponse } from "@/lib/gameApi";
 
 interface EventItem {
   id: string;
@@ -48,51 +33,33 @@ function timeAgo(ts: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-function eventColor(type: string): string {
-  switch (type) {
-    case "attack_win":
-    case "level_up":
-    case "crime":
-      return "#66bb6a";
-    case "attack_loss":
-    case "attacked":
-    case "hospital":
-    case "hosp":
-      return "#ef5350";
-    case "gym":
-      return "#ff9800";
-    case "mission":
-      return "#26c6da";
-    case "shop":
-      return "#42a5f5";
-    default:
-      return "#555";
-  }
+function formatTimeLeft(value: string | null) {
+  if (!value) return "No active rotation";
+  const diff = new Date(value).getTime() - Date.now();
+  if (diff <= 0) return "Refreshing now";
+  const mins = Math.floor(diff / 60000);
+  const hrs = Math.floor(mins / 60);
+  return hrs > 0 ? `${hrs}h ${mins % 60}m` : `${mins}m`;
 }
 
 export default function HomePage() {
   const router = useRouter();
-  const slxBalance = useSLSBalance();
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<MeResponse | null>(null);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
-    setError(null);
-
     try {
       const [profileRes, eventsRes] = await Promise.all([
-        api.get<Profile>("/me"),
+        api.get<MeResponse>("/me"),
         api.get<EventItem[]>("/events"),
       ]);
       setProfile(profileRes.data);
       setEvents(eventsRes.data);
+      setError(null);
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-        "Failed to load profile. Please try again.";
-      setError(msg);
+      setError((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Failed to load home.");
     } finally {
       setLoading(false);
     }
@@ -107,140 +74,86 @@ export default function HomePage() {
     router.push("/login");
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-dvh">
-        <LoadingSpinner size={32} />
-      </div>
-    );
-  }
+  const displayName = useMemo(() => {
+    if (!profile) return "Seeker";
+    return profile.name || `${profile.wallet.slice(0, 8)}...`;
+  }, [profile]);
 
-  if (error) {
+  if (loading) {
+    return <div className="flex min-h-dvh items-center justify-center"><LoadingSpinner size={32} /></div>;
+  }
+  if (error || !profile) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-dvh gap-4 px-6">
-        <p className="text-[#ef5350] text-sm text-center">{error}</p>
-        <button
-          onClick={() => fetchData()}
-          className="px-5 py-2.5 bg-[#1a0a2e] border border-[rgba(153,69,255,0.3)] text-[#9945FF] rounded-md text-[11px] font-bold tracking-[2px]"
-        >
+      <div className="flex min-h-dvh items-center justify-center flex-col gap-3">
+        <p className="text-[#ef5350] text-sm">{error ?? "Profile not found"}</p>
+        <button onClick={() => { setLoading(true); fetchData(); }} className="px-4 py-2 rounded-md bg-[#1a0a2e] text-[#9945FF] text-sm font-bold">
           Retry
         </button>
       </div>
     );
   }
 
-  const shieldActive = profile ? new Date(profile.shieldUntil) > new Date() : false;
-  const hospitalActive = profile
-    ? profile.hospitalUntil !== null && new Date(profile.hospitalUntil) > new Date()
-    : false;
-  const displayName =
-    profile?.name || (profile?.wallet ? profile.wallet.slice(0, 8) + "..." : "Seeker");
-
   return (
     <div className="flex flex-col gap-3">
-      {profile && <StatusBars profile={profile} />}
+      <StatusBars profile={profile} />
 
       <div className="relative h-36 rounded-md overflow-hidden border border-white/10 bg-black/20 backdrop-blur-sm">
-        <Image
-          src="/assets/images/home_skyline.png"
-          alt="Solus city skyline"
-          fill
-          className="object-cover opacity-50"
-        />
+        <Image src="/assets/images/home_skyline.png" alt="Solus city skyline" fill className="object-cover opacity-50" />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0a0a]" />
         <div className="absolute inset-x-3 bottom-2 flex items-end justify-between">
           <div>
             <p className="text-xl font-black tracking-wider text-[#eee]">{displayName}</p>
-            <p className="text-[10px] tracking-widest text-[#555]">
-              LEVEL {profile?.level} • {profile?.rp} RP
-            </p>
+            <p className="text-[10px] tracking-widest text-[#555]">LEVEL {profile.level} • {profile.rp} RP</p>
           </div>
-          <button
-            onClick={logout}
-            className="h-7 w-7 rounded-sm bg-black/20 backdrop-blur-sm border border-white/10 text-[#888] flex items-center justify-center"
-            aria-label="Log out"
-          >
+          <button onClick={logout} className="h-7 w-7 rounded-sm bg-black/20 backdrop-blur-sm border border-white/10 text-[#888] flex items-center justify-center" aria-label="Log out">
             <LogOut size={16} />
           </button>
         </div>
       </div>
 
-      {shieldActive && (
-        <div className="bg-[#0a1a0a] border border-[#1a3a1a] rounded-md px-3 py-2 flex items-center gap-2">
-          <svg
-            className="w-3 h-3 text-[#66bb6a]"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <span className="text-[#66bb6a] text-[10px] font-bold tracking-[2px]">
-            NEWBIE SHIELD ACTIVE • until {new Date(profile!.shieldUntil).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-          </span>
-        </div>
-      )}
-
-      {hospitalActive && (
-        <div className="bg-[#2a0a0a] border border-[#4d1f1f] rounded-md px-3 py-2 flex items-center gap-2">
-          <AlertTriangle size={14} className="text-[#ef5350]" />
-          <span className="text-[#ef5350] text-[10px] font-bold tracking-[2px]">
-            HOSPITALIZED • until {new Date(profile?.hospitalUntil ?? "").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-          </span>
-        </div>
-      )}
+      <div className="grid md:grid-cols-3 gap-2">
+        <HeatMeter heat={profile.heat} />
+        <WantedBadge tier={profile.wantedTier} />
+        <VaultCard walletCash={profile.cash} vaultCash={profile.vaultCash} />
+      </div>
 
       <div className="grid grid-cols-3 gap-1.5">
-        <StatCard label="Cash" value={`$${Math.floor(profile?.cash ?? 0).toLocaleString()}`} color="#66bb6a" />
-        <StatCard
-          label="$SLS"
-          value={slxBalance !== null ? `${slxBalance.toFixed(2)} $SLS` : "—"}
-          color="#9945FF"
-        />
-        <StatCard label="Income" value={`$${profile?.incomePerHour ?? 0}`} color="#66bb6a" />
+        <StatCard label="Cash" value={`$${Math.floor(profile.cash).toLocaleString()}`} color="#66bb6a" />
+        <StatCard label="Income" value={`$${profile.incomePerHour}`} color="#42a5f5" />
+        <StatCard label="Market" value={formatTimeLeft(profile.blackMarketEndsAt)} color="#9945FF" />
       </div>
+
       <div className="grid grid-cols-2 gap-1.5">
-        <StatCard label="AP" value={String(profile?.ap ?? 0)} color="#ef5350" />
-        <StatCard label="DP" value={String(profile?.dp ?? 0)} color="#42a5f5" />
+        <StatCard label="AP" value={String(profile.ap)} color="#ef5350" />
+        <StatCard label="DP" value={String(profile.dp)} color="#42a5f5" />
       </div>
 
-      <div className="grid grid-cols-4 gap-1.5">
-        <StatCard label="STR" value={String(profile?.strength ?? 0)} color="#ff9800" />
-        <StatCard label="SPD" value={String(profile?.speed ?? 0)} color="#9945FF" />
-        <StatCard label="DEF" value={String(profile?.defense ?? 0)} color="#26c6da" />
-        <StatCard label="DEX" value={String(profile?.dexterity ?? 0)} color="#fdd835" />
+      <HospitalOptionsCard active={profile.inHospital} onUpdated={fetchData} />
+
+      <div>
+        <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase mb-2">Mission Preview</p>
+        <div className="grid md:grid-cols-2 gap-2">
+          {profile.missionsPreview.slice(0, 4).map((mission) => (
+            <MissionCard key={mission.id} mission={mission} />
+          ))}
+        </div>
       </div>
 
-      <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Recent Activity</p>
-      <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md px-3 py-2.5 space-y-2">
-        {events.length === 0 ? (
-          <p className="text-[#444] text-[11px] text-center">No recent activity.</p>
-        ) : (
-          events.map((evt, i) => {
-            const color = eventColor(evt.type);
-            return (
-              <div
-                key={evt.id}
-                className={`flex items-start gap-2 ${i < events.length - 1 ? "pb-2 border-b border-[#1e1e1e]" : ""}`}
-              >
-                <div className="w-2 h-2 rounded-full mt-1" style={{ backgroundColor: color }} />
-                <p
-                  className="text-[11px] flex-1 leading-snug"
-                  style={{ color: color === "#555" ? "#aaa" : color }}
-                >
-                  {evt.message}
-                </p>
-                <span
-                  className="text-[9px] whitespace-nowrap"
-                  style={{ color: color === "#555" ? "#555" : color }}
-                >
-                  {timeAgo(evt.ts)}
-                </span>
+      <div>
+        <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase mb-2">Recent Activity</p>
+        <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md px-3 py-2.5 space-y-2">
+          {events.length === 0 ? (
+            <p className="text-[#444] text-[11px] text-center">No recent activity.</p>
+          ) : (
+            events.map((evt, i) => (
+              <div key={evt.id} className={`flex items-start gap-2 ${i < events.length - 1 ? "pb-2 border-b border-[#1e1e1e]" : ""}`}>
+                <div className="w-2 h-2 rounded-full mt-1 bg-[#9945FF]" />
+                <p className="text-[11px] flex-1 leading-snug text-[#ddd]">{evt.message}</p>
+                <span className="text-[9px] whitespace-nowrap text-[#555]">{timeAgo(evt.ts)}</span>
               </div>
-            );
-          })
-        )}
+            ))
+          )}
+        </div>
       </div>
 
       <div className="h-16 md:hidden" />

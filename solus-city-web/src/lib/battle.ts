@@ -12,6 +12,14 @@ export interface BattleResult {
   win: boolean;
   outcomeType: "win" | "loss" | "evaded";
   loot: number;
+  cashStolen: number;
+  lootProtectedAmount: number;
+  heatChange: number;
+  newHeat: number;
+  targetHeatBand: string;
+  protectionTriggered: string[];
+  antiFarmPenaltyApplied: boolean;
+  missionUpdates: Array<{ id: string; code: string; name: string; progress: number; goalValue: number; completed: boolean; claimed: boolean; type: string }>;
   rpChange: number;
   xpGained: number;
   attackerAP: number;

@@ -20,9 +20,12 @@ model User {
   cooldownsReceived AttackCooldown[] @relation("CooldownDefender")
   events            EventLog[]
   attackLogs        AttackLog[]
+  protectionEffects ProtectionEffect[]
   syndicateMembership SyndicateMember?
   ledSyndicate      Syndicate?        @relation("SyndicateLeader")
   slsTransactions   SlsTransaction[]
+  blackMarketPurchases BlackMarketPurchase[]
+  playerMissions    PlayerMission[]
 }
 
 model Profile {
@@ -31,7 +34,10 @@ model Profile {
   user         User     @relation(fields: [userId], references: [id])
   name         String   @default("")
   cash         Float    @default(1000)
+  vaultCash    Float    @default(0)
   rp           Int      @default(100)
+  heat         Int      @default(0)
+  wantedTier   String   @default("low")
 
   // Bars (Torn-style)
   health       Int      @default(100)
@@ -58,8 +64,11 @@ model Profile {
   lastNerveTs  DateTime @default(now())
   lastHappinessTs DateTime @default(now())
   lastIncomeTs DateTime @default(now())
+  lastHeatDecayAt DateTime @default(now())
   hospitalUntil DateTime @default("1970-01-01T00:00:00Z")
   shieldUntil  DateTime
+  hospitalExitPenaltyUntil DateTime?
+  hospitalExitPenaltyType String?
 
   pendingNonce String?
 
@@ -72,6 +81,7 @@ model Profile {
 model Item {
   id        String      @id @default(cuid())
   category  String      @default("unit")
+  subCategory String?
   name      String
   atk       Int
   def       Int
@@ -81,15 +91,29 @@ model Item {
   levelRequirement Int  @default(1)
   rarity    String?
   description String?   @default("")
+  effectType String?
+  effectValue Float?
+  effectDurationSecs Int?
+  riskType String?
+  riskValue Float?
+  blackMarketOnly Boolean @default(false)
+  consumable Boolean @default(false)
+  stealable Boolean @default(true)
   stackable Boolean     @default(true)
   isUnique  Boolean     @default(false)
   inventory Inventory[]
+  protectionEffects ProtectionEffect[]
+  blackMarketListings BlackMarketListing[]
+  blackMarketPurchases BlackMarketPurchase[]
+  missionRewards MissionDefinition[] @relation("MissionRewardItem")
 }
 
 model Inventory {
   userId String
   itemId String
   qty    Int    @default(0)
+  expiresAt DateTime?
+  sourceType String?
 
   user User @relation(fields: [userId], references: [id])
   item Item @relation(fields: [itemId], references: [id])
@@ -137,6 +161,7 @@ model EventLog {
   user      User     @relation(fields: [userId], references: [id])
   type      String   // "attack_win", "attack_loss", "attacked", "crime", "gym", "hospital", "level_up", "shop"
   message   String
+  metadata  Json?
   ts        DateTime @default(now())
 }
 
@@ -155,6 +180,9 @@ model AttackLog {
   damageDealt        Int
   damageTaken        Int
   loot               Float
+  cashStolen         Float   @default(0)
+  heatChange         Int     @default(0)
+  metadata           Json?
   rpChange           Int
   xpGained           Int
   hospitalResult     String   @default("none")
@@ -207,4 +235,114 @@ model SlsTransaction {
   usdValue    Float    // USD equivalent at time of tx
   description String
   createdAt   DateTime @default(now())
+}
+
+model ProtectionEffect {
+  id           String   @id @default(cuid())
+  userId       String
+  type         String
+  value        Float
+  startsAt     DateTime
+  endsAt       DateTime
+  sourceItemId String?
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id])
+  sourceItem   Item?    @relation(fields: [sourceItemId], references: [id])
+
+  @@index([userId, type])
+  @@index([endsAt])
+}
+
+model BlackMarketRotation {
+  id        String   @id @default(cuid())
+  startsAt  DateTime
+  endsAt    DateTime
+  status    String
+  theme     String?
+  createdAt DateTime @default(now())
+
+  listings  BlackMarketListing[]
+
+  @@index([status, startsAt, endsAt])
+}
+
+model BlackMarketListing {
+  id               String   @id @default(cuid())
+  rotationId       String
+  itemId           String
+  basePrice        Float
+  finalPrice       Float
+  stock            Int
+  remainingStock   Int
+  riskPercent      Float    @default(0)
+  requiredHeatMin  Int      @default(0)
+  requiredLevelMin Int      @default(1)
+  listingType      String
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  rotation         BlackMarketRotation @relation(fields: [rotationId], references: [id])
+  item             Item                @relation(fields: [itemId], references: [id])
+  purchases        BlackMarketPurchase[]
+
+  @@index([rotationId, active])
+  @@index([itemId])
+}
+
+model BlackMarketPurchase {
+  id             String   @id @default(cuid())
+  userId         String
+  listingId      String
+  itemId         String
+  qty            Int
+  pricePaid      Float
+  heatGained     Int      @default(0)
+  stingTriggered Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  user           User               @relation(fields: [userId], references: [id])
+  listing        BlackMarketListing @relation(fields: [listingId], references: [id])
+  item           Item               @relation(fields: [itemId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([listingId])
+}
+
+model MissionDefinition {
+  id           String   @id @default(cuid())
+  type         String
+  code         String   @unique
+  name         String
+  description  String
+  goalType     String
+  goalValue    Int
+  rewardCash   Float    @default(0)
+  rewardRp     Int      @default(0)
+  rewardItemId String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  rewardItem     Item?           @relation("MissionRewardItem", fields: [rewardItemId], references: [id])
+  playerMissions PlayerMission[]
+
+  @@index([type, active])
+}
+
+model PlayerMission {
+  id                  String   @id @default(cuid())
+  userId              String
+  missionDefinitionId String
+  progress            Int      @default(0)
+  completed           Boolean  @default(false)
+  claimed             Boolean  @default(false)
+  startsAt            DateTime
+  endsAt              DateTime
+  createdAt           DateTime @default(now())
+
+  user              User              @relation(fields: [userId], references: [id])
+  missionDefinition MissionDefinition @relation(fields: [missionDefinitionId], references: [id])
+
+  @@index([userId, completed, claimed])
+  @@index([userId, startsAt, endsAt])
 }
