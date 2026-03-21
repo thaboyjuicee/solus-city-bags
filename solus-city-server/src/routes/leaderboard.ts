@@ -1,10 +1,12 @@
-import { FastifyInstance } from "fastify";
+﻿import { FastifyInstance } from "fastify";
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { requireAuth } from "../lib/auth";
+import { getHallOfFameFeed } from "../lib/seasons/history";
+import { serializeHallOfFameEntry } from "../lib/serializers/seasons";
 
 const leaderboardQuery = z.object({
-  type: z.enum(["season", "pvp", "crime", "syndicates", "territories"]).optional(),
+  type: z.enum(["season", "pvp", "crime", "syndicates", "territories", "prestige", "hall_of_fame"]).optional(),
 });
 
 export default async function leaderboardRoutes(
@@ -35,6 +37,53 @@ export default async function leaderboardRoutes(
             seasonScore: profile.seasonScore,
             isMe: profile.userId === userId,
           })),
+        });
+      }
+
+      if (type === "prestige") {
+        const profiles = await prisma.profile.findMany({
+          take: 50,
+          orderBy: [{ prestigeLevel: "desc" }, { prestigePoints: "desc" }, { rp: "desc" }],
+          include: { user: true },
+        });
+        return reply.send({
+          type,
+          entries: profiles.map((profile, index) => ({
+            rank: index + 1,
+            userId: profile.userId,
+            name: profile.name,
+            wallet: profile.user.wallet,
+            level: profile.level,
+            prestigeLevel: profile.prestigeLevel,
+            prestigePoints: profile.prestigePoints,
+            score: profile.prestigeLevel,
+            isMe: profile.userId === userId,
+          })),
+        });
+      }
+
+      if (type === "hall_of_fame") {
+        const entries = await getHallOfFameFeed(prisma, 50);
+        return reply.send({
+          type,
+          entries: entries.map((entry) => {
+            const serialized = serializeHallOfFameEntry(entry);
+            const display = (serialized.display ?? {}) as Record<string, unknown>;
+            return {
+              rank: serialized.rank,
+              userId: serialized.user?.id ?? serialized.syndicate?.id ?? serialized.id,
+              name:
+                (typeof display.name === "string" && display.name) ||
+                serialized.user?.name ||
+                serialized.syndicate?.name ||
+                serialized.category,
+              category: serialized.category,
+              seasonName: serialized.season.name,
+              score: typeof display.score === "number" ? display.score : 0,
+              display,
+              isMe: serialized.user?.id === userId,
+            };
+          }),
         });
       }
 
@@ -132,3 +181,4 @@ export default async function leaderboardRoutes(
     }
   });
 }
+

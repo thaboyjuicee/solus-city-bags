@@ -1,4 +1,4 @@
-import type { Profile } from "@prisma/client";
+﻿import type { Profile } from "@prisma/client";
 import { isInHospital, nextEnergyAt, nextHappinessAt, nextNerveAt } from "../game";
 
 type SerializeMeInput = {
@@ -41,6 +41,10 @@ type SerializeMeInput = {
   currentWarSummary: unknown;
   syndicateVaultSummary: { vaultCash: number; seasonPoints: number; territoryCount: number; warRating: number } | null;
   currentSyndicateRole: string | null;
+  prestigeSummary: unknown;
+  projectedSeasonRewards: unknown;
+  championshipSummary: unknown;
+  seasonHistoryPreview: unknown[];
 };
 
 export function serializeMeDashboard(input: SerializeMeInput) {
@@ -90,6 +94,7 @@ export function serializeMeDashboard(input: SerializeMeInput) {
     seasonScore: profile.seasonScore,
     availablePerkPoints: profile.availablePerkPoints,
     prestigeLevel: profile.prestigeLevel,
+    prestigePoints: profile.prestigePoints,
     hospitalExitPenalty: activePenalty,
     activeProtectionEffects: input.activeProtectionEffects,
     missionsPreview: input.missionsPreview,
@@ -101,5 +106,10 @@ export function serializeMeDashboard(input: SerializeMeInput) {
     currentWarSummary: input.currentWarSummary,
     syndicateVaultSummary: input.syndicateVaultSummary,
     currentSyndicateRole: input.currentSyndicateRole,
+    prestigeSummary: input.prestigeSummary,
+    projectedSeasonRewards: input.projectedSeasonRewards,
+    championshipSummary: input.championshipSummary,
+    seasonHistoryPreview: input.seasonHistoryPreview,
   };
 }
+

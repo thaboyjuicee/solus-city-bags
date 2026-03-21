@@ -1,8 +1,15 @@
-import { FastifyInstance } from "fastify";
+﻿import { FastifyInstance } from "fastify";
 import { PrismaClient } from "@prisma/client";
 import { requireAuth } from "../lib/auth";
 import { getCurrentSeason } from "../lib/seasons/scoring";
-import { serializeSeasonSummary } from "../lib/serializers/seasons";
+import {
+  serializeHallOfFameEntry,
+  serializeSeasonHistoryEntry,
+  serializeSeasonRewardPreview,
+  serializeSeasonSummary,
+} from "../lib/serializers/seasons";
+import { getHallOfFameFeed, getSeasonHistoryForUser } from "../lib/seasons/history";
+import { getProjectedRewardTier, getSeasonRewardTierCatalog } from "../lib/seasons/rewards";
 
 export default async function seasonsRoutes(
   fastify: FastifyInstance,
@@ -38,29 +45,51 @@ export default async function seasonsRoutes(
     }
   });
 
+  fastify.get("/seasons/current/rewards", { preHandler: requireAuth }, async (request, reply) => {
+    const { userId } = request.user;
+
+    try {
+      const season = await getCurrentSeason(prisma);
+      if (!season) {
+        return reply.send({ rewardPreview: null });
+      }
+
+      const [projected, rewardTiers] = await Promise.all([
+        getProjectedRewardTier(prisma, userId, season.id),
+        Promise.resolve(getSeasonRewardTierCatalog()),
+      ]);
+
+      return reply.send({
+        rewardPreview: serializeSeasonRewardPreview({
+          season,
+          projected,
+          rewardTiers,
+        }),
+      });
+    } catch (err) {
+      request.log.error(err, "/seasons/current/rewards error");
+      return reply.status(500).send({ error: "Internal server error" });
+    }
+  });
+
   fastify.get("/seasons/history", { preHandler: requireAuth }, async (request, reply) => {
     const { userId } = request.user;
 
     try {
-      const seasons = await prisma.season.findMany({
-        orderBy: { startsAt: "desc" },
-        take: 6,
-        include: {
-          participations: {
-            where: { userId },
-            select: { score: true, pvpScore: true, crimeScore: true, missionScore: true, finalRank: true },
-          },
-        },
-      });
+      const [historyRows, hallOfFame] = await Promise.all([
+        getSeasonHistoryForUser(prisma, userId, 6),
+        getHallOfFameFeed(prisma, 12),
+      ]);
 
       return reply.send({
-        history: seasons.map((season) =>
-          serializeSeasonSummary({
-            season,
-            participation: season.participations[0] ?? null,
-            rank: season.participations[0]?.finalRank ?? null,
+        history: historyRows.map((entry) =>
+          serializeSeasonHistoryEntry({
+            season: entry.season,
+            participation: entry.participation,
+            highlights: entry.highlights,
           })
         ),
+        hallOfFameHighlights: hallOfFame.map((entry) => serializeHallOfFameEntry(entry)),
       });
     } catch (err) {
       request.log.error(err, "/seasons/history error");
@@ -68,3 +97,4 @@ export default async function seasonsRoutes(
     }
   });
 }
+

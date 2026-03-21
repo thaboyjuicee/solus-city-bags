@@ -5,7 +5,7 @@ import { requireAuth } from "../lib/auth";
 import { SYNDICATE_AP_BUFF, SYNDICATE_MAX_MEMBERS } from "../lib/constants";
 import { canManageRoles, canRecruit, canWithdrawVault, SYNDICATE_ROLES } from "../lib/syndicates/roles";
 import { addContributionScore, addVaultContribution, applySyndicateVaultTransfer } from "../lib/syndicates/contributions";
-import { serializeSyndicateOverview, serializeWarSummary } from "../lib/serializers/syndicates";
+import { serializeChampionshipSyndicateState, serializeSyndicateOverview, serializeWarSummary } from "../lib/serializers/syndicates";
 import { SYNDICATE_VAULT_MAX_WITHDRAW_PERCENT, SYNDICATE_VAULT_MIN_WITHDRAW } from "../lib/config/balance";
 
 class SyndicateRouteError extends Error {
@@ -159,6 +159,27 @@ export default async function syndicateRoutes(
       }));
 
       const currentWar = syndicate.warsAsAttacker[0] ?? syndicate.warsAsDefender[0] ?? null;
+      const championshipEntry = await prisma.championshipEntry.findFirst({
+        where: { syndicateId: syndicate.id },
+        orderBy: { createdAt: "desc" },
+      });
+      const [championshipMatch, championHistory] = await Promise.all([
+        championshipEntry
+          ? prisma.championshipMatch.findFirst({
+              where: {
+                championshipSeasonId: championshipEntry.championshipSeasonId,
+                OR: [{ syndicateAId: syndicate.id }, { syndicateBId: syndicate.id }],
+              },
+              orderBy: [{ round: "desc" }, { startsAt: "desc" }],
+            })
+          : Promise.resolve(null),
+        prisma.hallOfFameEntry.findMany({
+          where: { syndicateId: syndicate.id, category: "championship_champion" },
+          include: { season: true },
+          orderBy: { createdAt: "desc" },
+          take: 3,
+        }),
+      ]);
 
       return reply.send({
         ...serializeSyndicateOverview(syndicate),
@@ -174,6 +195,17 @@ export default async function syndicateRoutes(
         })),
         memberContributionLeaders: members.slice(0, 5),
         currentWarStatus: currentWar ? serializeWarSummary(currentWar) : null,
+        championshipQualification: serializeChampionshipSyndicateState({
+          entry: championshipEntry,
+          currentMatch: championshipMatch,
+        }),
+        championHistory: championHistory.map((entry) => ({
+          id: entry.id,
+          seasonId: entry.seasonId,
+          seasonName: entry.season.name,
+          rank: entry.rank,
+          display: entry.displayJson ?? null,
+        })),
         rolePermissions: viewerMembership?.syndicateId === syndicate.id
           ? {
               manageRoles: canManageRoles(viewerMembership.role),

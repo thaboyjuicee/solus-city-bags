@@ -34,6 +34,23 @@ type SyndicateSummary = {
   territoriesOwned?: Array<{ id: string; name: string; code: string; bonusType: string; bonusValue: number }>;
   members?: Array<{ userId: string; name: string; role: string; contributionScore: number; warParticipation: number }>;
   memberContributionLeaders?: Array<{ userId: string; name: string; role: string; contributionScore: number; warParticipation: number }>;
+  championshipQualification?: {
+    qualified: boolean;
+    championshipSeasonId: string | null;
+    seed: number | null;
+    qualifyingPoints: number | null;
+    currentMatch: {
+      id: string;
+      round: number;
+      status: string;
+      startsAt: string;
+      endsAt: string;
+      scoreA: number;
+      scoreB: number;
+      winnerSyndicateId: string | null;
+    } | null;
+  };
+  championHistory?: Array<{ id: string; seasonId: string; seasonName: string; rank: number; display: Record<string, unknown> }>;
 };
 
 const DEFAULT_BUFF_TYPE = "crime_payout";
@@ -204,6 +221,20 @@ export default function SyndicatesPage() {
         <div className="rounded-lg border border-white/10 bg-black/20 p-4 text-[12px] text-[#777]">No active war at the moment.</div>
       )}
 
+      {detail.championshipQualification && (
+        <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
+          <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Championship Status</p>
+          <div className="grid gap-2 md:grid-cols-3">
+            <div className="rounded-md border border-white/10 bg-black/20 p-3"><p className="text-[9px] tracking-[2px] text-[#555] uppercase">Qualified</p><p className="text-[16px] font-black text-[#66bb6a] mt-1">{detail.championshipQualification.qualified ? "YES" : "NO"}</p></div>
+            <div className="rounded-md border border-white/10 bg-black/20 p-3"><p className="text-[9px] tracking-[2px] text-[#555] uppercase">Seed</p><p className="text-[16px] font-black text-[#42a5f5] mt-1">{detail.championshipQualification.seed ?? "-"}</p></div>
+            <div className="rounded-md border border-white/10 bg-black/20 p-3"><p className="text-[9px] tracking-[2px] text-[#555] uppercase">Qualifier Score</p><p className="text-[16px] font-black text-[#fdd835] mt-1">{detail.championshipQualification.qualifyingPoints ?? 0}</p></div>
+          </div>
+          {detail.championshipQualification.currentMatch && (
+            <p className="text-[11px] text-[#aaa]">Current match round {detail.championshipQualification.currentMatch.round} is {detail.championshipQualification.currentMatch.status}.</p>
+          )}
+        </div>
+      )}
+
       {detail.territoriesOwned && detail.territoriesOwned.length > 0 && (
         <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
           <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Owned Territories</p>
@@ -256,6 +287,21 @@ export default function SyndicatesPage() {
         ))}
       </div>
 
+      {detail.championHistory && detail.championHistory.length > 0 && (
+        <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
+          <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Champion History</p>
+          {detail.championHistory.map((entry) => (
+            <div key={entry.id} className="rounded-md border border-white/10 bg-black/20 p-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[12px] font-bold text-[#eee]">{detail.name}</p>
+                <p className="text-[10px] text-[#777]">{entry.seasonName}</p>
+              </div>
+              <p className="text-[9px] tracking-[2px] uppercase text-[#fdd835]">Champion</p>
+            </div>
+          ))}
+        </div>
+      )}
+
       <ContributionList
         title="Top Contributors"
         items={(detail.memberContributionLeaders ?? []).map((member) => ({
@@ -269,3 +315,4 @@ export default function SyndicatesPage() {
     </div>
   );
 }
+

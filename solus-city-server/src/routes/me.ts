@@ -1,4 +1,4 @@
-import { FastifyInstance } from "fastify";
+﻿import { FastifyInstance } from "fastify";
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { requireAuth } from "../lib/auth";
@@ -18,10 +18,14 @@ import { getActiveRotation } from "../lib/economy/blackMarket";
 import { serializeMeDashboard } from "../lib/serializers/me";
 import { getAvailablePerkPoints } from "../lib/player/perks";
 import { getCurrentSeason } from "../lib/seasons/scoring";
-import { serializeSeasonSummary } from "../lib/serializers/seasons";
+import { serializeSeasonHistoryEntry, serializeSeasonSummary } from "../lib/serializers/seasons";
 import { getRolePermissions } from "../lib/syndicates/roles";
 import { getTerritoryBonusForSyndicate } from "../lib/syndicates/territories";
 import { serializeWarSummary } from "../lib/serializers/syndicates";
+import { buildPrestigePreviewFromProfile } from "../lib/seasons/prestige";
+import { getProjectedRewardTier } from "../lib/seasons/rewards";
+import { getSeasonHistoryForUser } from "../lib/seasons/history";
+import { getCurrentChampionship } from "../lib/syndicates/championships";
 
 const updateProfileBody = z.object({
   name: z
@@ -127,6 +131,7 @@ export default async function meRoutes(
       const availablePerkPoints = getAvailablePerkPoints(updatedProfile, unlockedPerks.length);
 
       let currentSeason = null;
+      let currentSeasonRank: number | null = null;
       if (season) {
         const [participation, ranks] = await Promise.all([
           prisma.seasonParticipation.findUnique({ where: { seasonId_userId: { seasonId: season.id, userId } } }),
@@ -137,10 +142,11 @@ export default async function meRoutes(
           }),
         ]);
         const rank = ranks.findIndex((entry) => entry.userId === userId) + 1;
+        currentSeasonRank = rank > 0 ? rank : null;
         currentSeason = serializeSeasonSummary({
           season,
           participation,
-          rank: rank > 0 ? rank : null,
+          rank: currentSeasonRank,
         });
       }
 
@@ -157,6 +163,22 @@ export default async function meRoutes(
       let currentWarSummary: ReturnType<typeof serializeWarSummary> | null = null;
       let syndicateVaultSummary: { vaultCash: number; seasonPoints: number; territoryCount: number; warRating: number } | null = null;
       let currentSyndicateRole: string | null = membership?.role ?? null;
+      let championshipSummary: {
+        id: string;
+        status: string;
+        currentRound: number;
+        seed: number | null;
+        qualified: boolean;
+        qualifyingPoints: number | null;
+        nextMatch: {
+          id: string;
+          round: number;
+          status: string;
+          startsAt: Date;
+          endsAt: Date;
+          opponentName: string;
+        } | null;
+      } | null = null;
 
       if (membership) {
         activeTerritoryBonuses = await prisma.$transaction((tx) => getTerritoryBonusForSyndicate(tx, membership.syndicateId));
@@ -182,7 +204,43 @@ export default async function meRoutes(
           territoryCount: membership.syndicate.territoryCount,
           warRating: membership.syndicate.warRating,
         };
+
+        const championship = await getCurrentChampionship(prisma);
+        if (championship) {
+          const qualifier = championship.entries.find((entry) => entry.syndicateId === membership.syndicateId);
+          const match = championship.matches.find(
+            (entry) => entry.syndicateAId === membership.syndicateId || entry.syndicateBId === membership.syndicateId
+          );
+          championshipSummary = {
+            id: championship.id,
+            status: championship.status,
+            currentRound: championship.matches.reduce((max, entry) => Math.max(max, entry.round), 0),
+            seed: qualifier?.seed ?? null,
+            qualified: Boolean(qualifier),
+            qualifyingPoints: qualifier?.qualifyingPoints ?? null,
+            nextMatch: match
+              ? {
+                  id: match.id,
+                  round: match.round,
+                  status: match.status,
+                  startsAt: match.startsAt,
+                  endsAt: match.endsAt,
+                  opponentName:
+                    match.syndicateAId === membership.syndicateId ? match.syndicateB.name : match.syndicateA.name,
+                }
+              : null,
+          };
+        }
       }
+
+      const [projectedSeasonRewards, seasonHistoryRows] = await Promise.all([
+        getProjectedRewardTier(prisma, userId, season?.id),
+        getSeasonHistoryForUser(prisma, userId, 3),
+      ]);
+      const prestigeSummary = buildPrestigePreviewFromProfile(
+        { ...updatedProfile, prestigePoints: updatedProfile.prestigePoints },
+        currentSeasonRank
+      );
 
       return reply.send(
         serializeMeDashboard({
@@ -239,6 +297,16 @@ export default async function meRoutes(
           currentWarSummary,
           syndicateVaultSummary,
           currentSyndicateRole,
+          prestigeSummary,
+          projectedSeasonRewards,
+          championshipSummary,
+          seasonHistoryPreview: seasonHistoryRows.map((entry) =>
+            serializeSeasonHistoryEntry({
+              season: entry.season,
+              participation: entry.participation,
+              highlights: entry.highlights,
+            })
+          ),
         })
       );
     } catch (err) {
@@ -268,3 +336,4 @@ export default async function meRoutes(
     }
   });
 }
+

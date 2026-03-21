@@ -8,12 +8,14 @@ import {
   Box,
   CalendarDays,
   Crosshair,
+  Crown,
   Dumbbell,
   Home,
   ListTodo,
   MoreHorizontal,
   ScrollText,
   ShoppingBag,
+  Sparkles,
   Store,
   Trophy,
   UserRound,
@@ -29,7 +31,7 @@ import { useSLSBalance } from "@/hooks/useSLSBalance";
 type NavTab = {
   href: string;
   label: string;
-  icon?: "home" | "crosshair" | "swords" | "dumbbell" | "store" | "blackMarket" | "leaderboard" | "attackLogs" | "profile" | "syndicates" | "wars" | "territories" | "result" | "missions" | "inventory" | "seasons";
+  icon?: "home" | "crosshair" | "swords" | "dumbbell" | "store" | "blackMarket" | "leaderboard" | "attackLogs" | "profile" | "syndicates" | "wars" | "territories" | "result" | "missions" | "inventory" | "seasons" | "prestige" | "championships";
 };
 
 const NAV_TABS: NavTab[] = [
@@ -42,6 +44,8 @@ const NAV_TABS: NavTab[] = [
   { href: "/inventory", label: "Inventory", icon: "inventory" },
   { href: "/leaderboard", label: "Leaderboard", icon: "leaderboard" },
   { href: "/seasons", label: "Seasons", icon: "seasons" },
+  { href: "/prestige", label: "Prestige", icon: "prestige" },
+  { href: "/championships", label: "Championships", icon: "championships" },
   { href: "/attack-logs", label: "Attack Logs", icon: "attackLogs" },
   { href: "/missions", label: "Missions", icon: "missions" },
   { href: "/profile", label: "Profile", icon: "profile" },
@@ -68,6 +72,8 @@ const ICONS: Record<NonNullable<NavTab["icon"]>, typeof Home> = {
   missions: ListTodo,
   inventory: Box,
   seasons: CalendarDays,
+  prestige: Sparkles,
+  championships: Crown,
 };
 
 function Icon({ name }: { name: NavTab["icon"] }) {

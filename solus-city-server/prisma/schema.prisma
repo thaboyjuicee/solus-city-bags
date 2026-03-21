@@ -31,6 +31,8 @@ model User {
   revengeMarksAsAttacker RevengeMark[] @relation("RevengeAttacker")
   seasonParticipations   SeasonParticipation[]
   seasonLeaderboardSnapshots SeasonLeaderboardSnapshot[]
+  prestigeHistory       PrestigeHistory[]
+  hallOfFameEntries     HallOfFameEntry[]
   territoryContributions TerritoryContribution[]
   warActions         SyndicateWarAction[]
 }
@@ -48,6 +50,7 @@ model Profile {
   seasonScore  Int      @default(0)
   availablePerkPoints Int @default(0)
   prestigeLevel Int     @default(0)
+  prestigePoints Int    @default(0)
 
   // Bars (Torn-style)
   health       Int      @default(100)
@@ -236,6 +239,11 @@ model Syndicate {
   warsAsDefender SyndicateWar[] @relation("WarDefender")
   warsWon      SyndicateWar[]   @relation("WarWinner")
   warActions   SyndicateWarAction[]
+  championshipEntries ChampionshipEntry[]
+  championshipMatchesA ChampionshipMatch[] @relation("ChampionshipSyndicateA")
+  championshipMatchesB ChampionshipMatch[] @relation("ChampionshipSyndicateB")
+  championshipWins ChampionshipMatch[] @relation("ChampionshipWinner")
+  hallOfFameEntries HallOfFameEntry[]
   createdAt   DateTime          @default(now())
 }
 
@@ -520,6 +528,9 @@ model Season {
 
   participations  SeasonParticipation[]
   snapshots       SeasonLeaderboardSnapshot[]
+  prestigeHistory PrestigeHistory[]
+  championshipSeason ChampionshipSeason?
+  hallOfFameEntries HallOfFameEntry[]
 }
 
 model SeasonParticipation {
@@ -553,4 +564,85 @@ model SeasonLeaderboardSnapshot {
   user   User?  @relation(fields: [userId], references: [id])
 
   @@index([seasonId, category, capturedAt])
+}
+
+model PrestigeHistory {
+  id               String   @id @default(cuid())
+  userId           String
+  fromPrestige     Int
+  toPrestige       Int
+  seasonId         String?
+  grantedBonusJson Json?
+  createdAt        DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  season Season? @relation(fields: [seasonId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+model ChampionshipSeason {
+  id        String   @id @default(cuid())
+  seasonId  String   @unique
+  status    String
+  startsAt  DateTime
+  endsAt    DateTime
+  createdAt DateTime @default(now())
+
+  season  Season              @relation(fields: [seasonId], references: [id])
+  entries ChampionshipEntry[]
+  matches ChampionshipMatch[]
+}
+
+model ChampionshipEntry {
+  id                    String   @id @default(cuid())
+  championshipSeasonId  String
+  syndicateId           String
+  seed                  Int
+  qualifyingPoints      Int
+  createdAt             DateTime @default(now())
+
+  championshipSeason ChampionshipSeason @relation(fields: [championshipSeasonId], references: [id])
+  syndicate          Syndicate          @relation(fields: [syndicateId], references: [id])
+
+  @@unique([championshipSeasonId, syndicateId])
+}
+
+model ChampionshipMatch {
+  id                    String   @id @default(cuid())
+  championshipSeasonId  String
+  round                 Int
+  syndicateAId          String
+  syndicateBId          String
+  scoreA                Int      @default(0)
+  scoreB                Int      @default(0)
+  winnerSyndicateId     String?
+  startsAt              DateTime
+  endsAt                DateTime
+  status                String
+  createdAt             DateTime @default(now())
+
+  championshipSeason ChampionshipSeason @relation(fields: [championshipSeasonId], references: [id])
+  syndicateA         Syndicate          @relation("ChampionshipSyndicateA", fields: [syndicateAId], references: [id])
+  syndicateB         Syndicate          @relation("ChampionshipSyndicateB", fields: [syndicateBId], references: [id])
+  winnerSyndicate    Syndicate?         @relation("ChampionshipWinner", fields: [winnerSyndicateId], references: [id])
+
+  @@index([championshipSeasonId, round, status])
+}
+
+model HallOfFameEntry {
+  id         String   @id @default(cuid())
+  seasonId   String
+  category   String
+  userId     String?
+  syndicateId String?
+  rank       Int
+  displayJson Json
+  createdAt  DateTime @default(now())
+
+  season    Season    @relation(fields: [seasonId], references: [id])
+  user      User?     @relation(fields: [userId], references: [id])
+  syndicate Syndicate? @relation(fields: [syndicateId], references: [id])
+
+  @@index([seasonId, category, rank])
 }

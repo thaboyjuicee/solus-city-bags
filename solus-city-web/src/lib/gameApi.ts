@@ -1,4 +1,4 @@
-export interface MissionReward {
+﻿export interface MissionReward {
   cash: number;
   rp: number;
   item: { id: string; name: string } | null;
@@ -17,6 +17,148 @@ export interface Mission {
   claimed: boolean;
   endsAt: string;
   rewards: MissionReward;
+}
+
+export interface SeasonSummary {
+  id: string;
+  name: string;
+  status: string;
+  startsAt: string;
+  endsAt: string;
+  timeRemainingMs: number;
+  rewardPreview: unknown;
+  prestigeEnabled: boolean;
+  player: {
+    rank: number | null;
+    score: number;
+    pvpScore: number;
+    crimeScore: number;
+    missionScore: number;
+  } | null;
+}
+
+export interface PrestigeRequirement {
+  key: string;
+  label: string;
+  met: boolean;
+  current: number | null;
+  required: number | null;
+}
+
+export interface PrestigePreview {
+  eligible: boolean;
+  currentPrestigeLevel: number;
+  nextPrestigeLevel: number;
+  prestigePointsGain: number;
+  prestigePointsAfter: number;
+  requirements: PrestigeRequirement[];
+  resets: string[];
+  keeps: string[];
+  permanentBonuses: Array<{ key: string; label: string; amount: number }>;
+  nextProfile: {
+    cash: number;
+    vaultCash: number;
+    heat: number;
+    wantedTier: string;
+    maxEnergy: number;
+    maxNerve: number;
+    maxHappiness: number;
+  };
+  reasons: string[];
+}
+
+export interface SeasonRewardTier {
+  key: string;
+  label: string;
+  minRank: number;
+  maxRank: number;
+  cash: number;
+  rp: number;
+  prestigePoints: number;
+  title: string;
+  rankLabel: string;
+}
+
+export interface SeasonRewardProjection {
+  overall: SeasonRewardTier | null;
+  pvp: SeasonRewardTier | null;
+  crime: SeasonRewardTier | null;
+  syndicate: SeasonRewardTier | null;
+  championship: SeasonRewardTier | null;
+  ranks: {
+    overall: number | null;
+    pvp: number | null;
+    crime: number | null;
+    syndicate: number | null;
+  };
+}
+
+export interface SeasonRewardPreviewResponse {
+  seasonId: string;
+  seasonName: string;
+  endsAt: string;
+  timeRemainingMs: number;
+  projected: SeasonRewardProjection;
+  rewardTiers: {
+    overall: SeasonRewardTier[];
+    pvp: SeasonRewardTier[];
+    crime: SeasonRewardTier[];
+    syndicates: SeasonRewardTier[];
+    championships: SeasonRewardTier[];
+  };
+}
+
+export interface HallOfFameEntry {
+  id: string;
+  category: string;
+  rank: number;
+  display: Record<string, unknown>;
+  season: {
+    id: string;
+    name: string;
+    status: string;
+    startsAt: string;
+    endsAt: string;
+  };
+  user: { id: string; name: string } | null;
+  syndicate: { id: string; name: string } | null;
+}
+
+export interface SeasonHistoryEntry {
+  season: SeasonSummary;
+  rewardClaimed: boolean;
+  highlights: Array<{
+    id: string;
+    category: string;
+    rank: number;
+    display: Record<string, unknown>;
+  }>;
+}
+
+export interface ChampionshipSummary {
+  id: string;
+  status: string;
+  startsAt: string;
+  endsAt: string;
+  currentRound: number;
+  season: { id: string; name: string };
+  qualifiers: Array<{
+    seed: number;
+    qualifyingPoints: number;
+    syndicate: { id: string; name: string };
+  }>;
+  matches: Array<{
+    id: string;
+    round: number;
+    status: string;
+    scoreA: number;
+    scoreB: number;
+    startsAt: string;
+    endsAt: string;
+    syndicateA: { id: string; name: string };
+    syndicateB: { id: string; name: string };
+    winnerSyndicate: { id: string; name: string } | null;
+  }>;
 }
 
 export interface MeResponse {
@@ -54,6 +196,7 @@ export interface MeResponse {
   seasonScore: number;
   availablePerkPoints: number;
   prestigeLevel: number;
+  prestigePoints: number;
   hospitalExitPenalty: { type: string | null; until: string } | null;
   activeProtectionEffects: Array<{ id: string; type: string; value: number; endsAt: string; sourceName?: string }>;
   missionsPreview: Mission[];
@@ -80,6 +223,25 @@ export interface MeResponse {
     warRating: number;
   } | null;
   currentSyndicateRole?: string | null;
+  prestigeSummary?: PrestigePreview | null;
+  projectedSeasonRewards?: SeasonRewardProjection | null;
+  championshipSummary?: {
+    id: string;
+    status: string;
+    currentRound: number;
+    seed: number | null;
+    qualified: boolean;
+    qualifyingPoints: number | null;
+    nextMatch: {
+      id: string;
+      round: number;
+      status: string;
+      startsAt: string;
+      endsAt: string;
+      opponentName: string;
+    } | null;
+  } | null;
+  seasonHistoryPreview?: SeasonHistoryEntry[];
   syndicate: {
     id: string;
     name: string;
@@ -261,41 +423,34 @@ export interface InventoryResponse {
   general: InventoryRow[];
 }
 
-export interface SeasonSummary {
-  id: string;
-  name: string;
-  status: string;
-  startsAt: string;
-  endsAt: string;
-  timeRemainingMs: number;
-  rewardPreview: unknown;
-  prestigeEnabled: boolean;
-  player: {
-    rank: number | null;
-    score: number;
-    pvpScore: number;
-    crimeScore: number;
-    missionScore: number;
-  } | null;
-}
-
 export interface LeaderboardEntry {
   rank: number;
   userId: string;
   name: string;
-  wallet: string;
-  level: number;
+  wallet?: string;
+  level?: number;
   rp?: number;
   score?: number;
   seasonScore?: number;
   pvpScore?: number;
   crimeScore?: number;
   missionScore?: number;
+  territoryOwner?: string;
+  territoryCount?: number;
+  warRating?: number;
+  bonusType?: string;
+  bonusValue?: number;
+  membersCount?: number;
+  prestigeLevel?: number;
+  prestigePoints?: number;
+  category?: string;
+  seasonName?: string;
+  display?: Record<string, unknown>;
   isMe: boolean;
 }
 
 export interface LeaderboardResponse {
-  type: "season" | "pvp" | "crime";
+  type: "season" | "pvp" | "crime" | "syndicates" | "territories" | "prestige" | "hall_of_fame";
   seasonId?: string;
   entries: LeaderboardEntry[];
 }
@@ -334,3 +489,4 @@ export type TerritorySummaryResponse = {
   influence: number;
   contestState: string;
 };
+

@@ -1,4 +1,4 @@
-export function serializeWarSummary(war: {
+﻿export function serializeWarSummary(war: {
   id: string;
   status: string;
   startsAt: Date;
@@ -76,3 +76,41 @@ export function serializeSyndicateOverview(input: {
     safehouseLevel: input.safehouseLevel,
   };
 }
+
+export function serializeChampionshipSyndicateState(input: {
+  entry?: {
+    championshipSeasonId: string;
+    seed: number;
+    qualifyingPoints: number;
+  } | null;
+  currentMatch?: {
+    id: string;
+    round: number;
+    status: string;
+    startsAt: Date;
+    endsAt: Date;
+    scoreA: number;
+    scoreB: number;
+    winnerSyndicateId?: string | null;
+  } | null;
+}) {
+  return {
+    qualified: Boolean(input.entry),
+    championshipSeasonId: input.entry?.championshipSeasonId ?? null,
+    seed: input.entry?.seed ?? null,
+    qualifyingPoints: input.entry?.qualifyingPoints ?? null,
+    currentMatch: input.currentMatch
+      ? {
+          id: input.currentMatch.id,
+          round: input.currentMatch.round,
+          status: input.currentMatch.status,
+          startsAt: input.currentMatch.startsAt,
+          endsAt: input.currentMatch.endsAt,
+          scoreA: input.currentMatch.scoreA,
+          scoreB: input.currentMatch.scoreB,
+          winnerSyndicateId: input.currentMatch.winnerSyndicateId ?? null,
+        }
+      : null,
+  };
+}
+

@@ -1,4 +1,4 @@
-export const PERK_BRANCHES = [
+﻿export const PERK_BRANCHES = [
   { code: "enforcer", name: "Enforcer", description: "PvP pressure, loot, and revenge edges." },
   { code: "hustler", name: "Hustler", description: "Crime cash, heat control, and underworld deals." },
   { code: "grinder", name: "Grinder", description: "Recovery, training, and steady progression." },
@@ -29,7 +29,13 @@ export const INVENTORY_GROUPS = [
 ] as const;
 
 export const SEASON_CATEGORIES = ["battle_win", "hospitalize", "crime_success", "mission_claim"] as const;
+export const HALL_OF_FAME_CATEGORIES = ["overall", "pvp", "crime", "syndicates", "championship_champion"] as const;
+export const CHAMPIONSHIP_STATUSES = ["pending", "active", "completed"] as const;
 
 export const ENABLE_WARS = true;
 export const ENABLE_TERRITORIES = true;
 export const ENABLE_SYNDICATE_VAULT = true;
+export const ENABLE_PRESTIGE = true;
+export const ENABLE_CHAMPIONSHIPS = true;
+export const ENABLE_HALL_OF_FAME = true;
+

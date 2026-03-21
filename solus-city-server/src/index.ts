@@ -1,4 +1,4 @@
-import "dotenv/config";
+﻿import "dotenv/config";
 import Fastify from "fastify";
 import type { FastifyReply } from "fastify";
 import { PrismaClient } from "@prisma/client";
@@ -26,12 +26,16 @@ import perksRoutes from "./routes/perks";
 import inventoryRoutes from "./routes/inventory";
 import seasonsRoutes from "./routes/seasons";
 import territoriesRoutes from "./routes/territories";
+import prestigeRoutes from "./routes/prestige";
+import championshipsRoutes from "./routes/championships";
 import { runBlackMarketRotationJob } from "./jobs/blackMarketRotation";
 import { runDailyMissionReset } from "./jobs/dailyMissionReset";
 import { runHeatDecay } from "./jobs/heatDecay";
 import { runTerritoryDecay } from "./jobs/territoryDecay";
 import { runWeeklyMissionReset } from "./jobs/weeklyMissionReset";
 import { runWarWindowTransitions } from "./jobs/warWindowTransitions";
+import { runSeasonFinalize } from "./jobs/seasonFinalize";
+import { runChampionshipAdvance } from "./jobs/championshipAdvance";
 
 const fastify = Fastify({ logger: true });
 
@@ -169,6 +173,8 @@ fastify.register(missionsRoutes, pluginOpts);
 fastify.register(perksRoutes, pluginOpts);
 fastify.register(inventoryRoutes, pluginOpts);
 fastify.register(seasonsRoutes, pluginOpts);
+fastify.register(prestigeRoutes, pluginOpts);
+fastify.register(championshipsRoutes, pluginOpts);
 fastify.register(territoriesRoutes, pluginOpts);
 
 fastify.setErrorHandler((error, _request, reply) => {
@@ -195,6 +201,8 @@ const start = async () => {
     runJob("runWeeklyMissionReset", () => runWeeklyMissionReset(prisma), 10 * 60 * 1000);
     runJob("runTerritoryDecay", () => runTerritoryDecay(prisma), 30 * 60 * 1000);
     runJob("runWarWindowTransitions", () => runWarWindowTransitions(prisma), 10 * 60 * 1000);
+    runJob("runSeasonFinalize", () => runSeasonFinalize(prisma), 15 * 60 * 1000);
+    runJob("runChampionshipAdvance", () => runChampionshipAdvance(prisma), 10 * 60 * 1000);
   } catch (err) {
     if (err instanceof Error) {
       fastify.log.error(err.message);
@@ -206,3 +214,4 @@ const start = async () => {
 };
 
 start();
+

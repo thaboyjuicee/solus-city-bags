@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from "@prisma/client";
+﻿import { Prisma, PrismaClient } from "@prisma/client";
 import {
   REPEAT_TARGET_SEASON_POINT_MULTIPLIER,
   SEASON_SCORE_BATTLE_WIN,
@@ -9,9 +9,11 @@ import {
 
 type PrismaLike = PrismaClient | Prisma.TransactionClient;
 
+export type SeasonScoringCategory = "battle_win" | "hospitalize" | "crime_success" | "mission_claim";
+
 type SeasonAwardInput = {
   userId: string;
-  category: "battle_win" | "hospitalize" | "crime_success" | "mission_claim";
+  category: SeasonScoringCategory;
   amount?: number;
   repeatPenaltyApplied?: boolean;
 };
@@ -40,11 +42,7 @@ export async function getCurrentSeason(prisma: PrismaLike, now: Date = new Date(
   });
 }
 
-export async function ensureSeasonParticipation(
-  prisma: PrismaLike,
-  userId: string,
-  now: Date = new Date()
-) {
+export async function ensureSeasonParticipation(prisma: PrismaLike, userId: string, now: Date = new Date()) {
   const season = await getCurrentSeason(prisma, now);
   if (!season) return null;
 
@@ -57,11 +55,7 @@ export async function ensureSeasonParticipation(
   return { season, participation };
 }
 
-export async function awardSeasonScore(
-  prisma: PrismaLike,
-  input: SeasonAwardInput,
-  now: Date = new Date()
-) {
+export async function awardSeasonScore(prisma: PrismaLike, input: SeasonAwardInput, now: Date = new Date()) {
   const current = await ensureSeasonParticipation(prisma, input.userId, now);
   if (!current) return { pointsGained: 0, participation: null, season: null };
 
@@ -92,3 +86,4 @@ export async function awardSeasonScore(
     season: current.season,
   };
 }
+

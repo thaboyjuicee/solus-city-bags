@@ -1,4 +1,4 @@
-export const HEAT_MAX = 100;
+﻿export const HEAT_MAX = 100;
 export const HEAT_DECAY_PER_INTERVAL = 2;
 export const HEAT_DECAY_INTERVAL_MINUTES = 30;
 
@@ -63,3 +63,47 @@ export const SYNDICATE_VAULT_MIN_WITHDRAW = 100;
 export const SYNDICATE_VAULT_MAX_WITHDRAW_PERCENT = 0.5;
 export const CONTRIBUTION_VAULT_DEPOSIT_MULTIPLIER = 0.05;
 export const CONTRIBUTION_WAR_ACTION_MULTIPLIER = 1;
+
+export const PRESTIGE_MIN_LEVEL = 25;
+export const PRESTIGE_MIN_TOTAL_STATS = 400;
+export const PRESTIGE_MIN_SEASON_RANK = 50;
+export const PRESTIGE_BONUS_MAX_ENERGY = 2;
+export const PRESTIGE_BONUS_MAX_NERVE = 1;
+export const PRESTIGE_BONUS_MAX_HAPPINESS = 3;
+export const PRESTIGE_RESET_STARTING_CASH = 1000;
+export const PRESTIGE_RESET_VAULT_CASH = 0;
+export const PRESTIGE_RESET_HEAT = 0;
+
+export const CHAMPIONSHIP_QUALIFIER_COUNT = 4;
+export const CHAMPIONSHIP_ROUND_DURATION_HOURS = 24;
+export const CHAMPIONSHIP_TIE_POLICY = "higher_seed" as const;
+export const CHAMPIONSHIP_ADVANCE_BUFFER_MINUTES = 15;
+
+export const SEASON_REWARD_OVERALL_TIERS = [
+  { key: "legend", label: "Legend", minRank: 1, maxRank: 1, cash: 6000, rp: 500, prestigePoints: 2, title: "Season Champion" },
+  { key: "elite", label: "Elite", minRank: 2, maxRank: 5, cash: 3000, rp: 250, prestigePoints: 1, title: "Elite Finisher" },
+  { key: "contender", label: "Contender", minRank: 6, maxRank: 10, cash: 1500, rp: 100, prestigePoints: 0, title: "Top Ten" },
+  { key: "operator", label: "Operator", minRank: 11, maxRank: 25, cash: 750, rp: 50, prestigePoints: 0, title: "Strong Season" },
+] as const;
+
+export const SEASON_REWARD_PVP_TIERS = [
+  { key: "apex", label: "Apex", minRank: 1, maxRank: 1, cash: 2500, rp: 150, prestigePoints: 1, title: "PvP Apex" },
+  { key: "vanguard", label: "Vanguard", minRank: 2, maxRank: 5, cash: 1200, rp: 80, prestigePoints: 0, title: "PvP Vanguard" },
+  { key: "striker", label: "Striker", minRank: 6, maxRank: 10, cash: 600, rp: 40, prestigePoints: 0, title: "PvP Striker" },
+] as const;
+
+export const SEASON_REWARD_CRIME_TIERS = [
+  { key: "kingpin", label: "Kingpin", minRank: 1, maxRank: 1, cash: 2200, rp: 140, prestigePoints: 1, title: "Crime Kingpin" },
+  { key: "earner", label: "Earner", minRank: 2, maxRank: 5, cash: 1000, rp: 70, prestigePoints: 0, title: "Crime Earner" },
+  { key: "runner", label: "Runner", minRank: 6, maxRank: 10, cash: 500, rp: 35, prestigePoints: 0, title: "Crime Runner" },
+] as const;
+
+export const SEASON_REWARD_SYNDICATE_TIERS = [
+  { key: "dynasty", label: "Dynasty", minRank: 1, maxRank: 1, cash: 0, rp: 0, prestigePoints: 0, title: "Top Syndicate" },
+  { key: "cartel", label: "Cartel", minRank: 2, maxRank: 3, cash: 0, rp: 0, prestigePoints: 0, title: "Top Syndicate Finalist" },
+] as const;
+
+export const SEASON_REWARD_CHAMPIONSHIP_TIERS = [
+  { key: "champion", label: "Champion", minRank: 1, maxRank: 1, cash: 0, rp: 0, prestigePoints: 0, title: "Syndicate Champion" },
+] as const;
+
