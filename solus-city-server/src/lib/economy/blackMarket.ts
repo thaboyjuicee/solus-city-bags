@@ -233,6 +233,7 @@ export async function buyBlackMarketListing(
       update: {
         qty: { increment: qty },
         sourceType: "black_market",
+        durability: listing.item.slot ? 100 : undefined,
         expiresAt: listing.item.effectDurationSecs
           ? new Date(now.getTime() + listing.item.effectDurationSecs * 1000)
           : undefined,
@@ -242,11 +243,29 @@ export async function buyBlackMarketListing(
         itemId: listing.itemId,
         qty,
         sourceType: "black_market",
+        durability: listing.item.slot ? 100 : null,
         expiresAt: listing.item.effectDurationSecs
           ? new Date(now.getTime() + listing.item.effectDurationSecs * 1000)
           : null,
       },
     });
+
+    if (listing.item.slot) {
+      const equippedSameSlot = await tx.inventory.findFirst({
+        where: {
+          userId,
+          equipped: true,
+          item: { slot: listing.item.slot },
+        },
+      });
+
+      if (!equippedSameSlot) {
+        await tx.inventory.update({
+          where: { userId_itemId: { userId, itemId: listing.itemId } },
+          data: { equipped: true },
+        });
+      }
+    }
 
     const purchase = await tx.blackMarketPurchase.create({
       data: {

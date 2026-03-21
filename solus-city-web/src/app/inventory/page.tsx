@@ -25,6 +25,7 @@ export default function InventoryPage() {
       <div className="rounded-lg border border-white/10 bg-black/20 p-4">
         <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Inventory</p>
         <p className="text-[12px] text-[#888] mt-1">Manage equip, unequip, and consumable usage.</p>
+        <p className="text-[10px] text-[#666] mt-2">Units stay passive. Slotted equipment now affects combat only when equipped.</p>
       </div>
       <InventoryGrid inventory={inventory} onRefresh={fetchInventory} />
     </div>

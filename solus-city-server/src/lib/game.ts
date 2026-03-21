@@ -196,10 +196,15 @@ export async function computeCombatStats(
   let dexBonus = 0;
 
   for (const inv of inventory) {
-    atkBonus += inv.item.atk * inv.qty;
-    defBonus += inv.item.def * inv.qty;
-    speedBonus += (inv.item.speed ?? 0) * inv.qty;
-    dexBonus += (inv.item.dex ?? 0) * inv.qty;
+    const appliesToCombat =
+      inv.item.category === "unit" ? inv.qty > 0 : inv.item.category === "equipment" ? inv.equipped : false;
+    if (!appliesToCombat) continue;
+
+    const multiplier = inv.item.category === "unit" ? inv.qty : 1;
+    atkBonus += inv.item.atk * multiplier;
+    defBonus += inv.item.def * multiplier;
+    speedBonus += (inv.item.speed ?? 0) * multiplier;
+    dexBonus += (inv.item.dex ?? 0) * multiplier;
   }
 
   const [member, perkContext] = await Promise.all([

@@ -7,6 +7,7 @@ import { GYM_ENERGY_COST, GYM_HAPPY_COST, GYM_STAT_GAIN_MAX, GYM_STAT_GAIN_MIN, 
 import { decayHeat } from "../lib/player/heat";
 import { ensurePlayerMissionsAssigned } from "../lib/missions/assign";
 import { progressPlayerMissions } from "../lib/missions/progress";
+import { getPlayerPerkContext } from "../lib/player/perks";
 
 const trainBody = z.object({
   stat: z.enum(["strength", "speed", "defense", "dexterity"]),
@@ -25,7 +26,10 @@ export default async function gymRoutes(
 
     try {
       await ensurePlayerMissionsAssigned(prisma, userId);
-      const profile = await prisma.profile.findUnique({ where: { userId } });
+      const [profile, perkContext] = await Promise.all([
+        prisma.profile.findUnique({ where: { userId } }),
+        getPlayerPerkContext(userId, prisma),
+      ]);
       if (!profile) return reply.status(404).send({ error: "Profile not found" });
 
       const hospitalUpdate = applyHospitalRecovery(profile);
@@ -65,7 +69,8 @@ export default async function gymRoutes(
 
       const baseGain = GYM_STAT_GAIN_MIN + Math.floor(Math.random() * (GYM_STAT_GAIN_MAX - GYM_STAT_GAIN_MIN + 1));
       const happyBonus = updated.happiness >= GYM_HAPPY_COST ? 1 : 0;
-      const totalGain = baseGain + happyBonus;
+      const trainingBonus = Math.min(0.5, perkContext.effects.training_efficiency_percent ?? 0);
+      const totalGain = Math.max(1, Math.round((baseGain + happyBonus) * (1 + trainingBonus)));
       const happySpent = happyBonus > 0 ? GYM_HAPPY_COST : 0;
       const newXp = updated.xp + GYM_XP_REWARD;
       const levelResult = processLevelUp({ ...updated, xp: newXp });
@@ -97,7 +102,7 @@ export default async function gymRoutes(
             userId,
             type: "gym",
             message: `Trained ${parsed.data.stat} and gained +${totalGain} points`,
-            metadata: { stat: parsed.data.stat, gained: totalGain, xpGained: GYM_XP_REWARD },
+            metadata: { stat: parsed.data.stat, gained: totalGain, xpGained: GYM_XP_REWARD, trainingBonus },
           },
         });
 

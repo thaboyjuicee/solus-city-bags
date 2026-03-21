@@ -1,6 +1,7 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import { INVENTORY_DEFAULT_DURABILITY } from "../config/balance";
 import { HOSPITAL_PENALTY_DURATION_HOURS } from "../config/balance";
+import { getPlayerPerkContext } from "../player/perks";
 
 type PrismaLike = PrismaClient | Prisma.TransactionClient;
 
@@ -138,20 +139,24 @@ export async function useInventoryItem(
     if (!profile) throw new Error("Profile not found");
     if (!row.item.consumable && !row.item.effectType) throw new Error("Item cannot be used");
 
+    const perkContext = await getPlayerPerkContext(userId, tx);
+    const recoveryBonus = Math.min(0.5, perkContext.effects.recovery_efficiency_percent ?? 0);
+    const hospitalReductionBonus = Math.min(0.5, perkContext.effects.hospital_time_reduction_percent ?? 0);
+
     let profilePatch: Record<string, unknown> = {};
     let eventType = "inventory_use";
 
     if (row.item.effectType === "hospital_release_full") {
       profilePatch = {
         hospitalUntil: new Date("1970-01-01T00:00:00.000Z"),
-        health: profile.maxHealth,
+        health: Math.min(profile.maxHealth, Math.ceil(profile.maxHealth * (0.5 + recoveryBonus))),
       };
     } else if (row.item.effectType === "hospital_release_partial") {
       const remainingMs = Math.max(0, profile.hospitalUntil.getTime() - now.getTime());
-      const reductionMs = Math.floor(remainingMs * (row.item.effectValue ?? 0.5));
+      const reductionMs = Math.floor(remainingMs * ((row.item.effectValue ?? 0.5) + hospitalReductionBonus));
       profilePatch = {
         hospitalUntil: new Date(Math.max(now.getTime(), profile.hospitalUntil.getTime() - reductionMs)),
-        health: Math.max(1, profile.health),
+        health: Math.min(profile.maxHealth, Math.max(1, Math.ceil(profile.maxHealth * (0.25 + recoveryBonus)))),
       };
     } else if (
       ["loot_reduction_percent", "decoy_wallet_percent", "heat_mask_percent"].includes(row.item.effectType ?? "")

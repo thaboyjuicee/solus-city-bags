@@ -223,6 +223,15 @@ Wave 2 is intentionally conservative in a few places:
 - item durability exists but is still light-touch
 - anti-whale balancing dampens rewards without exposing exact matchmaking math
 
+## Known Limitations
+
+- equipped-state UI exists, but combat progression is still partially tied to the older inventory-stat model
+- perk effects are real for battle, crime, revenge, and black market pricing, but not every seeded perk has a deep gameplay hook yet
+- season v1 tracks score and rank, but does not execute end-of-season rewards or prestige
+- revenge is intentionally strict and may feel rare during early testing
+- inventory use currently supports safe Wave 2 item effects only, not a full item activation ecosystem
+- anti-whale logic reduces value from very weak targets, but does not yet drive a full hidden rating ladder
+
 ## Suggested Local Validation
 
 Backend:
@@ -249,6 +258,55 @@ Manual smoke checks:
 - open `/inventory` and test equip, unequip, and supported item use
 - open `/seasons` and `/leaderboard?type=season` behavior through the UI
 - verify shop and black market show rarity / slot metadata
+
+## Manual Smoke-Test Checklist
+
+Use this order for a practical local Wave 2 pass:
+
+1. Open `/profile`
+- confirm season summary loads
+- confirm available perk points show
+- confirm equipment summary cards render
+
+2. Open `/leaderboard`
+- switch between `season`, `pvp`, and `crime`
+- confirm the lists change and current player highlighting still works
+
+3. Open `/inventory`
+- confirm grouped sections render
+- equip one slotted item and confirm it moves into `equipped`
+- unequip it and confirm it returns correctly
+- use a supported consumable/protection item and confirm inventory refreshes
+
+4. Open `/shop`
+- confirm rarity badges, slot labels, and effect hints appear
+- buy one item and confirm owned quantity updates
+
+5. Open `/black-market`
+- confirm listings still load
+- confirm rarity/slot/effect metadata appears on listings
+- buy a listing if affordable and confirm balances/inventory update
+
+6. PvP / revenge pass
+- lose a meaningful fight against a player
+- open `/attack-logs` and confirm revenge availability appears when eligible
+- use the revenge CTA and confirm battle still routes to battle result
+
+7. Anti-whale pass
+- compare a close-strength target and a much weaker one on `/targets`
+- confirm weaker targets can show the dampened-reward warning
+
+8. Crime / season pass
+- commit a crime
+- confirm normal crime flow still works
+- confirm season score updates on `/profile` or `/seasons`
+
+9. Regression pass
+- verify Wave 1 pages still work:
+  - `/home`
+  - `/missions`
+  - `/vault`
+  - `/hospital` flows via existing UI entry points
 
 ## Wave 3 Follow-up TODOs
 

@@ -9,6 +9,7 @@ import {
   HOSPITAL_CASH_RELEASE_PER_MINUTE,
   HOSPITAL_PENALTY_DURATION_HOURS,
 } from "../lib/config/balance";
+import { getPlayerPerkContext } from "../lib/player/perks";
 
 const releaseItemBody = z.object({
   itemId: z.string().min(1),
@@ -29,8 +30,8 @@ function getHospitalCashReleaseCost(profile: { level: number; hospitalUntil: Dat
   };
 }
 
-function getReleasedHealth(maxHealth: number) {
-  return Math.max(1, Math.ceil(maxHealth * 0.25));
+function getReleasedHealth(maxHealth: number, recoveryBonus = 0) {
+  return Math.min(maxHealth, Math.max(1, Math.ceil(maxHealth * (0.25 + recoveryBonus))));
 }
 
 export default async function hospitalRoutes(
@@ -41,12 +42,13 @@ export default async function hospitalRoutes(
     const { userId } = request.user;
 
     try {
-      const [profile, items] = await Promise.all([
+      const [profile, items, perkContext] = await Promise.all([
         prisma.profile.findUnique({ where: { userId } }),
         prisma.inventory.findMany({
           where: { userId, qty: { gt: 0 }, item: { effectType: { in: ["hospital_release_full", "hospital_release_partial"] } } },
           include: { item: true },
         }),
+        getPlayerPerkContext(userId, prisma),
       ]);
 
       if (!profile) return reply.status(404).send({ error: "Profile not found" });
@@ -56,6 +58,8 @@ export default async function hospitalRoutes(
         hospitalized: isInHospital(profile),
         remainingMinutes: minutesRemaining,
         cashReleaseCost,
+        recoveryBonus: perkContext.effects.recovery_efficiency_percent ?? 0,
+        hospitalReductionBonus: perkContext.effects.hospital_time_reduction_percent ?? 0,
         itemOptions: items.map((entry) => ({
           itemId: entry.itemId,
           name: entry.item.name,
@@ -79,7 +83,10 @@ export default async function hospitalRoutes(
     const { userId } = request.user;
 
     try {
-      const profile = await prisma.profile.findUnique({ where: { userId } });
+      const [profile, perkContext] = await Promise.all([
+        prisma.profile.findUnique({ where: { userId } }),
+        getPlayerPerkContext(userId, prisma),
+      ]);
       if (!profile) return reply.status(404).send({ error: "Profile not found" });
       if (!isInHospital(profile)) return reply.status(400).send({ error: "You are not hospitalized" });
 
@@ -88,12 +95,13 @@ export default async function hospitalRoutes(
         return reply.status(400).send({ error: "Insufficient wallet cash" });
       }
 
+      const recoveryBonus = Math.min(0.5, perkContext.effects.recovery_efficiency_percent ?? 0);
       const updated = await prisma.$transaction(async (tx) => {
         const next = await tx.profile.update({
           where: { userId },
           data: {
             cash: profile.cash - cashReleaseCost,
-            health: getReleasedHealth(profile.maxHealth),
+            health: getReleasedHealth(profile.maxHealth, recoveryBonus),
             hospitalUntil: new Date(0),
           },
         });
@@ -123,12 +131,13 @@ export default async function hospitalRoutes(
     if (!parsed.success) return reply.status(400).send({ error: "Invalid input" });
 
     try {
-      const [profile, inventory] = await Promise.all([
+      const [profile, inventory, perkContext] = await Promise.all([
         prisma.profile.findUnique({ where: { userId } }),
         prisma.inventory.findUnique({
           where: { userId_itemId: { userId, itemId: parsed.data.itemId } },
           include: { item: true },
         }),
+        getPlayerPerkContext(userId, prisma),
       ]);
 
       if (!profile) return reply.status(404).send({ error: "Profile not found" });
@@ -137,10 +146,12 @@ export default async function hospitalRoutes(
         return reply.status(400).send({ error: "You do not own a valid recovery item" });
       }
 
+      const recoveryBonus = Math.min(0.5, perkContext.effects.recovery_efficiency_percent ?? 0);
+      const hospitalReductionBonus = Math.min(0.5, perkContext.effects.hospital_time_reduction_percent ?? 0);
       const remainingMs = Math.max(0, profile.hospitalUntil.getTime() - Date.now());
       const partialReduction = inventory.item.effectDurationSecs
         ? inventory.item.effectDurationSecs * 1000
-        : Math.floor(remainingMs * (inventory.item.effectValue ?? 0.5));
+        : Math.floor(remainingMs * ((inventory.item.effectValue ?? 0.5) + hospitalReductionBonus));
       const fullRelease = inventory.item.effectType === "hospital_release_full";
       const nextHospitalUntil = fullRelease || remainingMs <= partialReduction
         ? new Date(0)
@@ -150,7 +161,9 @@ export default async function hospitalRoutes(
         const next = await tx.profile.update({
           where: { userId },
           data: {
-            health: getReleasedHealth(profile.maxHealth),
+            health: fullRelease
+              ? Math.min(profile.maxHealth, Math.ceil(profile.maxHealth * (0.5 + recoveryBonus)))
+              : getReleasedHealth(profile.maxHealth, recoveryBonus),
             hospitalUntil: nextHospitalUntil,
           },
         });
@@ -185,19 +198,23 @@ export default async function hospitalRoutes(
     if (!parsed.success) return reply.status(400).send({ error: "Invalid input" });
 
     try {
-      const profile = await prisma.profile.findUnique({ where: { userId } });
+      const [profile, perkContext] = await Promise.all([
+        prisma.profile.findUnique({ where: { userId } }),
+        getPlayerPerkContext(userId, prisma),
+      ]);
       if (!profile) return reply.status(404).send({ error: "Profile not found" });
       if (!isInHospital(profile)) return reply.status(400).send({ error: "You are not hospitalized" });
       if (profile.hospitalExitPenaltyUntil && profile.hospitalExitPenaltyUntil > new Date()) {
         return reply.status(400).send({ error: "An active exit penalty is already applied" });
       }
 
+      const recoveryBonus = Math.min(0.5, perkContext.effects.recovery_efficiency_percent ?? 0);
       const until = new Date(Date.now() + HOSPITAL_PENALTY_DURATION_HOURS[parsed.data.type] * 60 * 60 * 1000);
       const updated = await prisma.$transaction(async (tx) => {
         const next = await tx.profile.update({
           where: { userId },
           data: {
-            health: getReleasedHealth(profile.maxHealth),
+            health: getReleasedHealth(profile.maxHealth, recoveryBonus),
             hospitalUntil: new Date(0),
             hospitalExitPenaltyType: parsed.data.type,
             hospitalExitPenaltyUntil: until,

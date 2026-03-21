@@ -48,6 +48,7 @@ export default function ShopPage() {
       <div className="rounded-lg border border-white/10 bg-black/20 p-4">
         <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Shop</p>
         <p className="text-[12px] text-[#888] mt-1">Wave 2 now exposes item rarity, slot, and effect hints.</p>
+        <p className="text-[10px] text-[#666] mt-2">New slotted gear auto-equips if that slot is empty.</p>
       </div>
       <div className="grid gap-2 md:grid-cols-2">
         {items.map((item) => (

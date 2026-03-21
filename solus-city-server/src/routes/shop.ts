@@ -120,6 +120,18 @@ export default async function shopRoutes(
           create: { userId, itemId, qty, sourceType: "shop", durability: item.slot ? 100 : null },
         });
 
+        if (item.slot) {
+          const equippedSameSlot = await tx.inventory.findFirst({
+            where: { userId, equipped: true, item: { slot: item.slot } },
+          });
+          if (!equippedSameSlot) {
+            await tx.inventory.update({
+              where: { userId_itemId: { userId, itemId } },
+              data: { equipped: true },
+            });
+          }
+        }
+
         await tx.eventLog.create({
           data: {
             userId,
