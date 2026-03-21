@@ -36,6 +36,7 @@ export function serializeTerritorySummary(territory: {
     decayState: string;
     syndicate: { id: string; name: string };
   } | null;
+  linkedWar?: unknown;
 }) {
   return {
     id: territory.id,

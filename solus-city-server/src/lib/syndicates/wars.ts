@@ -78,6 +78,15 @@ export function calculateBattleWarPoints(hospitalizedTarget: boolean, underdog: 
   return points;
 }
 
+export function getBattleWarRewardMultiplier(options: {
+  repeatPenaltyApplied: boolean;
+  mismatchPenaltyApplied: boolean;
+}) {
+  if (options.repeatPenaltyApplied && options.mismatchPenaltyApplied) return 0.25;
+  if (options.repeatPenaltyApplied || options.mismatchPenaltyApplied) return 0.5;
+  return 1;
+}
+
 export function computeWarWinnerSyndicateId(
   attackerScore: number,
   defenderScore: number,
@@ -133,7 +142,14 @@ export async function awardBattleWarPoints(
   warId: string,
   attackerSyndicateId: string,
   winnerSyndicateId: string,
-  hospitalizedTarget: boolean
+  hospitalizedTarget: boolean,
+  options: {
+    repeatPenaltyApplied: boolean;
+    mismatchPenaltyApplied: boolean;
+  } = {
+    repeatPenaltyApplied: false,
+    mismatchPenaltyApplied: false,
+  }
 ) {
   const war = await tx.syndicateWar.findUnique({ where: { id: warId } });
   if (!war || war.status !== "active") return { points: 0, territoryImpact: 0 };
@@ -141,7 +157,13 @@ export async function awardBattleWarPoints(
   const underdog =
     (winnerSyndicateId === war.attackerSyndicateId ? war.attackerScore : war.defenderScore) <
     (winnerSyndicateId === war.attackerSyndicateId ? war.defenderScore : war.attackerScore);
-  const points = calculateBattleWarPoints(hospitalizedTarget, underdog);
+  const points = Math.max(
+    1,
+    Math.round(
+      calculateBattleWarPoints(hospitalizedTarget, underdog) *
+        getBattleWarRewardMultiplier(options)
+    )
+  );
 
   await tx.syndicateWar.update({
     where: { id: warId },

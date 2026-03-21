@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireAuth } from "../lib/auth";
 import { SYNDICATE_AP_BUFF, SYNDICATE_MAX_MEMBERS } from "../lib/constants";
 import { canManageRoles, canRecruit, canWithdrawVault, SYNDICATE_ROLES } from "../lib/syndicates/roles";
-import { addContributionScore, addVaultContribution } from "../lib/syndicates/contributions";
+import { addContributionScore, addVaultContribution, applySyndicateVaultTransfer } from "../lib/syndicates/contributions";
 import { serializeSyndicateOverview, serializeWarSummary } from "../lib/serializers/syndicates";
 import { SYNDICATE_VAULT_MAX_WITHDRAW_PERCENT, SYNDICATE_VAULT_MIN_WITHDRAW } from "../lib/config/balance";
 
@@ -303,13 +303,20 @@ export default async function syndicateRoutes(
       if (!membership) return reply.status(400).send({ error: "Must be in a syndicate" });
       if (!canWithdrawVault(membership.role)) return reply.status(403).send({ error: "Role cannot withdraw vault funds" });
       if (parsed.data.amount < SYNDICATE_VAULT_MIN_WITHDRAW) return reply.status(400).send({ error: `Minimum withdrawal is ${SYNDICATE_VAULT_MIN_WITHDRAW}` });
-      if (parsed.data.amount > membership.syndicate.vaultCash) return reply.status(400).send({ error: "Insufficient syndicate vault cash" });
-      if (parsed.data.amount > membership.syndicate.vaultCash * SYNDICATE_VAULT_MAX_WITHDRAW_PERCENT) return reply.status(400).send({ error: "Withdrawal exceeds safe vault limit" });
 
       const result = await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw<Array<{ id: string }>>`SELECT "id" FROM "Syndicate" WHERE "id" = ${membership.syndicateId} FOR UPDATE`;
+        const lockedSyndicate = await tx.syndicate.findUnique({ where: { id: membership.syndicateId } });
+        if (!lockedSyndicate) throw new SyndicateRouteError(404, "Syndicate not found");
+        if (parsed.data.amount > lockedSyndicate.vaultCash) throw new SyndicateRouteError(400, "Insufficient syndicate vault cash");
+        if (parsed.data.amount > lockedSyndicate.vaultCash * SYNDICATE_VAULT_MAX_WITHDRAW_PERCENT) {
+          throw new SyndicateRouteError(400, "Withdrawal exceeds safe vault limit");
+        }
+
+        const nextBalances = applySyndicateVaultTransfer(0, lockedSyndicate.vaultCash, parsed.data.amount, "withdraw");
         const [updatedProfile, updatedSyndicate] = await Promise.all([
           tx.profile.update({ where: { userId }, data: { cash: { increment: parsed.data.amount } } }),
-          tx.syndicate.update({ where: { id: membership.syndicateId }, data: { vaultCash: { decrement: parsed.data.amount } } }),
+          tx.syndicate.update({ where: { id: membership.syndicateId }, data: { vaultCash: nextBalances.syndicateVaultCash } }),
         ]);
 
         await tx.eventLog.create({
@@ -345,19 +352,45 @@ export default async function syndicateRoutes(
       const target = await prisma.syndicateMember.findUnique({ where: { userId: parsed.data.targetUserId } });
       if (!target || target.syndicateId !== id) return reply.status(400).send({ error: "Target is not in this syndicate" });
       if (target.userId === requester.userId && parsed.data.role !== requester.role) return reply.status(400).send({ error: "Cannot change your own role here" });
+      const updated = await prisma.$transaction(async (tx) => {
+        const syndicate = await tx.syndicate.findUnique({ where: { id } });
+        if (!syndicate) throw new SyndicateRouteError(404, "Syndicate not found");
+        if (target.userId === syndicate.leaderId && parsed.data.role !== "leader") {
+          throw new SyndicateRouteError(400, "Transfer leadership before demoting the current leader");
+        }
+        if (parsed.data.role === "leader" && requester.role !== "leader") {
+          throw new SyndicateRouteError(403, "Only the current leader can transfer leadership");
+        }
 
-      const updated = await prisma.syndicateMember.update({
-        where: { id: target.id },
-        data: { role: parsed.data.role, lastActiveAt: new Date() },
-      });
+        if (parsed.data.role === "leader" && syndicate.leaderId !== target.userId) {
+          const currentLeaderMember = await tx.syndicateMember.findUnique({ where: { userId: syndicate.leaderId } });
+          if (currentLeaderMember) {
+            await tx.syndicateMember.update({
+              where: { id: currentLeaderMember.id },
+              data: { role: "co_leader", lastActiveAt: new Date() },
+            });
+          }
+          await tx.syndicate.update({
+            where: { id },
+            data: { leaderId: target.userId },
+          });
+        }
 
-      await prisma.eventLog.create({
-        data: {
-          userId,
-          type: "syndicate_role_change",
-          message: `Updated member role to ${parsed.data.role}`,
-          metadata: { targetUserId: parsed.data.targetUserId, role: parsed.data.role, syndicateId: id },
-        },
+        const nextMember = await tx.syndicateMember.update({
+          where: { id: target.id },
+          data: { role: parsed.data.role, lastActiveAt: new Date() },
+        });
+
+        await tx.eventLog.create({
+          data: {
+            userId,
+            type: "syndicate_role_change",
+            message: `Updated member role to ${parsed.data.role}`,
+            metadata: { targetUserId: parsed.data.targetUserId, role: parsed.data.role, syndicateId: id },
+          },
+        });
+
+        return nextMember;
       });
 
       return reply.send({ success: true, member: updated });

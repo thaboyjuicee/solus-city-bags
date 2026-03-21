@@ -4,7 +4,6 @@ import { z } from "zod";
 import { requireAuth } from "../lib/auth";
 import {
   addTerritoryContribution,
-  addContributionScore,
 } from "../lib/syndicates/contributions";
 import {
   applyTerritoryInfluence,
@@ -174,7 +173,6 @@ export default async function territoriesRoutes(
             where: { userId },
             data: { cash: { decrement: cashSpent } },
           });
-          await addContributionScore(tx, userId, Math.max(1, cashSpent / 200));
         }
 
         await addTerritoryContribution(
@@ -197,7 +195,7 @@ export default async function territoriesRoutes(
           data: {
             userId,
             type: "territory_contribution",
-            message: `Contributed to ${territory.name} via ${parsed.data.actionType.replaceAll("_", " ")}.`,
+            message: `Contributed to ${territory.name} via ${parsed.data.actionType.replace(/_/g, " ")}.`,
             metadata: {
               territoryId,
               syndicateId: membership.syndicateId,

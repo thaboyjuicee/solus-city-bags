@@ -14,6 +14,16 @@ type SerializeMeInput = {
     role: string;
     buffType: string;
     buffValue: number;
+    vaultCash: number;
+    seasonPoints: number;
+    territoryCount: number;
+    warRating: number;
+    permissions: {
+      manageRoles: boolean;
+      withdrawVault: boolean;
+      manageWar: boolean;
+      recruit: boolean;
+    };
   } | null;
   activeProtectionEffects: Array<{
     id: string;

@@ -1,5 +1,5 @@
 ﻿import { FastifyInstance } from "fastify";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { requireAuth } from "../lib/auth";
 import { addWarParticipation } from "../lib/syndicates/contributions";
@@ -166,13 +166,19 @@ export default async function syndicateWarsRoutes(
         where: {
           warId,
           userId,
-          actionType: parsed.data.actionType,
           createdAt: { gte: cooldownStart },
         },
         orderBy: { createdAt: "desc" },
       });
       if (recent) {
         return reply.status(429).send({ error: "Action recently submitted. Try again shortly." });
+      }
+
+      const actionCount = await prisma.syndicateWarAction.count({
+        where: { warId, userId },
+      });
+      if (actionCount >= 12) {
+        return reply.status(400).send({ error: "Personal war action limit reached for this war" });
       }
 
       const result = await prisma.$transaction(async (tx) => {
@@ -182,14 +188,14 @@ export default async function syndicateWarsRoutes(
           userId,
           membership.syndicateId,
           parsed.data.actionType,
-          parsed.data.payload
+          parsed.data.payload as Prisma.InputJsonValue | undefined
         );
         await addWarParticipation(tx, userId, actionResult.points);
         await tx.eventLog.create({
           data: {
             userId,
             type: "war_action",
-            message: `Completed ${parsed.data.actionType.replaceAll("_", " ")} during active war.`,
+            message: `Completed ${parsed.data.actionType.replace(/_/g, " ")} during active war.`,
             metadata: {
               warId,
               actionType: parsed.data.actionType,

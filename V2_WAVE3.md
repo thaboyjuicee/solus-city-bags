@@ -126,6 +126,7 @@ Now supports Wave 3 war integration:
 
 - detects active wars between attacker and defender syndicates
 - awards bounded war points
+- dampens war points when repeat-target anti-farm or mismatch penalties apply
 - applies territory impact when the war is linked to a territory
 - returns:
   - `warId`
@@ -227,6 +228,8 @@ Wave 3 wars are intentionally bounded:
   - `node_secure`
 - they settle safely at the end
 - ties are allowed and do not wipe syndicates or inventories
+- repeat-target and mismatch penalties now reduce war-point value too
+- war actions have a cooldown and a per-player cap per war
 
 This is a framework wave, not a full always-on war simulation.
 
@@ -239,7 +242,7 @@ Territories are intentionally simple in Wave 3:
 - influence can be raised or contested
 - inactive control decays
 - ownership can transfer through influence logic
-- zeroed influence now releases stale control instead of leaving dead ownership behind
+- zeroed influence now moves through an `unstable` state before ownership is dropped on a later decay pass
 
 ## Tests added
 
@@ -252,6 +255,29 @@ Wave 3 adds `solus-city-server/src/wave3.test.ts` covering:
 - territory influence outcomes
 - contribution value scaling
 
+## Review fixes and validation notes
+
+After a review pass, the following issues were corrected:
+
+- war scoring now respects anti-farm and anti-whale dampening
+- syndicate leadership changes now keep `leaderId` and member role state aligned
+- syndicate vault withdrawals now re-check live locked balances inside the transaction
+- duplicate war metadata keys were removed from battle event payload construction
+- war action submission now has stricter spam control
+- cash-based territory contributions no longer grant contribution score twice
+- territory decay no longer hard-drops ownership immediately at zero influence
+- serializer typing was updated so expanded Wave 3 payloads compile cleanly
+
+Validation from the review pass:
+
+- backend tests: passed
+- backend TypeScript build: passed
+- frontend production build: passed
+
+Environment note:
+
+- `prisma generate` hit a Windows file-lock rename issue for the local Prisma query engine DLL during validation, but the codebase still built and the backend tests passed after the logic fixes
+
 ## Known limitations
 
 These are still intentionally light for Wave 4 follow-up:
@@ -260,6 +286,7 @@ These are still intentionally light for Wave 4 follow-up:
 - territory bonuses are exposed cleanly, but only lightly integrated into wider economy/combat systems
 - no season-end syndicate rewards flow yet
 - war actions are intentionally limited to a small safe set
+- territory bonuses are not yet deeply threaded into every possible Wave 1-2 subsystem
 - no complex territory map or real-time war animation layer yet
 
 ## Manual verification checklist
@@ -272,11 +299,15 @@ Suggested local checks:
 4. change a member role with a permitted role
 5. open `/wars` and confirm active war summaries render
 6. submit `supply_deliver` or `node_secure` and confirm score changes
-7. attack a rival syndicate member during an active war and confirm war points are returned
-8. open `/territories` and confirm owner, bonus, and influence render
-9. contribute to a territory and confirm influence/owner updates
-10. open `/leaderboard` and check `syndicates` and `territories` tabs
-11. open `/home` and confirm syndicate role, territory bonuses, and war summary appear
+7. repeat the same war action too quickly and confirm it is blocked
+8. attack a rival syndicate member during an active war and confirm war points are returned
+9. repeat-farm or heavily mismatch a rival during war and confirm war points are reduced
+10. transfer leadership and confirm the syndicate still shows the correct leader state
+11. let a territory decay down and confirm it becomes unstable before ownership is cleared
+12. open `/territories` and confirm owner, bonus, and influence render
+13. contribute to a territory and confirm influence/owner updates
+14. open `/leaderboard` and check `syndicates` and `territories` tabs
+15. open `/home` and confirm syndicate role, territory bonuses, and war summary appear
 
 ## Notes
 

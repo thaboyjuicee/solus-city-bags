@@ -473,7 +473,11 @@ export default async function battleRoutes(
               activeWar.id,
               attackerSyndicateId,
               winnerSyndicateId,
-              win ? defenderHospitalized : attackerHospitalized
+              win ? defenderHospitalized : attackerHospitalized,
+              {
+                repeatPenaltyApplied: antiFarmPenaltyApplied,
+                mismatchPenaltyApplied: mismatch.mismatchPenaltyApplied,
+              }
             );
             warPointsAwarded = warAward.points;
             territoryImpact = warAward.territoryImpact;
@@ -534,9 +538,6 @@ export default async function battleRoutes(
               seasonPointsGained,
               revengeResolved,
               revengeCreated: !!createdRevenge,
-              warId,
-              warPointsGained: win ? warPointsAwarded : 0,
-              territoryImpact,
               ...attackMetadata,
             },
           },

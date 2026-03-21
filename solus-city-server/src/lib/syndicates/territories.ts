@@ -186,6 +186,16 @@ export async function decayTerritoryControl(
 ) {
   const nextInfluence = Math.max(0, control.influence - TERRITORY_DECAY_AMOUNT);
   if (nextInfluence === 0) {
+    if (control.decayState !== "unstable") {
+      return tx.territoryControl.update({
+        where: { id: control.id },
+        data: {
+          influence: 0,
+          decayState: "unstable",
+        },
+      });
+    }
+
     await tx.territoryControl.delete({ where: { id: control.id } });
     await tx.syndicate.update({
       where: { id: control.syndicateId },
