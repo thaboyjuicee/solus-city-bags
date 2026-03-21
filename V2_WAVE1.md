@@ -122,6 +122,9 @@ Migration path:
 - PvP theft only touches wallet cash.
 - Repeat attacks on the same target reduce loot.
 - Protection effects can reduce cash stolen.
+- The backend vault system is live via `/vault` routes.
+- The frontend currently shows wallet and vault balances on the home dashboard.
+- Wave 1 does not yet include a dedicated vault management page for deposit/withdraw actions.
 
 ### Hospital Recovery
 
@@ -135,6 +138,10 @@ Penalty types:
 - `shaken`
 - `exposed`
 
+Current Wave 1 behavior:
+- `exposed` is already wired into PvP loot logic and makes a player easier to steal from.
+- `weakened` and `shaken` are stored and returned in profile state, but are currently lighter-weight setup for future expansion.
+
 ### Black Market
 
 - Rotations are generated server-side.
@@ -144,6 +151,9 @@ Penalty types:
   - heat requirements
   - risk/sting chance
   - item effect metadata
+- The frontend Black Market page now combines:
+  - the new rotating listings tab
+  - the restored classic utility tabs for `Get $SLS`, `Sell $SLS`, `Hospital`, and `History`
 
 ### Missions
 
@@ -228,6 +238,20 @@ These now use the new item metadata fields for:
 - `src/components/game/HospitalOptionsCard.tsx`
 - `src/components/game/MissionCard.tsx`
 - `src/components/game/LootBandBadge.tsx`
+
+### Frontend behavior notes
+
+- Home now shows:
+  - heat meter
+  - wanted badge
+  - wallet cash
+  - vault cash
+  - mission preview
+  - hospital options when relevant
+  - black market rotation timing
+- Targets now show band-based scouting instead of exact AP/DP.
+- Targets also now visibly distinguish `PLAYER` vs `NPC`.
+- The Black Market page now preserves the older utility flows instead of replacing them entirely.
 
 ## Jobs
 

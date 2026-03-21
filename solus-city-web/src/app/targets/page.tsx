@@ -104,7 +104,18 @@ export default function TargetsPage() {
                   <p className="text-[14px] font-bold text-[#eee]">{target.displayName}</p>
                   <p className="text-[10px] text-[#555]">LV {target.level} • {target.rp} RP</p>
                 </div>
-                {target.syndicateBadge && <span className="text-[9px] font-bold tracking-[2px] text-[#9945FF]">{target.syndicateBadge}</span>}
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${
+                      target.type === "npc"
+                        ? "bg-[#14F19520] text-[#14F195]"
+                        : "bg-[#9945FF20] text-[#9945FF]"
+                    }`}
+                  >
+                    {target.type.toUpperCase()}
+                  </span>
+                  {target.syndicateBadge && <span className="text-[9px] font-bold tracking-[2px] text-[#9945FF]">{target.syndicateBadge}</span>}
+                </div>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${bandClass(target.winChanceBand)}`}>{target.winChanceBand.toUpperCase()}</span>
