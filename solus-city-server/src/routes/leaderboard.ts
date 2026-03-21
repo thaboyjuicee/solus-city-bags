@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireAuth } from "../lib/auth";
 
 const leaderboardQuery = z.object({
-  type: z.enum(["season", "pvp", "crime"]).optional(),
+  type: z.enum(["season", "pvp", "crime", "syndicates", "territories"]).optional(),
 });
 
 export default async function leaderboardRoutes(
@@ -34,6 +34,63 @@ export default async function leaderboardRoutes(
             level: profile.level,
             seasonScore: profile.seasonScore,
             isMe: profile.userId === userId,
+          })),
+        });
+      }
+
+      if (type === "syndicates") {
+        const syndicates = await prisma.syndicate.findMany({
+          take: 50,
+          orderBy: [{ seasonPoints: "desc" }, { territoryCount: "desc" }, { warRating: "desc" }],
+          include: { _count: { select: { members: true } } },
+        });
+
+        return reply.send({
+          type,
+          entries: syndicates.map((syndicate, index) => ({
+            rank: index + 1,
+            userId: syndicate.id,
+            name: syndicate.name,
+            score: syndicate.seasonPoints,
+            seasonPoints: syndicate.seasonPoints,
+            territoryCount: syndicate.territoryCount,
+            warRating: syndicate.warRating,
+            membersCount: syndicate._count.members,
+            isMe: false,
+          })),
+        });
+      }
+
+      if (type === "territories") {
+        const territories = await prisma.territory.findMany({
+          where: { active: true },
+          orderBy: { sortOrder: "asc" },
+        });
+        const controls = await prisma.territoryControl.findMany({
+          where: { territoryId: { in: territories.map((territory) => territory.id) } },
+          include: { syndicate: true },
+        });
+        const controlByTerritory = new Map(controls.map((control) => [control.territoryId, control]));
+        const entries = territories
+          .map((territory) => {
+            const control = controlByTerritory.get(territory.id);
+            return {
+              userId: territory.id,
+              name: territory.name,
+              score: control?.influence ?? 0,
+              territoryOwner: control?.syndicate.name ?? "Unclaimed",
+              bonusType: territory.bonusType,
+              bonusValue: territory.bonusValue,
+            };
+          })
+          .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+
+        return reply.send({
+          type,
+          entries: entries.map((entry, index) => ({
+            rank: index + 1,
+            ...entry,
+            isMe: false,
           })),
         });
       }

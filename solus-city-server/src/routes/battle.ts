@@ -43,6 +43,8 @@ import { REPEAT_TARGET_LOOT_REDUCTION_WINDOW_MINUTES } from "../lib/config/balan
 import { getPlayerPerkContext } from "../lib/player/perks";
 import { awardSeasonScore } from "../lib/seasons/scoring";
 import { getMismatchAdjustment } from "../lib/matchmaking";
+import { addWarParticipation } from "../lib/syndicates/contributions";
+import { awardBattleWarPoints, getActiveWarForSyndicates } from "../lib/syndicates/wars";
 import {
   getActiveRevengeAgainst,
   getRevengeBonusPercent,
@@ -182,6 +184,8 @@ export default async function battleRoutes(
       let defenderPenaltyType: string | null = null;
       let defenderPenaltyActive = false;
       let revengeMark = null as Awaited<ReturnType<typeof getActiveRevengeAgainst>>;
+      let attackerSyndicateId: string | null = null;
+      let defenderSyndicateId: string | null = null;
 
       if (!isNpc) {
         const defenderProfileRaw = await prisma.profile.findUnique({ where: { userId: parsed.data.targetId } });
@@ -238,6 +242,13 @@ export default async function battleRoutes(
         defenderPenaltyType = updatedDefender.hospitalExitPenaltyType;
         defenderPenaltyActive = !!updatedDefender.hospitalExitPenaltyUntil && updatedDefender.hospitalExitPenaltyUntil > now;
         revengeMark = await getActiveRevengeAgainst(prisma, userId, parsed.data.targetId, now);
+        const memberships = await prisma.syndicateMember.findMany({
+          where: { userId: { in: [userId, parsed.data.targetId] } },
+          select: { userId: true, syndicateId: true },
+        });
+        attackerSyndicateId = memberships.find((membership) => membership.userId === userId)?.syndicateId ?? null;
+        defenderSyndicateId =
+          memberships.find((membership) => membership.userId === parsed.data.targetId)?.syndicateId ?? null;
       } else {
         const template = NPC_POOL.find((npc) => npc.id === parsed.data.targetId);
         if (!template) return reply.status(400).send({ error: "Invalid NPC target" });
@@ -442,6 +453,34 @@ export default async function battleRoutes(
           revengeResolved = true;
         }
 
+        let warId: string | null = null;
+        let warPointsAwarded = 0;
+        let territoryImpact = 0;
+        if (
+          defenderUserId &&
+          attackerSyndicateId &&
+          defenderSyndicateId &&
+          attackerSyndicateId !== defenderSyndicateId &&
+          outcomeType !== "evaded"
+        ) {
+          const activeWar = await getActiveWarForSyndicates(tx, attackerSyndicateId, defenderSyndicateId, now);
+          if (activeWar) {
+            warId = activeWar.id;
+            const winnerSyndicateId = win ? attackerSyndicateId : defenderSyndicateId;
+            const winnerUserId = win ? userId : defenderUserId;
+            const warAward = await awardBattleWarPoints(
+              tx,
+              activeWar.id,
+              attackerSyndicateId,
+              winnerSyndicateId,
+              win ? defenderHospitalized : attackerHospitalized
+            );
+            warPointsAwarded = warAward.points;
+            territoryImpact = warAward.territoryImpact;
+            await addWarParticipation(tx, winnerUserId, warAward.points);
+          }
+        }
+
         let createdRevenge = null;
         if (defenderUserId && outcomeType !== "evaded") {
           if (win) {
@@ -474,6 +513,9 @@ export default async function battleRoutes(
           criticalHit,
           revengeBonusApplied,
           mismatchPenaltyApplied: mismatch.mismatchPenaltyApplied,
+          warId,
+          warPointsGained: win ? warPointsAwarded : 0,
+          territoryImpact,
         };
 
         await tx.eventLog.create({
@@ -492,6 +534,9 @@ export default async function battleRoutes(
               seasonPointsGained,
               revengeResolved,
               revengeCreated: !!createdRevenge,
+              warId,
+              warPointsGained: win ? warPointsAwarded : 0,
+              territoryImpact,
               ...attackMetadata,
             },
           },
@@ -538,6 +583,8 @@ export default async function battleRoutes(
                 lootProtectedAmount,
                 targetHeatBand,
                 revengeCreated: !!createdRevenge,
+                warId,
+                territoryImpact,
               },
             },
           });
@@ -567,7 +614,17 @@ export default async function battleRoutes(
           });
         }
 
-        return { finalAttacker, createdBattle, missionUpdates, seasonPointsGained, revengeResolved, revengeCreated: !!createdRevenge };
+        return {
+          finalAttacker,
+          createdBattle,
+          missionUpdates,
+          seasonPointsGained,
+          revengeResolved,
+          revengeCreated: !!createdRevenge,
+          warId,
+          warPointsGained: win ? warPointsAwarded : 0,
+          territoryImpact,
+        };
       });
 
       const finalCombat = await computeCombatStats(userId, prisma);
@@ -597,6 +654,9 @@ export default async function battleRoutes(
         revengeResolved: txResult.revengeResolved,
         revengeBonusApplied,
         seasonPointsGained: txResult.seasonPointsGained,
+        warId: txResult.warId,
+        warPointsGained: txResult.warPointsGained,
+        territoryImpact: txResult.territoryImpact,
         rpChange,
         xpGained,
         attackerAP,

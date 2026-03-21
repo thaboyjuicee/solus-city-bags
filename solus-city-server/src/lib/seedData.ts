@@ -50,6 +50,15 @@ type SeedPerkDefinition = {
   prerequisiteCode: string | null;
 };
 
+type SeedTerritory = {
+  name: string;
+  code: string;
+  bonusType: string;
+  bonusValue: number;
+  incomeType: string | null;
+  sortOrder: number;
+};
+
 const defaultItems: SeedItem[] = ([
   ["unit", "crew", "Recruit", 5, 3, 0, 0, 100, 1, "common", "Entry unit"],
   ["unit", "crew", "Soldier", 12, 10, 0, 0, 500, 2, "common", "Reliable frontline"],
@@ -353,6 +362,16 @@ const defaultPerkDefinitions: SeedPerkDefinition[] = [
   { branch: "grinder", code: "grinder_hospital_reduction_2", name: "Bounce Back II", description: "Further reduce hospital release friction.", effectType: "hospital_time_reduction_percent", effectValue: 0.14, tier: 2, prerequisiteCode: "grinder_hospital_reduction_1" },
 ];
 
+const defaultTerritories: SeedTerritory[] = [
+  { name: "The Docks", code: "docks", bonusType: "contraband_chance_bonus", bonusValue: 0.05, incomeType: null, sortOrder: 1 },
+  { name: "Downtown", code: "downtown", bonusType: "crime_payout_bonus", bonusValue: 0.04, incomeType: "cash", sortOrder: 2 },
+  { name: "Industrial Zone", code: "industrial", bonusType: "war_supply_bonus", bonusValue: 0.05, incomeType: null, sortOrder: 3 },
+  { name: "Hospital District", code: "hospital_district", bonusType: "hospital_reduction_bonus", bonusValue: 0.06, incomeType: null, sortOrder: 4 },
+  { name: "Financial Quarter", code: "financial", bonusType: "vault_fee_reduction_bonus", bonusValue: 0.05, incomeType: "vault", sortOrder: 5 },
+  { name: "The Slums", code: "slums", bonusType: "crime_payout_bonus", bonusValue: 0.03, incomeType: "cash", sortOrder: 6 },
+  { name: "Market Row", code: "market_row", bonusType: "black_market_discount_bonus", bonusValue: 0.04, incomeType: null, sortOrder: 7 },
+];
+
 export async function ensureSeedData(prisma: PrismaClient) {
   const items = [...defaultItems, ...waveOneItems];
 
@@ -437,6 +456,24 @@ export async function ensureSeedData(prisma: PrismaClient) {
         rewardCash: definition.rewardCash,
         rewardRp: definition.rewardRp,
         rewardItemId: rewardItem?.id ?? null,
+        active: true,
+      },
+    });
+  }
+
+  for (const territory of defaultTerritories) {
+    await prisma.territory.upsert({
+      where: { code: territory.code },
+      update: {
+        name: territory.name,
+        bonusType: territory.bonusType,
+        bonusValue: territory.bonusValue,
+        incomeType: territory.incomeType,
+        sortOrder: territory.sortOrder,
+        active: true,
+      },
+      create: {
+        ...territory,
         active: true,
       },
     });

@@ -31,6 +31,8 @@ model User {
   revengeMarksAsAttacker RevengeMark[] @relation("RevengeAttacker")
   seasonParticipations   SeasonParticipation[]
   seasonLeaderboardSnapshots SeasonLeaderboardSnapshot[]
+  territoryContributions TerritoryContribution[]
+  warActions         SyndicateWarAction[]
 }
 
 model Profile {
@@ -220,9 +222,20 @@ model Syndicate {
   description String            @default("")
   buffType    String            @default("ap") // MVP: ap buff only
   buffValue   Float             @default(0.05)
+  vaultCash   Float             @default(0)
+  seasonPoints Int              @default(0)
+  territoryCount Int            @default(0)
+  warRating   Int               @default(1000)
+  safehouseLevel Int            @default(1)
   leaderId    String            @unique
   leader      User              @relation("SyndicateLeader", fields: [leaderId], references: [id])
   members     SyndicateMember[]
+  territories TerritoryControl[]
+  territoryContributions TerritoryContribution[]
+  warsAsAttacker SyndicateWar[] @relation("WarAttacker")
+  warsAsDefender SyndicateWar[] @relation("WarDefender")
+  warsWon      SyndicateWar[]   @relation("WarWinner")
+  warActions   SyndicateWarAction[]
   createdAt   DateTime          @default(now())
 }
 
@@ -231,12 +244,100 @@ model SyndicateMember {
   syndicateId String
   userId      String    @unique
   role        String    @default("member")
+  contributionScore Int @default(0)
+  warParticipation Int  @default(0)
+  lastActiveAt  DateTime @default(now())
   joinedAt    DateTime  @default(now())
 
   syndicate   Syndicate @relation(fields: [syndicateId], references: [id])
   user        User      @relation(fields: [userId], references: [id])
 
   @@unique([syndicateId, userId])
+}
+
+model Territory {
+  id         String   @id @default(cuid())
+  name       String
+  code       String   @unique
+  bonusType  String
+  bonusValue Float
+  incomeType String?
+  sortOrder  Int
+  active     Boolean  @default(true)
+
+  control        TerritoryControl?
+  contributions  TerritoryContribution[]
+  wars           SyndicateWar[]
+}
+
+model TerritoryControl {
+  id             String   @id @default(cuid())
+  territoryId    String
+  syndicateId    String
+  influence      Int      @default(0)
+  capturedAt     DateTime
+  lastDefendedAt DateTime
+  decayState     String   @default("stable")
+  createdAt      DateTime @default(now())
+
+  territory Territory @relation(fields: [territoryId], references: [id])
+  syndicate Syndicate @relation(fields: [syndicateId], references: [id])
+
+  @@unique([territoryId])
+}
+
+model TerritoryContribution {
+  id             String   @id @default(cuid())
+  territoryId    String
+  syndicateId    String
+  userId         String
+  actionType     String
+  influenceDelta Int
+  createdAt      DateTime @default(now())
+
+  territory Territory @relation(fields: [territoryId], references: [id])
+  syndicate Syndicate @relation(fields: [syndicateId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([territoryId, createdAt])
+  @@index([syndicateId, createdAt])
+}
+
+model SyndicateWar {
+  id                  String   @id @default(cuid())
+  attackerSyndicateId String
+  defenderSyndicateId String
+  status              String
+  startsAt            DateTime
+  endsAt              DateTime
+  attackerScore       Int      @default(0)
+  defenderScore       Int      @default(0)
+  territoryId         String?
+  winnerSyndicateId   String?
+  createdAt           DateTime @default(now())
+
+  attackerSyndicate Syndicate @relation("WarAttacker", fields: [attackerSyndicateId], references: [id])
+  defenderSyndicate Syndicate @relation("WarDefender", fields: [defenderSyndicateId], references: [id])
+  territory         Territory? @relation(fields: [territoryId], references: [id])
+  winnerSyndicate   Syndicate? @relation("WarWinner", fields: [winnerSyndicateId], references: [id])
+  actions           SyndicateWarAction[]
+}
+
+model SyndicateWarAction {
+  id         String   @id @default(cuid())
+  warId       String
+  userId      String
+  syndicateId String
+  actionType  String
+  points      Int
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  war       SyndicateWar @relation(fields: [warId], references: [id])
+  user      User         @relation(fields: [userId], references: [id])
+  syndicate Syndicate    @relation(fields: [syndicateId], references: [id])
+
+  @@index([warId, createdAt])
 }
 
 model SlsTransaction {

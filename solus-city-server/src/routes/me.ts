@@ -19,6 +19,9 @@ import { serializeMeDashboard } from "../lib/serializers/me";
 import { getAvailablePerkPoints } from "../lib/player/perks";
 import { getCurrentSeason } from "../lib/seasons/scoring";
 import { serializeSeasonSummary } from "../lib/serializers/seasons";
+import { getRolePermissions } from "../lib/syndicates/roles";
+import { getTerritoryBonusForSyndicate } from "../lib/syndicates/territories";
+import { serializeWarSummary } from "../lib/serializers/syndicates";
 
 const updateProfileBody = z.object({
   name: z
@@ -150,6 +153,37 @@ export default async function meRoutes(
         { total: 0, branches: {} as Record<string, number> }
       );
 
+      let activeTerritoryBonuses: Array<{ territoryId: string; territoryName: string; bonusType: string; bonusValue: number }> = [];
+      let currentWarSummary: ReturnType<typeof serializeWarSummary> | null = null;
+      let syndicateVaultSummary: { vaultCash: number; seasonPoints: number; territoryCount: number; warRating: number } | null = null;
+      let currentSyndicateRole: string | null = membership?.role ?? null;
+
+      if (membership) {
+        activeTerritoryBonuses = await prisma.$transaction((tx) => getTerritoryBonusForSyndicate(tx, membership.syndicateId));
+        const activeWar = await prisma.syndicateWar.findFirst({
+          where: {
+            status: "active",
+            OR: [
+              { attackerSyndicateId: membership.syndicateId },
+              { defenderSyndicateId: membership.syndicateId },
+            ],
+          },
+          include: {
+            territory: true,
+            attackerSyndicate: { select: { id: true, name: true } },
+            defenderSyndicate: { select: { id: true, name: true } },
+          },
+          orderBy: { startsAt: "desc" },
+        });
+        currentWarSummary = activeWar ? serializeWarSummary(activeWar) : null;
+        syndicateVaultSummary = {
+          vaultCash: membership.syndicate.vaultCash,
+          seasonPoints: membership.syndicate.seasonPoints,
+          territoryCount: membership.syndicate.territoryCount,
+          warRating: membership.syndicate.warRating,
+        };
+      }
+
       return reply.send(
         serializeMeDashboard({
           wallet: user?.wallet ?? "",
@@ -165,6 +199,11 @@ export default async function meRoutes(
                 role: membership.role,
                 buffType: membership.syndicate.buffType,
                 buffValue: membership.syndicate.buffValue,
+                vaultCash: membership.syndicate.vaultCash,
+                seasonPoints: membership.syndicate.seasonPoints,
+                territoryCount: membership.syndicate.territoryCount,
+                warRating: membership.syndicate.warRating,
+                permissions: getRolePermissions(membership.role),
               }
             : null,
           activeProtectionEffects,
@@ -196,6 +235,10 @@ export default async function meRoutes(
             slot: row.item.slot ?? null,
             rarity: row.item.rarity ?? null,
           })),
+          activeTerritoryBonuses,
+          currentWarSummary,
+          syndicateVaultSummary,
+          currentSyndicateRole,
         })
       );
     } catch (err) {

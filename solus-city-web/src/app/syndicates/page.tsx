@@ -1,360 +1,271 @@
-"use client";
+﻿"use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
-import { StatusBars, type ProfileStats } from "@/components/ui/StatusBars";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { SyndicateVaultCard } from "@/components/game/SyndicateVaultCard";
+import { SyndicateRoleBadge } from "@/components/game/SyndicateRoleBadge";
+import { WarScoreboard } from "@/components/game/WarScoreboard";
+import { ContributionList } from "@/components/game/ContributionList";
+import { TerritoryBonusBadge } from "@/components/game/TerritoryBonusBadge";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+type MeLite = { syndicate?: { id: string } | null };
 
-interface SyndicateListItem {
+type SyndicateSummary = {
   id: string;
   name: string;
   description: string;
-  buffType: string;
-  buffValue: number;
-  memberCount: number;
-  totalRp: number;
-}
-
-interface SyndicateLeaderboardItem {
-  id: string;
-  name: string;
-  memberCount: number;
-  totalRp: number;
-  buffType: string;
-  buffValue: number;
-}
-
-type PageProfile = ProfileStats & {
-  syndicate: {
+  vaultCash: number;
+  seasonPoints: number;
+  territoryCount: number;
+  warRating: number;
+  rolePermissions?: { manageRoles: boolean; withdrawVault: boolean; manageWar: boolean; recruit: boolean };
+  currentWarStatus?: {
     id: string;
-    name: string;
-    role: string;
-    buffType: string;
-    buffValue: number;
+    status: string;
+    startsAt: string;
+    endsAt: string;
+    attackerScore: number;
+    defenderScore: number;
+    territory?: { id: string; name: string; code: string } | null;
+    attackerSyndicate?: { id: string; name: string } | null;
+    defenderSyndicate?: { id: string; name: string } | null;
   } | null;
+  territoriesOwned?: Array<{ id: string; name: string; code: string; bonusType: string; bonusValue: number }>;
+  members?: Array<{ userId: string; name: string; role: string; contributionScore: number; warParticipation: number }>;
+  memberContributionLeaders?: Array<{ userId: string; name: string; role: string; contributionScore: number; warParticipation: number }>;
 };
 
-// ---------------------------------------------------------------------------
-// Page
-// ---------------------------------------------------------------------------
+const DEFAULT_BUFF_TYPE = "crime_payout";
+const DEFAULT_BUFF_VALUE = 0.05;
 
 export default function SyndicatesPage() {
-  const [profile, setProfile] = useState<PageProfile | null>(null);
-  const [syndicates, setSyndicates] = useState<SyndicateListItem[]>([]);
-  const [leaderboard, setLeaderboard] = useState<SyndicateLeaderboardItem[]>([]);
+  const [syndicates, setSyndicates] = useState<SyndicateSummary[]>([]);
+  const [detail, setDetail] = useState<SyndicateSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [pageError, setPageError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
 
-  // Create form
-  const [createName, setCreateName] = useState("");
-  const [createDesc, setCreateDesc] = useState("");
-  const [createError, setCreateError] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
-
-  // Per-syndicate join state
-  const [joiningId, setJoiningId] = useState<string | null>(null);
-  const [joinErrors, setJoinErrors] = useState<Record<string, string>>({});
-
-  // Leave
-  const [leaving, setLeaving] = useState(false);
-  const [leaveError, setLeaveError] = useState<string | null>(null);
-
-  const fetchData = useCallback(async () => {
-    setPageError(null);
+  const load = useCallback(async () => {
+    setLoading(true);
     try {
-      const [profileRes, syndicatesRes, leaderboardRes] = await Promise.all([
-        api.get<PageProfile>("/me"),
-        api.get<SyndicateListItem[]>("/syndicates"),
-        api.get<SyndicateLeaderboardItem[]>("/leaderboard/syndicates"),
-      ]);
-      setProfile(profileRes.data);
-      setSyndicates(syndicatesRes.data);
-      setLeaderboard(leaderboardRes.data);
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { error?: string } } })?.response?.data
-          ?.error ?? "Failed to load syndicates.";
-      setPageError(msg);
+      const meRes = await api.get<MeLite>("/me");
+      if (meRes.data.syndicate?.id) {
+        const detailRes = await api.get<SyndicateSummary>(`/syndicates/${meRes.data.syndicate.id}`);
+        setDetail(detailRes.data);
+        setSyndicates([]);
+      } else {
+        const listRes = await api.get<SyndicateSummary[] | { syndicates: SyndicateSummary[] }>("/syndicates");
+        const nextList = Array.isArray(listRes.data) ? listRes.data : listRes.data.syndicates;
+        setSyndicates(nextList ?? []);
+        setDetail(null);
+      }
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    load();
+  }, [load]);
 
-  const mySyndicate = useMemo(
-    () => syndicates.find((s) => s.id === profile?.syndicate?.id) ?? null,
-    [profile?.syndicate?.id, syndicates]
-  );
+  if (loading) return <div className="flex min-h-dvh items-center justify-center"><LoadingSpinner size={32} /></div>;
 
-  const createSyndicate = async () => {
-    if (!createName.trim()) {
-      setCreateError("Syndicate name is required.");
-      return;
-    }
-    setCreating(true);
-    setCreateError(null);
-    try {
-      await api.post("/syndicates", { name: createName.trim(), description: createDesc.trim() });
-      setCreateName("");
-      setCreateDesc("");
-      setLoading(true);
-      await fetchData();
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { error?: string } } })?.response?.data
-          ?.error ?? "Could not create syndicate.";
-      setCreateError(msg);
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const joinSyndicate = async (id: string) => {
-    setJoiningId(id);
-    setJoinErrors((prev) => { const n = { ...prev }; delete n[id]; return n; });
-    try {
-      await api.post(`/syndicates/${id}/join`);
-      setLoading(true);
-      await fetchData();
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { error?: string } } })?.response?.data
-          ?.error ?? "Could not join syndicate.";
-      setJoinErrors((prev) => ({ ...prev, [id]: msg }));
-    } finally {
-      setJoiningId(null);
-    }
-  };
-
-  const leaveSyndicate = async () => {
-    setLeaving(true);
-    setLeaveError(null);
-    try {
-      await api.post("/syndicates/leave");
-      setLoading(true);
-      await fetchData();
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { error?: string } } })?.response?.data
-          ?.error ?? "Could not leave syndicate.";
-      setLeaveError(msg);
-    } finally {
-      setLeaving(false);
-    }
-  };
-
-  // ------------------------------------------------------------------
-  // Loading
-  // ------------------------------------------------------------------
-  if (loading) {
+  if (!detail) {
     return (
-      <div className="flex min-h-dvh bg-transparent items-center justify-center">
-        <LoadingSpinner size={32} />
-      </div>
-    );
-  }
-
-  // ------------------------------------------------------------------
-  // Error
-  // ------------------------------------------------------------------
-  if (pageError) {
-    return (
-      <div className="flex flex-col min-h-dvh bg-transparent items-center justify-center gap-4 px-6">
-        <p className="text-danger text-sm text-center">{pageError}</p>
-        <button
-          onClick={() => { setLoading(true); fetchData(); }}
-          className="px-5 py-2.5 bg-accent rounded-lg text-white font-semibold text-sm"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
-
-  const inASyndicate = !!profile?.syndicate;
-  const busy = creating || leaving || joiningId !== null;
-
-  return (
-    <div className="flex flex-col bg-transparent min-h-dvh">
-      {profile && <StatusBars profile={profile} />}
-
-      <div className="flex flex-col gap-3">
-
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-black text-[#eee] tracking-[3px] uppercase">
-              Syndicates
-            </p>
-            <p className="text-[11px] font-semibold text-text-dim mt-0.5">
-              Join a crew and rise together
-            </p>
-          </div>
+      <div className="flex flex-col gap-4">
+        <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
+          <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Create Syndicate</p>
+          <input value={name} onChange={(event) => setName(event.target.value)} className="rounded-md border border-white/10 bg-black/20 px-3 py-2 text-[12px] text-[#eee] outline-none" placeholder="Syndicate name" />
+          <textarea value={description} onChange={(event) => setDescription(event.target.value)} className="min-h-24 rounded-md border border-white/10 bg-black/20 px-3 py-2 text-[12px] text-[#eee] outline-none" placeholder="Description" />
           <button
-            onClick={() => { setLoading(true); fetchData(); }}
-            className="bg-black/20 backdrop-blur-sm border border-white/10 rounded p-2 text-text-dim hover:text-text-secondary transition-colors"
-            aria-label="Refresh syndicates"
+            type="button"
+            disabled={busy === "create" || name.trim().length < 3}
+            onClick={async () => {
+              setBusy("create");
+              try {
+                await api.post("/syndicates", {
+                  name: name.trim(),
+                  description: description.trim(),
+                  buffType: DEFAULT_BUFF_TYPE,
+                  buffValue: DEFAULT_BUFF_VALUE,
+                });
+                setName("");
+                setDescription("");
+                await load();
+              } finally {
+                setBusy(null);
+              }
+            }}
+            className="rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] px-3 py-2 text-[10px] font-black tracking-[2px] text-[#9945FF] disabled:opacity-40"
           >
-            <svg
-              className="w-3.5 h-3.5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M23 4v6h-6" />
-              <path d="M1 20v-6h6" />
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-            </svg>
+            {busy === "create" ? "CREATING..." : "CREATE SYNDICATE"}
           </button>
         </div>
 
-        {/* ---- MY SYNDICATE ---- */}
-        <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3.5">
-          <p className="text-[9px] font-black tracking-[2px] uppercase text-text-dim mb-2.5">
-            My Syndicate
-          </p>
-
-          {mySyndicate ? (
-            <>
-              <p className="text-[#eee] text-[15px] font-bold mb-1">{mySyndicate.name}</p>
-              <p className="text-[11px] text-text-dim mb-0.5">
-                Members {mySyndicate.memberCount}/20 · Total RP {mySyndicate.totalRp.toLocaleString()}
-              </p>
-              <p className="text-[11px] text-text-dim mb-3">
-                Buff: +{Math.round(mySyndicate.buffValue * 100)}%{" "}
-                {mySyndicate.buffType.toUpperCase()}
-              </p>
-              {profile?.syndicate?.role && (
-                <p className="text-[10px] font-black tracking-[2px] text-[#9945FF] mb-3">
-                  {profile.syndicate.role.toUpperCase()}
-                </p>
-              )}
-
-              {leaveError && (
-                <p className="text-[#ef5350] text-[11px] font-bold mb-2">{leaveError}</p>
-              )}
-              <button
-                onClick={leaveSyndicate}
-                disabled={busy}
-                className="w-full py-2.5 border border-[#7f1919] bg-[#1a0a0a] rounded text-[#ef5350] text-[10px] font-black tracking-[2px] disabled:opacity-45 flex items-center justify-center gap-1.5"
-              >
-                {leaving ? <LoadingSpinner size={14} color="#ef5350" /> : "LEAVE SYNDICATE"}
-              </button>
-            </>
+        <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
+          <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Available Syndicates</p>
+          {syndicates.length === 0 ? (
+            <p className="text-[12px] text-[#777]">No syndicates available yet.</p>
           ) : (
-            <>
-              <p className="text-[11px] text-text-dim mb-3">You are not in a syndicate.</p>
-              <input
-                type="text"
-                value={createName}
-                onChange={(e) => { setCreateName(e.target.value); setCreateError(null); }}
-                placeholder="Syndicate Name (3–24 chars)"
-                maxLength={24}
-                className="w-full bg-black/20 backdrop-blur-sm border border-white/10 rounded px-3 py-2 text-[#eee] text-[13px] focus:outline-none focus:border-accent mb-2 placeholder:text-[#555]"
-              />
-              <input
-                type="text"
-                value={createDesc}
-                onChange={(e) => setCreateDesc(e.target.value)}
-                placeholder="Description (optional)"
-                maxLength={180}
-                className="w-full bg-black/20 backdrop-blur-sm border border-white/10 rounded px-3 py-2 text-[#eee] text-[13px] focus:outline-none focus:border-accent mb-2 placeholder:text-[#555]"
-              />
-              {createError && (
-                <p className="text-[#ef5350] text-[11px] font-bold mb-2">{createError}</p>
-              )}
-              <button
-                onClick={createSyndicate}
-                disabled={busy}
-                className="w-full py-2.5 border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] rounded text-[#9945FF] text-[10px] font-black tracking-[2px] disabled:opacity-45 flex items-center justify-center gap-1.5"
-              >
-                {creating ? <LoadingSpinner size={14} color="#9945FF" /> : "CREATE SYNDICATE"}
-              </button>
-            </>
+            syndicates.map((syndicate) => (
+              <div key={syndicate.id} className="rounded-md border border-white/10 bg-black/20 p-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-[14px] font-black text-[#eee]">{syndicate.name}</p>
+                  <p className="text-[11px] text-[#777] mt-1">{syndicate.description}</p>
+                  <p className="text-[10px] text-[#888] mt-2">Season {syndicate.seasonPoints} • Territories {syndicate.territoryCount} • War {syndicate.warRating}</p>
+                </div>
+                <button
+                  type="button"
+                  disabled={busy === syndicate.id}
+                  onClick={async () => {
+                    setBusy(syndicate.id);
+                    try {
+                      await api.post(`/syndicates/${syndicate.id}/join`);
+                      await load();
+                    } finally {
+                      setBusy(null);
+                    }
+                  }}
+                  className="rounded-md border border-[#1f5f36] bg-[#0f2a18] px-3 py-2 text-[10px] font-black tracking-[2px] text-[#66bb6a] disabled:opacity-40"
+                >
+                  {busy === syndicate.id ? "JOINING..." : "JOIN"}
+                </button>
+              </div>
+            ))
           )}
         </div>
+      </div>
+    );
+  }
 
-        {/* ---- TOP SYNDICATES ---- */}
-        {leaderboard.length > 0 && (
-          <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3.5">
-            <p className="text-[9px] font-black tracking-[2px] uppercase text-text-dim mb-2.5">
-              Top Syndicates
-            </p>
-            {leaderboard.slice(0, 5).map((entry, i) => (
-              <div key={entry.id} className="flex items-center py-1.5">
-                <span className="w-7 text-[12px] font-bold text-[#9945FF]">#{i + 1}</span>
-                <span className="flex-1 text-[12px] text-[#eee] truncate">{entry.name}</span>
-                <span className="text-[12px] font-bold text-[#14F195]">
-                  {entry.totalRp.toLocaleString()}
-                </span>
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Syndicate HQ</p>
+            <p className="text-[20px] font-black text-[#eee] mt-1">{detail.name}</p>
+            <p className="text-[12px] text-[#888] mt-1">{detail.description}</p>
+          </div>
+          <button
+            type="button"
+            disabled={busy === "leave"}
+            onClick={async () => {
+              setBusy("leave");
+              try {
+                await api.post("/syndicates/leave");
+                await load();
+              } finally {
+                setBusy(null);
+              }
+            }}
+            className="rounded-md border border-[#6d4c41] bg-[#231412] px-3 py-2 text-[10px] font-black tracking-[2px] text-[#ff8a65] disabled:opacity-40"
+          >
+            {busy === "leave" ? "LEAVING..." : "LEAVE"}
+          </button>
+        </div>
+        <div className="grid gap-2 md:grid-cols-3">
+          <div className="rounded-md border border-white/10 bg-black/20 p-3"><p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Season</p><p className="text-[16px] font-black text-[#66bb6a] mt-1">{detail.seasonPoints}</p></div>
+          <div className="rounded-md border border-white/10 bg-black/20 p-3"><p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Territories</p><p className="text-[16px] font-black text-[#42a5f5] mt-1">{detail.territoryCount}</p></div>
+          <div className="rounded-md border border-white/10 bg-black/20 p-3"><p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">War Rating</p><p className="text-[16px] font-black text-[#ff8a65] mt-1">{detail.warRating}</p></div>
+        </div>
+      </div>
+
+      <SyndicateVaultCard
+        vaultCash={detail.vaultCash}
+        canDeposit
+        canWithdraw={!!detail.rolePermissions?.withdrawVault}
+        busy={busy === "deposit" || busy === "withdraw"}
+        onDeposit={async (amount) => {
+          setBusy("deposit");
+          try {
+            await api.post("/syndicates/vault/deposit", { amount });
+            await load();
+          } finally {
+            setBusy(null);
+          }
+        }}
+        onWithdraw={async (amount) => {
+          setBusy("withdraw");
+          try {
+            await api.post("/syndicates/vault/withdraw", { amount });
+            await load();
+          } finally {
+            setBusy(null);
+          }
+        }}
+      />
+
+      {detail.currentWarStatus ? (
+        <WarScoreboard war={detail.currentWarStatus} canManageActions={!!detail.rolePermissions?.manageWar} />
+      ) : (
+        <div className="rounded-lg border border-white/10 bg-black/20 p-4 text-[12px] text-[#777]">No active war at the moment.</div>
+      )}
+
+      {detail.territoriesOwned && detail.territoriesOwned.length > 0 && (
+        <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
+          <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Owned Territories</p>
+          <div className="flex flex-wrap gap-2">
+            {detail.territoriesOwned.map((territory) => (
+              <div key={territory.id} className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
+                <p className="text-[12px] font-bold text-[#eee]">{territory.name}</p>
+                <div className="mt-1"><TerritoryBonusBadge bonusType={territory.bonusType} bonusValue={territory.bonusValue} /></div>
               </div>
             ))}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ---- DISCOVER ---- */}
-        <p className="text-[9px] font-black tracking-[2px] uppercase text-text-dim">
-          Discover
-        </p>
-
-        {syndicates.length === 0 ? (
-          <p className="text-text-dim text-sm text-center py-6">No syndicates yet — create the first one!</p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {syndicates.map((item) => {
-              const joined = profile?.syndicate?.id === item.id;
-              return (
-                <div key={item.id} className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3.5 flex flex-col gap-1.5">
-                  <p className="text-[#eee] text-[14px] font-bold">{item.name}</p>
-                  <p className="text-[11px] text-text-dim">{item.description || "No description"}</p>
-                  <p className="text-[11px] text-text-dim">
-                    Members {item.memberCount}/20 · RP {item.totalRp.toLocaleString()}
-                  </p>
-                  <p className="text-[11px] text-text-dim">
-                    Buff: +{Math.round(item.buffValue * 100)}% {item.buffType.toUpperCase()}
-                  </p>
-
-                  {joined ? (
-                    <p className="text-[#14F195] text-[10px] font-black tracking-[2px]">
-                      YOU ARE A MEMBER
-                    </p>
-                  ) : !inASyndicate ? (
-                    <>
-                      {joinErrors[item.id] && (
-                        <p className="text-[#ef5350] text-[11px] font-bold">{joinErrors[item.id]}</p>
-                      )}
-                      <button
-                        onClick={() => joinSyndicate(item.id)}
-                        disabled={busy}
-                        className="w-full py-2.5 border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] rounded text-[#9945FF] text-[10px] font-black tracking-[2px] disabled:opacity-45 flex items-center justify-center gap-1.5"
-                      >
-                        {joiningId === item.id ? (
-                          <LoadingSpinner size={14} color="#9945FF" />
-                        ) : (
-                          "JOIN"
-                        )}
-                      </button>
-                    </>
-                  ) : null}
-                </div>
-              );
-            })}
+      <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
+        <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Member Roster</p>
+        {(detail.members ?? []).map((member) => (
+          <div key={member.userId} className="rounded-md border border-white/10 bg-black/20 p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-[12px] font-bold text-[#eee]">{member.name}</p>
+              <div className="mt-1"><SyndicateRoleBadge role={member.role} /></div>
+              <p className="text-[10px] text-[#777] mt-2">Contribution {member.contributionScore} • War {member.warParticipation}</p>
+            </div>
+            {detail.rolePermissions?.manageRoles && (
+              <select
+                defaultValue={member.role}
+                onChange={async (event) => {
+                  setBusy(`role-${member.userId}`);
+                  try {
+                    await api.post(`/syndicates/${detail.id}/role`, {
+                      targetUserId: member.userId,
+                      role: event.target.value,
+                    });
+                    await load();
+                  } finally {
+                    setBusy(null);
+                  }
+                }}
+                className="rounded-md border border-white/10 bg-black/20 px-3 py-2 text-[12px] text-[#eee] outline-none"
+              >
+                <option value="leader">leader</option>
+                <option value="co_leader">co_leader</option>
+                <option value="treasurer">treasurer</option>
+                <option value="war_captain">war_captain</option>
+                <option value="recruiter">recruiter</option>
+                <option value="member">member</option>
+              </select>
+            )}
           </div>
-        )}
-
-        <div className="h-16 md:hidden" />
+        ))}
       </div>
+
+      <ContributionList
+        title="Top Contributors"
+        items={(detail.memberContributionLeaders ?? []).map((member) => ({
+          id: member.userId,
+          userName: member.name,
+          syndicateName: detail.name,
+          actionType: member.role,
+          points: member.contributionScore,
+        }))}
+      />
     </div>
   );
 }
-

@@ -20,6 +20,8 @@ import {
   Users,
   History,
   Swords,
+  Shield,
+  Map,
 } from "lucide-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useSLSBalance } from "@/hooks/useSLSBalance";
@@ -27,7 +29,7 @@ import { useSLSBalance } from "@/hooks/useSLSBalance";
 type NavTab = {
   href: string;
   label: string;
-  icon?: "home" | "crosshair" | "swords" | "dumbbell" | "store" | "blackMarket" | "leaderboard" | "attackLogs" | "profile" | "syndicates" | "result" | "missions" | "inventory" | "seasons";
+  icon?: "home" | "crosshair" | "swords" | "dumbbell" | "store" | "blackMarket" | "leaderboard" | "attackLogs" | "profile" | "syndicates" | "wars" | "territories" | "result" | "missions" | "inventory" | "seasons";
 };
 
 const NAV_TABS: NavTab[] = [
@@ -44,6 +46,8 @@ const NAV_TABS: NavTab[] = [
   { href: "/missions", label: "Missions", icon: "missions" },
   { href: "/profile", label: "Profile", icon: "profile" },
   { href: "/syndicates", label: "Syndicates", icon: "syndicates" },
+  { href: "/wars", label: "Wars", icon: "wars" },
+  { href: "/territories", label: "Territories", icon: "territories" },
   { href: "/battle-result", label: "Battle Result", icon: "result" },
 ];
 
@@ -58,6 +62,8 @@ const ICONS: Record<NonNullable<NavTab["icon"]>, typeof Home> = {
   attackLogs: ScrollText,
   profile: UserRound,
   syndicates: Users,
+  wars: Shield,
+  territories: Map,
   result: History,
   missions: ListTodo,
   inventory: Box,

@@ -15,6 +15,7 @@ import crimeRoutes from "./routes/crimes";
 import eventsRoutes from "./routes/events";
 import attackLogsRoutes from "./routes/attackLogs";
 import syndicateRoutes from "./routes/syndicates";
+import syndicateWarsRoutes from "./routes/syndicateWars";
 import bagsRoutes from "./routes/bags";
 import hospitalRoutes from "./routes/hospital";
 import slsRoutes from "./routes/sls";
@@ -24,10 +25,13 @@ import missionsRoutes from "./routes/missions";
 import perksRoutes from "./routes/perks";
 import inventoryRoutes from "./routes/inventory";
 import seasonsRoutes from "./routes/seasons";
+import territoriesRoutes from "./routes/territories";
 import { runBlackMarketRotationJob } from "./jobs/blackMarketRotation";
 import { runDailyMissionReset } from "./jobs/dailyMissionReset";
 import { runHeatDecay } from "./jobs/heatDecay";
+import { runTerritoryDecay } from "./jobs/territoryDecay";
 import { runWeeklyMissionReset } from "./jobs/weeklyMissionReset";
+import { runWarWindowTransitions } from "./jobs/warWindowTransitions";
 
 const fastify = Fastify({ logger: true });
 
@@ -155,6 +159,7 @@ fastify.register(crimeRoutes, pluginOpts);
 fastify.register(eventsRoutes, pluginOpts);
 fastify.register(attackLogsRoutes, pluginOpts);
 fastify.register(syndicateRoutes, pluginOpts);
+fastify.register(syndicateWarsRoutes, pluginOpts);
 fastify.register(bagsRoutes, pluginOpts);
 fastify.register(hospitalRoutes, pluginOpts);
 fastify.register(slsRoutes, pluginOpts);
@@ -164,6 +169,7 @@ fastify.register(missionsRoutes, pluginOpts);
 fastify.register(perksRoutes, pluginOpts);
 fastify.register(inventoryRoutes, pluginOpts);
 fastify.register(seasonsRoutes, pluginOpts);
+fastify.register(territoriesRoutes, pluginOpts);
 
 fastify.setErrorHandler((error, _request, reply) => {
   fastify.log.error(error);
@@ -187,6 +193,8 @@ const start = async () => {
     runJob("runBlackMarketRotationJob", () => runBlackMarketRotationJob(prisma), 5 * 60 * 1000);
     runJob("runDailyMissionReset", () => runDailyMissionReset(prisma), 5 * 60 * 1000);
     runJob("runWeeklyMissionReset", () => runWeeklyMissionReset(prisma), 10 * 60 * 1000);
+    runJob("runTerritoryDecay", () => runTerritoryDecay(prisma), 30 * 60 * 1000);
+    runJob("runWarWindowTransitions", () => runWarWindowTransitions(prisma), 10 * 60 * 1000);
   } catch (err) {
     if (err instanceof Error) {
       fastify.log.error(err.message);

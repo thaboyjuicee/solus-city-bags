@@ -29,3 +29,7 @@ export const INVENTORY_GROUPS = [
 ] as const;
 
 export const SEASON_CATEGORIES = ["battle_win", "hospitalize", "crime_success", "mission_claim"] as const;
+
+export const ENABLE_WARS = true;
+export const ENABLE_TERRITORIES = true;
+export const ENABLE_SYNDICATE_VAULT = true;

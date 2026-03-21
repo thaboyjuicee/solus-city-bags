@@ -27,6 +27,10 @@ type SerializeMeInput = {
   currentSeason: unknown;
   unlockedPerkSummary: { total: number; branches: Record<string, number> };
   equipmentSummary: Array<{ itemId: string; name: string; slot: string | null; rarity: string | null }>;
+  activeTerritoryBonuses: Array<{ territoryId: string; territoryName: string; bonusType: string; bonusValue: number }>;
+  currentWarSummary: unknown;
+  syndicateVaultSummary: { vaultCash: number; seasonPoints: number; territoryCount: number; warRating: number } | null;
+  currentSyndicateRole: string | null;
 };
 
 export function serializeMeDashboard(input: SerializeMeInput) {
@@ -83,5 +87,9 @@ export function serializeMeDashboard(input: SerializeMeInput) {
     currentSeason: input.currentSeason,
     unlockedPerkSummary: input.unlockedPerkSummary,
     equipmentSummary: input.equipmentSummary,
+    activeTerritoryBonuses: input.activeTerritoryBonuses,
+    currentWarSummary: input.currentWarSummary,
+    syndicateVaultSummary: input.syndicateVaultSummary,
+    currentSyndicateRole: input.currentSyndicateRole,
   };
 }

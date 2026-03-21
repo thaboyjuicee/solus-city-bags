@@ -2,17 +2,40 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
-import { LeaderboardResponse } from "@/lib/gameApi";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
-const TABS: Array<"season" | "pvp" | "crime"> = ["season", "pvp", "crime"];
+type LeaderboardTab = "season" | "pvp" | "crime" | "syndicates" | "territories";
+
+type LeaderboardEntry = {
+  rank: number;
+  userId: string;
+  name: string;
+  score?: number;
+  seasonScore?: number;
+  rp?: number;
+  level?: number;
+  territoryOwner?: string;
+  territoryCount?: number;
+  warRating?: number;
+  bonusType?: string;
+  bonusValue?: number;
+  membersCount?: number;
+  isMe?: boolean;
+};
+
+type LeaderboardResponse = {
+  type: LeaderboardTab;
+  entries: LeaderboardEntry[];
+};
+
+const TABS: LeaderboardTab[] = ["season", "pvp", "crime", "syndicates", "territories"];
 
 export default function LeaderboardPage() {
-  const [tab, setTab] = useState<"season" | "pvp" | "crime">("season");
+  const [tab, setTab] = useState<LeaderboardTab>("season");
   const [data, setData] = useState<LeaderboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchData = useCallback(async (nextTab: "season" | "pvp" | "crime") => {
+  const fetchData = useCallback(async (nextTab: LeaderboardTab) => {
     setLoading(true);
     try {
       const res = await api.get<LeaderboardResponse>(`/leaderboard?type=${nextTab}`);
@@ -47,7 +70,13 @@ export default function LeaderboardPage() {
             <div key={entry.userId} className={`rounded-lg border p-3 flex items-center justify-between gap-3 ${entry.isMe ? "border-[rgba(153,69,255,0.3)] bg-[#1a0a2e]" : "border-white/10 bg-black/20"}`}>
               <div>
                 <p className="text-[12px] font-bold text-[#eee]">#{entry.rank} {entry.name}</p>
-                <p className="text-[10px] text-[#777]">LV {entry.level} • RP {entry.rp ?? 0}</p>
+                <p className="text-[10px] text-[#777]">
+                  {tab === "territories"
+                    ? `${entry.territoryOwner ?? "Unclaimed"} • ${entry.bonusType?.replaceAll("_", " ") ?? "bonus"}`
+                    : tab === "syndicates"
+                      ? `${entry.membersCount ?? 0} members • ${entry.territoryCount ?? 0} territories`
+                      : `LV ${entry.level ?? 1} • RP ${entry.rp ?? 0}`}
+                </p>
               </div>
               <div className="text-right">
                 <p className="text-[14px] font-black text-[#fdd835]">{entry.score ?? entry.seasonScore ?? entry.rp ?? 0}</p>
@@ -60,4 +89,3 @@ export default function LeaderboardPage() {
     </div>
   );
 }
-

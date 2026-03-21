@@ -270,3 +270,38 @@ export interface LeaderboardResponse {
   seasonId?: string;
   entries: LeaderboardEntry[];
 }
+
+export type WarSummaryResponse = {
+  id: string;
+  status: string;
+  startsAt: string;
+  endsAt: string;
+  attackerScore: number;
+  defenderScore: number;
+  territory?: { id: string; name: string; code: string } | null;
+  attackerSyndicate?: { id: string; name: string } | null;
+  defenderSyndicate?: { id: string; name: string } | null;
+};
+
+export type SyndicateOverviewResponse = {
+  id: string;
+  name: string;
+  description: string;
+  vaultCash: number;
+  seasonPoints: number;
+  territoryCount: number;
+  warRating: number;
+  safehouseLevel?: number;
+};
+
+export type TerritorySummaryResponse = {
+  id: string;
+  name: string;
+  code: string;
+  bonusType: string;
+  bonusValue: number;
+  active: boolean;
+  owner?: { id: string; name: string } | null;
+  influence: number;
+  contestState: string;
+};

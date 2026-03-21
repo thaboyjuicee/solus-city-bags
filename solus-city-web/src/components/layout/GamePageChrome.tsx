@@ -16,6 +16,8 @@ const PAGE_IMAGE: Record<string, string> = {
   "/attack-logs": "/assets/images/home_skyline.png",
   "/profile": "/assets/images/home_skyline.png",
   "/syndicates": "/assets/images/home_skyline.png",
+  "/wars": "/assets/images/arena_banner.png",
+  "/territories": "/assets/images/home_skyline.png",
   "/battle-result": "/assets/images/arena_banner.png",
   "/black-market": "/assets/images/shop_banner.png",
   "/missions": "/assets/images/home_skyline.png",

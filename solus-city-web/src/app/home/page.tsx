@@ -1,172 +1,148 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
 import { api } from "@/lib/api/client";
-import { TOKEN_KEY } from "@/lib/config";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { StatusBars } from "@/components/ui/StatusBars";
-import { StatCard } from "@/components/game/StatCard";
-import { HeatMeter } from "@/components/game/HeatMeter";
-import { WantedBadge } from "@/components/game/WantedBadge";
-import { VaultCard } from "@/components/game/VaultCard";
-import { HospitalOptionsCard } from "@/components/game/HospitalOptionsCard";
-import { MissionCard } from "@/components/game/MissionCard";
-import { MeResponse } from "@/lib/gameApi";
+import { SyndicateRoleBadge } from "@/components/game/SyndicateRoleBadge";
+import { WarScoreboard } from "@/components/game/WarScoreboard";
+import { TerritoryBonusBadge } from "@/components/game/TerritoryBonusBadge";
 
-interface EventItem {
-  id: string;
-  type: string;
-  message: string;
-  ts: string;
+type HomeMeResponse = {
+  name: string | null;
+  level: number;
+  cash: number;
+  vaultCash: number;
+  heat: number;
+  wantedTier: string;
+  missionsPreview?: Array<{ id: string; name: string; progress: number; goalValue: number; type: string }>;
+  blackMarketEndsAt?: string | null;
+  currentSyndicateRole?: string | null;
+  activeTerritoryBonuses?: Array<{ territoryId: string; territoryName: string; bonusType: string; bonusValue: number }>;
+  currentWarSummary?: {
+    id: string;
+    status: string;
+    startsAt: string;
+    endsAt: string;
+    attackerScore: number;
+    defenderScore: number;
+    territory?: { id: string; name: string; code: string } | null;
+    attackerSyndicate?: { id: string; name: string } | null;
+    defenderSyndicate?: { id: string; name: string } | null;
+  } | null;
+  syndicateVaultSummary?: { vaultCash: number; seasonPoints: number; territoryCount: number; warRating: number } | null;
+};
+
+function formatCash(value: number) {
+  return `$${Math.floor(value).toLocaleString()}`;
 }
 
-function eventColor(type: string): string {
-  if (["attack_win", "attacked_npc"].includes(type)) return "bg-[#66bb6a]";
-  if (["attack_loss", "attack_evaded", "attacked", "attacked_by_player", "attacked_by_player_evaded", "hospital"].includes(type)) return "bg-[#ef5350]";
-  if (type === "crime") return "bg-[#fdd835]";
-  if (type === "gym") return "bg-[#ff9800]";
-  if (type === "level_up") return "bg-[#9945FF]";
-  if (["shop", "bought_equipment"].includes(type)) return "bg-[#42a5f5]";
-  return "bg-[#9945FF]";
-}
-
-function timeAgo(ts: string): string {
-  const diff = Date.now() - new Date(ts).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
-
-function formatTimeLeft(value: string | null) {
-  if (!value) return "No active rotation";
-  const diff = new Date(value).getTime() - Date.now();
-  if (diff <= 0) return "Refreshing now";
-  const mins = Math.floor(diff / 60000);
-  const hrs = Math.floor(mins / 60);
-  return hrs > 0 ? `${hrs}h ${mins % 60}m` : `${mins}m`;
+function timeLeft(ts?: string | null) {
+  if (!ts) return "No rotation";
+  const diff = new Date(ts).getTime() - Date.now();
+  if (diff <= 0) return "Ending";
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ${minutes % 60}m`;
 }
 
 export default function HomePage() {
-  const router = useRouter();
-  const [profile, setProfile] = useState<MeResponse | null>(null);
-  const [events, setEvents] = useState<EventItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [me, setMe] = useState<HomeMeResponse | null>(null);
 
-  const fetchData = useCallback(async () => {
-    try {
-      const [profileRes, eventsRes] = await Promise.all([
-        api.get<MeResponse>("/me"),
-        api.get<EventItem[]>("/events"),
-      ]);
-      setProfile(profileRes.data);
-      setEvents(eventsRes.data);
-      setError(null);
-    } catch (err: unknown) {
-      setError((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Failed to load home.");
-    } finally {
-      setLoading(false);
-    }
+  const fetchMe = useCallback(async () => {
+    const res = await api.get<HomeMeResponse>("/me");
+    setMe(res.data);
   }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchMe();
+  }, [fetchMe]);
 
-  const logout = () => {
-    localStorage.removeItem(TOKEN_KEY);
-    router.push("/login");
-  };
+  const missionPreview = useMemo(() => (me?.missionsPreview ?? []).slice(0, 3), [me]);
 
-  const displayName = useMemo(() => {
-    if (!profile) return "Seeker";
-    return profile.name || `${profile.wallet.slice(0, 8)}...`;
-  }, [profile]);
-
-  if (loading) {
-    return <div className="flex min-h-dvh items-center justify-center"><LoadingSpinner size={32} /></div>;
-  }
-  if (error || !profile) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center flex-col gap-3">
-        <p className="text-[#ef5350] text-sm">{error ?? "Profile not found"}</p>
-        <button onClick={() => { setLoading(true); fetchData(); }} className="px-4 py-2 rounded-md bg-[#1a0a2e] text-[#9945FF] text-sm font-bold">
-          Retry
-        </button>
-      </div>
-    );
-  }
+  if (!me) return <div className="flex min-h-dvh items-center justify-center"><LoadingSpinner size={32} /></div>;
 
   return (
-    <div className="flex flex-col gap-3">
-      <StatusBars profile={profile} />
-
-      <div className="relative h-36 rounded-md overflow-hidden border border-white/10 bg-black/20 backdrop-blur-sm">
-        <Image src="/assets/images/home_skyline.png" alt="Solus city skyline" fill className="object-cover opacity-50" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0a0a]" />
-        <div className="absolute inset-x-3 bottom-2 flex items-end justify-between">
+    <div className="flex flex-col gap-4">
+      <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xl font-black tracking-wider text-[#eee]">{displayName}</p>
-            <p className="text-[10px] tracking-widest text-[#555]">LEVEL {profile.level} • {profile.rp} RP</p>
+            <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Operator Dashboard</p>
+            <p className="text-[20px] font-black text-[#eee] mt-1">{me.name ?? "Unnamed Operator"}</p>
           </div>
-          <button onClick={logout} className="h-7 w-7 rounded-sm bg-black/20 backdrop-blur-sm border border-white/10 text-[#888] flex items-center justify-center" aria-label="Log out">
-            <LogOut size={16} />
-          </button>
+          {me.currentSyndicateRole ? <SyndicateRoleBadge role={me.currentSyndicateRole} /> : null}
+        </div>
+        <div className="grid gap-2 sm:grid-cols-4">
+          <div className="rounded-md border border-white/10 bg-black/20 p-3"><p className="text-[9px] text-[#555] font-black tracking-[2px] uppercase">Level</p><p className="text-[16px] font-black text-[#42a5f5] mt-1">{me.level}</p></div>
+          <div className="rounded-md border border-white/10 bg-black/20 p-3"><p className="text-[9px] text-[#555] font-black tracking-[2px] uppercase">Wallet</p><p className="text-[16px] font-black text-[#66bb6a] mt-1">{formatCash(me.cash)}</p></div>
+          <div className="rounded-md border border-white/10 bg-black/20 p-3"><p className="text-[9px] text-[#555] font-black tracking-[2px] uppercase">Vault</p><p className="text-[16px] font-black text-[#fdd835] mt-1">{formatCash(me.vaultCash)}</p></div>
+          <div className="rounded-md border border-white/10 bg-black/20 p-3"><p className="text-[9px] text-[#555] font-black tracking-[2px] uppercase">Heat</p><p className="text-[16px] font-black text-[#ff7043] mt-1">{me.heat} • {me.wantedTier}</p></div>
         </div>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-2">
-        <HeatMeter heat={profile.heat} />
-        <WantedBadge tier={profile.wantedTier} />
-        <VaultCard walletCash={profile.cash} vaultCash={profile.vaultCash} />
-      </div>
-
-      <div className="grid grid-cols-3 gap-1.5">
-        <StatCard label="Cash" value={`$${Math.floor(profile.cash).toLocaleString()}`} color="#66bb6a" />
-        <StatCard label="Income" value={`$${profile.incomePerHour}`} color="#42a5f5" />
-        <StatCard label="Market" value={formatTimeLeft(profile.blackMarketEndsAt)} color="#9945FF" />
-      </div>
-
-      <div className="grid grid-cols-2 gap-1.5">
-        <StatCard label="AP" value={String(profile.ap)} color="#ef5350" />
-        <StatCard label="DP" value={String(profile.dp)} color="#42a5f5" />
-      </div>
-
-      <HospitalOptionsCard active={profile.inHospital} onUpdated={fetchData} />
-
-      <div>
-        <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase mb-2">Mission Preview</p>
-        <div className="grid md:grid-cols-2 gap-2">
-          {profile.missionsPreview.slice(0, 4).map((mission) => (
-            <MissionCard key={mission.id} mission={mission} />
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase mb-2">Recent Activity</p>
-        <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md px-3 py-2.5 space-y-2">
-          {events.length === 0 ? (
-            <p className="text-[#444] text-[11px] text-center">No recent activity.</p>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
+          <div>
+            <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Mission Preview</p>
+            <p className="text-[12px] text-[#888] mt-1">Top active objectives from the Wave 1 board.</p>
+          </div>
+          {missionPreview.length === 0 ? (
+            <p className="text-[12px] text-[#777]">No active missions found.</p>
           ) : (
-            events.map((evt, i) => (
-              <div key={evt.id} className={`flex items-start gap-2 ${i < events.length - 1 ? "pb-2 border-b border-[#1e1e1e]" : ""}`}>
-                <div className={`w-2 h-2 rounded-full mt-1 flex-shrink-0 ${eventColor(evt.type)}`} />
-                <p className="text-[11px] flex-1 leading-snug text-[#ddd]">{evt.message}</p>
-                <span className="text-[9px] whitespace-nowrap text-[#555]">{timeAgo(evt.ts)}</span>
+            missionPreview.map((mission) => (
+              <div key={mission.id} className="rounded-md border border-white/10 bg-black/20 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[12px] font-bold text-[#eee]">{mission.name}</p>
+                  <p className="text-[10px] font-black tracking-[2px] text-[#9945FF] uppercase">{mission.type}</p>
+                </div>
+                <p className="text-[11px] text-[#777] mt-1">{mission.progress}/{mission.goalValue}</p>
               </div>
             ))
           )}
         </div>
+
+        <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
+          <div>
+            <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Black Market Rotation</p>
+            <p className="text-[12px] text-[#888] mt-1">Current illicit supply window.</p>
+          </div>
+          <p className="text-[22px] font-black text-[#9945FF]">{timeLeft(me.blackMarketEndsAt)}</p>
+          <p className="text-[11px] text-[#777]">Keep wallet cash available if you plan to buy contraband or quick recovery items.</p>
+        </div>
       </div>
 
-      <div className="h-16 md:hidden" />
+      {me.syndicateVaultSummary && (
+        <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Syndicate State</p>
+              <p className="text-[12px] text-[#888] mt-1">Shared progression from Wave 3.</p>
+            </div>
+            {me.currentSyndicateRole ? <SyndicateRoleBadge role={me.currentSyndicateRole} /> : null}
+          </div>
+          <div className="grid gap-2 md:grid-cols-4">
+            <div className="rounded-md border border-white/10 bg-black/20 p-3"><p className="text-[9px] text-[#555] font-black tracking-[2px] uppercase">Vault</p><p className="text-[16px] font-black text-[#fdd835] mt-1">{formatCash(me.syndicateVaultSummary.vaultCash)}</p></div>
+            <div className="rounded-md border border-white/10 bg-black/20 p-3"><p className="text-[9px] text-[#555] font-black tracking-[2px] uppercase">Season</p><p className="text-[16px] font-black text-[#66bb6a] mt-1">{me.syndicateVaultSummary.seasonPoints}</p></div>
+            <div className="rounded-md border border-white/10 bg-black/20 p-3"><p className="text-[9px] text-[#555] font-black tracking-[2px] uppercase">Territories</p><p className="text-[16px] font-black text-[#42a5f5] mt-1">{me.syndicateVaultSummary.territoryCount}</p></div>
+            <div className="rounded-md border border-white/10 bg-black/20 p-3"><p className="text-[9px] text-[#555] font-black tracking-[2px] uppercase">War Rating</p><p className="text-[16px] font-black text-[#ff8a65] mt-1">{me.syndicateVaultSummary.warRating}</p></div>
+          </div>
+        </div>
+      )}
+
+      {me.activeTerritoryBonuses && me.activeTerritoryBonuses.length > 0 && (
+        <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
+          <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Active Territory Bonuses</p>
+          <div className="flex flex-wrap gap-2">
+            {me.activeTerritoryBonuses.map((bonus) => (
+              <div key={bonus.territoryId} className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
+                <p className="text-[11px] font-bold text-[#eee]">{bonus.territoryName}</p>
+                <div className="mt-1"><TerritoryBonusBadge bonusType={bonus.bonusType} bonusValue={bonus.bonusValue} /></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {me.currentWarSummary && <WarScoreboard war={me.currentWarSummary} />}
     </div>
   );
 }

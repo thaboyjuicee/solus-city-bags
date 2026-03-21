@@ -46,6 +46,9 @@ export default async function attackLogsRoutes(
           revengeAvailable: !!revenge,
           revengeExpiresAt: revenge?.expiresAt ?? null,
           revengeBonusPreview: revenge?.bonusPercent ?? 0,
+          warId: (entry.metadata as { warId?: string } | null)?.warId ?? null,
+          warPointsGained: (entry.metadata as { warPointsGained?: number } | null)?.warPointsGained ?? 0,
+          territoryImpact: (entry.metadata as { territoryImpact?: number } | null)?.territoryImpact ?? 0,
           metadata: entry.metadata,
           protectionTriggered: (entry.metadata as { protectionTriggered?: string[] } | null)?.protectionTriggered ?? [],
         };
