@@ -37,7 +37,7 @@ export default function LeaderboardPage() {
             onClick={() => setTab(entry)}
             className={`px-3 py-2 rounded-md border text-[10px] font-black tracking-[2px] uppercase ${tab === entry ? "bg-[#1a0a2e] border-[rgba(153,69,255,0.3)] text-[#9945FF]" : "bg-black/20 border-white/10 text-[#666]"}`}
           >
-            {entry}
+            {entry.replace(/_/g, " ")}
           </button>
         ))}
       </div>

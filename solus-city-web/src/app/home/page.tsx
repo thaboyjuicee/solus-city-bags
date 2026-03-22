@@ -59,6 +59,8 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col gap-4">
+
+      {/* Status bars */}
       <StatusBars
         profile={{
           health: me.health,
@@ -80,212 +82,216 @@ export default function HomePage() {
         }}
       />
 
+      {/* Hero: identity */}
       <section className="rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(153,69,255,0.18),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(66,165,245,0.14),transparent_32%),rgba(0,0,0,0.28)] p-5 md:p-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-black tracking-[2px] text-[#888] uppercase">
-                Solus City Operator Hub
-              </span>
-              {me.currentSyndicateRole ? <SyndicateRoleBadge role={me.currentSyndicateRole} /> : null}
-            </div>
-            <div>
-              <p className="text-[30px] font-black leading-none text-[#eee] md:text-[36px]">{me.name ?? "Unnamed Operator"}</p>
-              <p className="mt-2 max-w-2xl text-[12px] text-[#9a9a9a]">
-                Keep your wallet liquid, your vault protected, your heat controlled, and your syndicate pressure rising.
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-6">
-              <div className="rounded-md border border-white/10 bg-black/20 p-3">
-                <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Level</p>
-                <p className="mt-1 text-[18px] font-black text-[#42a5f5]">{me.level}</p>
-              </div>
-              <div className="rounded-md border border-white/10 bg-black/20 p-3">
-                <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Wallet</p>
-                <p className="mt-1 text-[18px] font-black text-[#66bb6a]">{formatCash(me.cash)}</p>
-              </div>
-              <div className="rounded-md border border-white/10 bg-black/20 p-3">
-                <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Vault</p>
-                <p className="mt-1 text-[18px] font-black text-[#42a5f5]">{formatCash(me.vaultCash)}</p>
-              </div>
-              <div className="rounded-md border border-white/10 bg-black/20 p-3">
-                <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">RP</p>
-                <p className="mt-1 text-[18px] font-black text-[#fdd835]">{me.rp}</p>
-              </div>
-              <div className="rounded-md border border-white/10 bg-black/20 p-3">
-                <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Season</p>
-                <p className="mt-1 text-[18px] font-black text-[#ff8a65]">{me.seasonScore}</p>
-              </div>
-              <div className="rounded-md border border-white/10 bg-black/20 p-3">
-                <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Perk Pts</p>
-                <p className="mt-1 text-[18px] font-black text-[#9945FF]">{me.availablePerkPoints}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid w-full max-w-xl grid-cols-2 gap-3 lg:min-w-[340px]">
-            <HeatMeter heat={me.heat} />
-            <WantedBadge tier={me.wantedTier} />
-            <VaultCard walletCash={me.cash} vaultCash={me.vaultCash} />
-            <div className="rounded-md border border-white/10 bg-black/20 p-3">
-              <p className="text-[9px] font-bold tracking-[2px] text-[#555]">BLACK MARKET</p>
-              <p className="mt-1 text-[16px] font-black text-[#9945FF]">{formatTimer(me.blackMarketEndsAt)}</p>
-              <p className="mt-2 text-[10px] text-[#777]">Recovery items, contraband, and rotating risk buys.</p>
-            </div>
-          </div>
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-black tracking-[2px] text-[#888] uppercase">
+            Solus City Operator Hub
+          </span>
+          {me.currentSyndicateRole ? <SyndicateRoleBadge role={me.currentSyndicateRole} /> : null}
         </div>
+        <p className="text-[30px] font-black leading-none text-[#eee] md:text-[36px]">{me.name ?? "Unnamed Operator"}</p>
+        <p className="mt-2 text-[12px] text-[#9a9a9a] max-w-2xl">
+          Keep your wallet liquid, your vault protected, your heat controlled, and your syndicate pressure rising.
+        </p>
       </section>
 
-      <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-        <div className="flex flex-col gap-4">
-          <section className="grid gap-4 lg:grid-cols-2">
-            <SeasonRankCard season={me.currentSeason} />
-            <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-              <div>
-                <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Core Condition</p>
-                <p className="mt-1 text-[12px] text-[#888]">Your live stats, recovery timers, and active edge.</p>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-md border border-white/10 bg-black/20 p-3">
-                  <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Health</p>
-                  <p className="mt-1 text-[16px] font-black text-[#ef5350]">{me.health}/{me.maxHealth}</p>
-                </div>
-                <div className="rounded-md border border-white/10 bg-black/20 p-3">
-                  <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Energy</p>
-                  <p className="mt-1 text-[16px] font-black text-[#42a5f5]">{me.energy}/{me.maxEnergy}</p>
-                </div>
-                <div className="rounded-md border border-white/10 bg-black/20 p-3">
-                  <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Nerve</p>
-                  <p className="mt-1 text-[16px] font-black text-[#ff9800]">{me.nerve}/{me.maxNerve}</p>
-                </div>
-                <div className="rounded-md border border-white/10 bg-black/20 p-3">
-                  <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Happiness</p>
-                  <p className="mt-1 text-[16px] font-black text-[#fdd835]">{me.happiness}/{me.maxHappiness}</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-[10px] md:grid-cols-4">
-                <div className="rounded-md border border-white/10 bg-black/20 p-2 text-center text-[#66bb6a]">AP {me.ap}</div>
-                <div className="rounded-md border border-white/10 bg-black/20 p-2 text-center text-[#42a5f5]">DP {me.dp}</div>
-                <div className="rounded-md border border-white/10 bg-black/20 p-2 text-center text-[#ff9800]">Income {formatCash(me.incomePerHour)}/h</div>
-                <div className="rounded-md border border-white/10 bg-black/20 p-2 text-center text-[#9945FF]">Perks {me.unlockedPerkSummary.total}</div>
-              </div>
-              <div className="grid grid-cols-1 gap-2 text-[10px] md:grid-cols-3">
-                <div className="rounded-md border border-white/10 bg-black/20 p-2">
-                  <p className="font-black tracking-[2px] text-[#555] uppercase">Next Energy</p>
-                  <p className="mt-1 text-[#ddd]">{formatRecovery(me.nextEnergyAt)}</p>
-                </div>
-                <div className="rounded-md border border-white/10 bg-black/20 p-2">
-                  <p className="font-black tracking-[2px] text-[#555] uppercase">Next Nerve</p>
-                  <p className="mt-1 text-[#ddd]">{formatRecovery(me.nextNerveAt)}</p>
-                </div>
-                <div className="rounded-md border border-white/10 bg-black/20 p-2">
-                  <p className="font-black tracking-[2px] text-[#555] uppercase">Next Happiness</p>
-                  <p className="mt-1 text-[#ddd]">{formatRecovery(me.nextHappinessAt)}</p>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Mission Board</p>
-                <p className="mt-1 text-[12px] text-[#888]">Your hottest objectives right now.</p>
-              </div>
-              <p className="text-[10px] font-black tracking-[2px] text-[#9945FF] uppercase">{topMissions.length} showing</p>
-            </div>
-            {topMissions.length === 0 ? (
-              <div className="rounded-md border border-white/10 bg-black/20 p-4 text-[12px] text-[#777]">No active missions found.</div>
-            ) : (
-              <div className="grid gap-3 lg:grid-cols-3">
-                {topMissions.map((mission) => (
-                  <MissionCard key={mission.id} mission={mission} />
-                ))}
-              </div>
-            )}
-          </section>
+      {/* Top row: key stats */}
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+        <div className="rounded-md border border-white/10 bg-black/20 p-3">
+          <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Level</p>
+          <p className="mt-1 text-[18px] font-black text-[#42a5f5]">{me.level}</p>
         </div>
-
-        <div className="flex flex-col gap-4">
-          <HospitalOptionsCard active={me.inHospital} onUpdated={fetchMe} />
-
-          <section className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-            <div>
-              <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Loadout & Protection</p>
-              <p className="mt-1 text-[12px] text-[#888]">What is currently shaping your survival odds.</p>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-3">
-              {me.equipmentSummary.length === 0 ? (
-                <div className="rounded-md border border-white/10 bg-black/20 p-3 text-[12px] text-[#777] sm:col-span-3">No equipped gear found.</div>
-              ) : (
-                me.equipmentSummary.map((item) => (
-                  <div key={item.itemId} className="rounded-md border border-white/10 bg-black/20 p-3">
-                    <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">{item.slot ?? "utility"}</p>
-                    <p className="mt-1 text-[12px] font-bold text-[#eee]">{item.name}</p>
-                    <p className="mt-1 text-[10px] text-[#888]">{item.rarity ?? "standard"}</p>
-                  </div>
-                ))
-              )}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {me.activeProtectionEffects.length === 0 ? (
-                <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2 text-[11px] text-[#777]">No active protection effects.</div>
-              ) : (
-                me.activeProtectionEffects.map((effect) => (
-                  <div key={effect.id} className="rounded-md border border-[#1f5f36] bg-[#0f2a18] px-3 py-2">
-                    <p className="text-[10px] font-black tracking-[2px] text-[#66bb6a] uppercase">{effect.type.replace(/_/g, " ")}</p>
-                    <p className="mt-1 text-[11px] text-[#ddd]">Value {effect.value}</p>
-                  </div>
-                ))
-              )}
-            </div>
-          </section>
-
-          {me.syndicateVaultSummary && (
-            <section className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Syndicate State</p>
-                  <p className="mt-1 text-[12px] text-[#888]">Your current social power layer.</p>
-                </div>
-                {me.currentSyndicateRole ? <SyndicateRoleBadge role={me.currentSyndicateRole} /> : null}
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-md border border-white/10 bg-black/20 p-3">
-                  <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Syndicate Vault</p>
-                  <p className="mt-1 text-[16px] font-black text-[#fdd835]">{formatCash(me.syndicateVaultSummary.vaultCash)}</p>
-                </div>
-                <div className="rounded-md border border-white/10 bg-black/20 p-3">
-                  <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">War Rating</p>
-                  <p className="mt-1 text-[16px] font-black text-[#ff8a65]">{me.syndicateVaultSummary.warRating}</p>
-                </div>
-                <div className="rounded-md border border-white/10 bg-black/20 p-3">
-                  <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Season Pts</p>
-                  <p className="mt-1 text-[16px] font-black text-[#66bb6a]">{me.syndicateVaultSummary.seasonPoints}</p>
-                </div>
-                <div className="rounded-md border border-white/10 bg-black/20 p-3">
-                  <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Territories</p>
-                  <p className="mt-1 text-[16px] font-black text-[#42a5f5]">{me.syndicateVaultSummary.territoryCount}</p>
-                </div>
-              </div>
-              {me.activeTerritoryBonuses && me.activeTerritoryBonuses.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {me.activeTerritoryBonuses.map((bonus) => (
-                    <div key={bonus.territoryId} className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
-                      <p className="text-[11px] font-bold text-[#eee]">{bonus.territoryName}</p>
-                      <div className="mt-1">
-                        <TerritoryBonusBadge bonusType={bonus.bonusType} bonusValue={bonus.bonusValue} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          )}
-
-          {me.currentWarSummary && <WarScoreboard war={me.currentWarSummary} />}
+        <div className="rounded-md border border-white/10 bg-black/20 p-3">
+          <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Wallet</p>
+          <p className="mt-1 text-[18px] font-black text-[#66bb6a]">{formatCash(me.cash)}</p>
+        </div>
+        <div className="rounded-md border border-white/10 bg-black/20 p-3">
+          <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Vault</p>
+          <p className="mt-1 text-[18px] font-black text-[#42a5f5]">{formatCash(me.vaultCash)}</p>
+        </div>
+        <div className="rounded-md border border-white/10 bg-black/20 p-3">
+          <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">RP</p>
+          <p className="mt-1 text-[18px] font-black text-[#fdd835]">{me.rp}</p>
+        </div>
+        <div className="rounded-md border border-white/10 bg-black/20 p-3">
+          <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Season</p>
+          <p className="mt-1 text-[18px] font-black text-[#ff8a65]">{me.seasonScore}</p>
+        </div>
+        <div className="rounded-md border border-white/10 bg-black/20 p-3">
+          <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Perk Pts</p>
+          <p className="mt-1 text-[18px] font-black text-[#9945FF]">{me.availablePerkPoints}</p>
         </div>
       </div>
+
+      {/* Hospital (conditional — urgent, shown when active) */}
+      <HospitalOptionsCard active={me.inHospital} onUpdated={fetchMe} />
+
+      {/* Middle row: Heat/Wanted | Cash Storage | Black Market */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="flex flex-col gap-3">
+          <HeatMeter heat={me.heat} />
+          <WantedBadge tier={me.wantedTier} />
+        </div>
+        <VaultCard walletCash={me.cash} vaultCash={me.vaultCash} />
+        <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-2">
+          <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Black Market</p>
+          <p className="text-[16px] font-black text-[#9945FF]">{formatTimer(me.blackMarketEndsAt)}</p>
+          <p className="text-[11px] text-[#777]">Recovery items, contraband, and rotating risk buys.</p>
+        </div>
+      </div>
+
+      {/* 3-column grid: Current Season | Core Condition | Loadout & Protection */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+
+        {/* Current Season */}
+        <SeasonRankCard season={me.currentSeason} />
+
+        {/* Core Condition */}
+        <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
+          <div>
+            <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Core Condition</p>
+            <p className="mt-1 text-[12px] text-[#888]">Live stats, recovery timers, and active edge.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-md border border-white/10 bg-black/20 p-3">
+              <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Health</p>
+              <p className="mt-1 text-[16px] font-black text-[#ef5350]">{me.health}/{me.maxHealth}</p>
+            </div>
+            <div className="rounded-md border border-white/10 bg-black/20 p-3">
+              <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Energy</p>
+              <p className="mt-1 text-[16px] font-black text-[#42a5f5]">{me.energy}/{me.maxEnergy}</p>
+            </div>
+            <div className="rounded-md border border-white/10 bg-black/20 p-3">
+              <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Nerve</p>
+              <p className="mt-1 text-[16px] font-black text-[#ff9800]">{me.nerve}/{me.maxNerve}</p>
+            </div>
+            <div className="rounded-md border border-white/10 bg-black/20 p-3">
+              <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Happiness</p>
+              <p className="mt-1 text-[16px] font-black text-[#fdd835]">{me.happiness}/{me.maxHappiness}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-[10px]">
+            <div className="rounded-md border border-white/10 bg-black/20 p-2 text-center text-[#66bb6a]">AP {me.ap}</div>
+            <div className="rounded-md border border-white/10 bg-black/20 p-2 text-center text-[#42a5f5]">DP {me.dp}</div>
+            <div className="rounded-md border border-white/10 bg-black/20 p-2 text-center text-[#ff9800]">Income {formatCash(me.incomePerHour)}/h</div>
+            <div className="rounded-md border border-white/10 bg-black/20 p-2 text-center text-[#9945FF]">Perks {me.unlockedPerkSummary.total}</div>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-[10px]">
+            <div className="rounded-md border border-white/10 bg-black/20 p-2">
+              <p className="font-black tracking-[2px] text-[#555] uppercase">Next Energy</p>
+              <p className="mt-1 text-[#ddd]">{formatRecovery(me.nextEnergyAt)}</p>
+            </div>
+            <div className="rounded-md border border-white/10 bg-black/20 p-2">
+              <p className="font-black tracking-[2px] text-[#555] uppercase">Next Nerve</p>
+              <p className="mt-1 text-[#ddd]">{formatRecovery(me.nextNerveAt)}</p>
+            </div>
+            <div className="rounded-md border border-white/10 bg-black/20 p-2">
+              <p className="font-black tracking-[2px] text-[#555] uppercase">Next Happiness</p>
+              <p className="mt-1 text-[#ddd]">{formatRecovery(me.nextHappinessAt)}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Loadout & Protection */}
+        <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
+          <div>
+            <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Loadout & Protection</p>
+            <p className="mt-1 text-[12px] text-[#888]">What is currently shaping your survival odds.</p>
+          </div>
+          <div className="grid gap-2 grid-cols-2">
+            {me.equipmentSummary.length === 0 ? (
+              <div className="rounded-md border border-white/10 bg-black/20 p-3 text-[12px] text-[#777] col-span-2">No equipped gear found.</div>
+            ) : (
+              me.equipmentSummary.map((item) => (
+                <div key={item.itemId} className="rounded-md border border-white/10 bg-black/20 p-3">
+                  <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">{item.slot ?? "utility"}</p>
+                  <p className="mt-1 text-[12px] font-bold text-[#eee]">{item.name}</p>
+                  <p className="mt-1 text-[10px] text-[#888]">{item.rarity ?? "standard"}</p>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {me.activeProtectionEffects.length === 0 ? (
+              <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2 text-[11px] text-[#777]">No active protection effects.</div>
+            ) : (
+              me.activeProtectionEffects.map((effect) => (
+                <div key={effect.id} className="rounded-md border border-[#1f5f36] bg-[#0f2a18] px-3 py-2">
+                  <p className="text-[10px] font-black tracking-[2px] text-[#66bb6a] uppercase">{effect.type.replace(/_/g, " ")}</p>
+                  <p className="mt-1 text-[11px] text-[#ddd]">Value {effect.value}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Syndicate State — full width, conditional */}
+      {me.syndicateVaultSummary && (
+        <section className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Syndicate State</p>
+              <p className="mt-1 text-[12px] text-[#888]">Your current social power layer.</p>
+            </div>
+            {me.currentSyndicateRole ? <SyndicateRoleBadge role={me.currentSyndicateRole} /> : null}
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="rounded-md border border-white/10 bg-black/20 p-3">
+              <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Syndicate Vault</p>
+              <p className="mt-1 text-[16px] font-black text-[#fdd835]">{formatCash(me.syndicateVaultSummary.vaultCash)}</p>
+            </div>
+            <div className="rounded-md border border-white/10 bg-black/20 p-3">
+              <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">War Rating</p>
+              <p className="mt-1 text-[16px] font-black text-[#ff8a65]">{me.syndicateVaultSummary.warRating}</p>
+            </div>
+            <div className="rounded-md border border-white/10 bg-black/20 p-3">
+              <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Season Pts</p>
+              <p className="mt-1 text-[16px] font-black text-[#66bb6a]">{me.syndicateVaultSummary.seasonPoints}</p>
+            </div>
+            <div className="rounded-md border border-white/10 bg-black/20 p-3">
+              <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Territories</p>
+              <p className="mt-1 text-[16px] font-black text-[#42a5f5]">{me.syndicateVaultSummary.territoryCount}</p>
+            </div>
+          </div>
+          {me.activeTerritoryBonuses && me.activeTerritoryBonuses.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {me.activeTerritoryBonuses.map((bonus) => (
+                <div key={bonus.territoryId} className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
+                  <p className="text-[11px] font-bold text-[#eee]">{bonus.territoryName}</p>
+                  <div className="mt-1">
+                    <TerritoryBonusBadge bonusType={bonus.bonusType} bonusValue={bonus.bonusValue} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {me.currentWarSummary && <WarScoreboard war={me.currentWarSummary} />}
+
+      {/* Mission Board — full width */}
+      <section className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Mission Board</p>
+            <p className="mt-1 text-[12px] text-[#888]">Your hottest objectives right now.</p>
+          </div>
+          <p className="text-[10px] font-black tracking-[2px] text-[#9945FF] uppercase">{topMissions.length} showing</p>
+        </div>
+        {topMissions.length === 0 ? (
+          <div className="rounded-md border border-white/10 bg-black/20 p-4 text-[12px] text-[#777]">No active missions found.</div>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-3">
+            {topMissions.map((mission) => (
+              <MissionCard key={mission.id} mission={mission} />
+            ))}
+          </div>
+        )}
+      </section>
+
     </div>
   );
 }

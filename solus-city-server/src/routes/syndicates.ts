@@ -264,11 +264,33 @@ export default async function syndicateRoutes(
         const count = await prisma.syndicateMember.count({ where: { syndicateId: membership.syndicateId } });
         if (count > 1) return reply.status(400).send({ error: "Leader must transfer or disband before leaving" });
 
-        await prisma.$transaction([
-          prisma.syndicateMember.delete({ where: { id: membership.id } }),
-          prisma.syndicate.delete({ where: { id: membership.syndicateId } }),
-          prisma.eventLog.create({ data: { userId, type: "syndicate_left", message: "Left and disbanded your syndicate" } }),
-        ]);
+        await prisma.$transaction(async (tx) => {
+          const syndicateId = membership.syndicateId;
+
+          // Find all wars this syndicate is party to (as attacker, defender, or winner)
+          const involvedWars = await tx.syndicateWar.findMany({
+            where: { OR: [{ attackerSyndicateId: syndicateId }, { defenderSyndicateId: syndicateId }] },
+            select: { id: true },
+          });
+          const warIds = involvedWars.map((w) => w.id);
+
+          // Delete all war actions for those wars (both sides' actions reference the war via warId)
+          if (warIds.length > 0) {
+            await tx.syndicateWarAction.deleteMany({ where: { warId: { in: warIds } } });
+            await tx.syndicateWar.deleteMany({ where: { id: { in: warIds } } });
+          }
+
+          await tx.territoryContribution.deleteMany({ where: { syndicateId } });
+          await tx.territoryControl.deleteMany({ where: { syndicateId } });
+          await tx.championshipMatch.deleteMany({
+            where: { OR: [{ syndicateAId: syndicateId }, { syndicateBId: syndicateId }] },
+          });
+          await tx.championshipEntry.deleteMany({ where: { syndicateId } });
+          await tx.hallOfFameEntry.deleteMany({ where: { syndicateId } });
+          await tx.syndicateMember.delete({ where: { id: membership.id } });
+          await tx.syndicate.delete({ where: { id: syndicateId } });
+          await tx.eventLog.create({ data: { userId, type: "syndicate_left", message: "Left and disbanded your syndicate" } });
+        });
 
         return reply.send({ success: true, disbanded: true });
       }

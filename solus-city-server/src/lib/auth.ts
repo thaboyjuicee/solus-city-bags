@@ -22,5 +22,6 @@ export async function requireAuth(
     request.user = verifyToken(token);
   } catch {
     reply.status(401).send({ error: "Invalid or expired token" });
+    return;
   }
 }
