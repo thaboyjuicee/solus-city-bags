@@ -7,7 +7,7 @@ import { LeaderboardResponse } from "@/lib/gameApi";
 
 type LeaderboardTab = LeaderboardResponse["type"];
 
-const TABS: LeaderboardTab[] = ["season", "pvp", "crime", "syndicates", "territories", "prestige", "hall_of_fame"];
+const TABS: LeaderboardTab[] = ["season", "pvp", "crime", "syndicates", "prestige", "hall_of_fame"];
 
 export default function LeaderboardPage() {
   const [tab, setTab] = useState<LeaderboardTab>("pvp");
@@ -30,7 +30,7 @@ export default function LeaderboardPage() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-7">
+      <div className="grid grid-cols-6">
         {TABS.map((entry) => (
           <button
             key={entry}
@@ -47,11 +47,9 @@ export default function LeaderboardPage() {
         <div className="flex flex-col gap-2">
           {data.entries.map((entry) => {
             const secondaryText =
-              tab === "territories"
-                ? `${entry.territoryOwner ?? "Unclaimed"} • ${entry.bonusType?.replaceAll("_", " ") ?? "bonus"}`
-                : tab === "syndicates"
-                  ? `${entry.membersCount ?? 0} members • ${entry.territoryCount ?? 0} territories`
-                  : tab === "prestige"
+              tab === "syndicates"
+                ? `${entry.membersCount ?? 0} members • ${entry.warRating ?? 0} war rating`
+                : tab === "prestige"
                     ? `Prestige ${entry.prestigeLevel ?? 0} • Points ${entry.prestigePoints ?? 0}`
                     : tab === "hall_of_fame"
                       ? `${entry.category?.replaceAll("_", " ") ?? "fame"} • ${entry.seasonName ?? "history"}`

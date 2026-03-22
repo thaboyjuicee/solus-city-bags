@@ -34,19 +34,17 @@ export function GamePageChrome({ children }: { children: ReactNode }) {
     "/assets/images/home_skyline.png";
 
   return (
-    <div className="min-h-screen bg-transparent relative isolate">
+    <div className="min-h-screen bg-[#0a0a0a] relative isolate">
+      {/* Cityscape background image — kept dim so text remains readable */}
       <Image
         src={image}
         alt=""
         fill
-        className="object-cover opacity-[0.08] inset-0 z-0 pointer-events-none"
+        className="object-cover opacity-[0.18] inset-0 z-0 pointer-events-none"
+        priority={false}
       />
-      <Image
-        src="/assets/images/texture_overlay.png"
-        alt=""
-        fill
-        className="object-cover opacity-[0.08] inset-0 z-0 pointer-events-none mix-blend-screen"
-      />
+      {/* Dark overlay that sits above the image and below all content */}
+      <div className="absolute inset-0 z-[1] bg-[#0a0a0a]/60 pointer-events-none" />
 
       <div className="relative z-10 px-4 pt-20 pb-16 w-full max-w-5xl xl:max-w-6xl mx-auto space-y-4 md:pt-20 md:pb-4">
         {children}

@@ -81,7 +81,6 @@ const MORE_TABS: NavTab[] = [
   { href: "/missions",      label: "Missions",      icon: "missions" },
   { href: "/syndicates",    label: "Syndicates",    icon: "syndicates" },
   { href: "/wars",          label: "Wars",          icon: "wars" },
-  { href: "/territories",   label: "Territories",   icon: "territories" },
 ];
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

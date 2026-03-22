@@ -25,6 +25,9 @@ const createBody = z.object({
 });
 
 const amountBody = z.object({ amount: z.number().positive() });
+const patchSyndicateBody = z.object({
+  visibility: z.enum(["public", "private"]).optional(),
+});
 const roleBody = z.object({
   targetUserId: z.string().min(1),
   role: z.enum(SYNDICATE_ROLES),
@@ -97,12 +100,17 @@ export default async function syndicateRoutes(
 
       const data = syndicates.map((s) => {
         const totalRp = s.members.reduce((sum, m) => sum + (m.user.profile?.rp ?? 0), 0);
+        const creatorIdResolved = s.creatorId ?? s.leaderId;
+        const creatorMember = s.members.find((m) => m.userId === creatorIdResolved);
+        const creatorName = creatorMember?.user.profile?.name ?? "Unknown";
         return {
           ...serializeSyndicateOverview(s),
           leaderId: s.leaderId,
-          creatorId: s.creatorId ?? s.leaderId,
+          creatorId: creatorIdResolved,
+          creatorName,
           memberCount: s.members.length,
           totalRp,
+          visibility: s.visibility ?? "public",
           territoriesOwned: s.territories.map((t) => ({ id: t.territory.id, name: t.territory.name, code: t.territory.code, bonusType: t.territory.bonusType, bonusValue: t.territory.bonusValue })),
           currentWarStatus: s.warsAsAttacker[0]?.status ?? s.warsAsDefender[0]?.status ?? null,
           rolePermissions: viewerMembership?.syndicateId === s.id ? {
@@ -187,6 +195,7 @@ export default async function syndicateRoutes(
         ...serializeSyndicateOverview(syndicate),
         leaderId: syndicate.leaderId,
         creatorId: syndicate.creatorId ?? syndicate.leaderId,
+        visibility: syndicate.visibility ?? "public",
         memberCount: members.length,
         totalRp: members.reduce((sum, m) => sum + m.rp, 0),
         members,
@@ -223,9 +232,82 @@ export default async function syndicateRoutes(
     }
   });
 
+  fastify.patch<{ Params: { id: string } }>("/syndicates/:id", { preHandler: requireAuth }, async (request, reply) => {
+    const parsed = patchSyndicateBody.safeParse(request.body);
+    if (!parsed.success) return reply.status(400).send({ error: "Invalid patch payload" });
+
+    const { id } = request.params;
+    const { userId } = request.user;
+
+    try {
+      const membership = await prisma.syndicateMember.findUnique({ where: { userId } });
+      if (!membership || membership.syndicateId !== id) {
+        return reply.status(403).send({ error: "Not authorized for this syndicate" });
+      }
+
+      const syndicate = await prisma.syndicate.findUnique({ where: { id }, select: { creatorId: true, leaderId: true } });
+      if (!syndicate) return reply.status(404).send({ error: "Syndicate not found" });
+
+      const isCreatorOrLeader = syndicate.creatorId === userId || syndicate.leaderId === userId;
+      if (!canManageRoles(membership.role) && !isCreatorOrLeader) {
+        return reply.status(403).send({ error: "Role cannot change syndicate settings" });
+      }
+
+      const updated = await prisma.syndicate.update({
+        where: { id },
+        data: { ...(parsed.data.visibility !== undefined ? { visibility: parsed.data.visibility } : {}) },
+      });
+
+      return reply.send({ success: true, visibility: updated.visibility });
+    } catch (err) {
+      request.log.error(err, "/syndicates/:id PATCH error");
+      return reply.status(500).send({ error: "Internal server error" });
+    }
+  });
+
+  // ── Helper: cascade-delete a syndicate and all related records ──────────────
+  // Order matters — child FKs must be removed before parent rows.
+  async function disbandSyndicate(tx: Prisma.TransactionClient, syndicateId: string) {
+    // 1. War actions — two FKs pointing at this syndicate: via warId and via direct syndicateId
+    await tx.syndicateWarAction.deleteMany({ where: { syndicateId } });
+    const involvedWars = await tx.syndicateWar.findMany({
+      where: { OR: [{ attackerSyndicateId: syndicateId }, { defenderSyndicateId: syndicateId }] },
+      select: { id: true },
+    });
+    if (involvedWars.length > 0) {
+      const warIds = involvedWars.map((w) => w.id);
+      await tx.syndicateWarAction.deleteMany({ where: { warId: { in: warIds } } });
+      await tx.syndicateWar.deleteMany({ where: { id: { in: warIds } } });
+    }
+    // 2. Territory records
+    await tx.territoryContribution.deleteMany({ where: { syndicateId } });
+    await tx.territoryControl.deleteMany({ where: { syndicateId } });
+    // 3. Championship — matches before entries (entries hold the season FK)
+    await tx.championshipMatch.deleteMany({
+      where: { OR: [{ syndicateAId: syndicateId }, { syndicateBId: syndicateId }, { winnerSyndicateId: syndicateId }] },
+    });
+    await tx.championshipEntry.deleteMany({ where: { syndicateId } });
+    // 4. Hall of fame
+    await tx.hallOfFameEntry.deleteMany({ where: { syndicateId } });
+    // 5. Members, then the syndicate itself
+    await tx.syndicateMember.deleteMany({ where: { syndicateId } });
+    await tx.syndicate.delete({ where: { id: syndicateId } });
+  }
+
   fastify.post<{ Params: { id: string } }>("/syndicates/:id/join", { preHandler: requireAuth }, async (request, reply) => {
     const { userId } = request.user;
     const { id } = request.params;
+
+    // Cooldown check — 5 minutes for testing (change to 24 * 60 * 60 * 1000 before pushing to main)
+    const JOIN_COOLDOWN_MS = 5 * 60 * 1000;
+    const profileCheck = await prisma.profile.findUnique({ where: { userId }, select: { lastLeftSyndicateAt: true } });
+    if (profileCheck?.lastLeftSyndicateAt) {
+      const msSinceLeft = Date.now() - new Date(profileCheck.lastLeftSyndicateAt).getTime();
+      if (msSinceLeft < JOIN_COOLDOWN_MS) {
+        const minsLeft = Math.ceil((JOIN_COOLDOWN_MS - msSinceLeft) / 60000);
+        return reply.status(400).send({ error: `You must wait ${minsLeft}m before joining a new syndicate` });
+      }
+    }
 
     try {
       const membership = await prisma.$transaction(async (tx) => {
@@ -242,7 +324,7 @@ export default async function syndicateRoutes(
           data: { syndicateId: id, userId, role: "member" },
         });
 
-        await tx.eventLog.create({ data: { userId, type: "syndicate_joined", message: "Joined a syndicate" } });
+        await tx.eventLog.create({ data: { userId, type: "syndicate_joined", message: "Joined a syndicate", metadata: { syndicateId: id } } });
         return createdMembership;
       });
 
@@ -262,50 +344,132 @@ export default async function syndicateRoutes(
       const membership = await prisma.syndicateMember.findUnique({ where: { userId } });
       if (!membership) return reply.status(400).send({ error: "Not in a syndicate" });
 
+      const syndicateId = membership.syndicateId;
       const isLeader = membership.role === "leader";
+
       if (isLeader) {
-        const count = await prisma.syndicateMember.count({ where: { syndicateId: membership.syndicateId } });
-        if (count > 1) return reply.status(400).send({ error: "Leader must transfer or disband before leaving" });
+        const memberCount = await prisma.syndicateMember.count({ where: { syndicateId } });
 
-        await prisma.$transaction(async (tx) => {
-          const syndicateId = membership.syndicateId;
-
-          // Find all wars this syndicate is party to (as attacker, defender, or winner)
-          const involvedWars = await tx.syndicateWar.findMany({
-            where: { OR: [{ attackerSyndicateId: syndicateId }, { defenderSyndicateId: syndicateId }] },
-            select: { id: true },
+        if (memberCount <= 1) {
+          // Sole member — disband the syndicate entirely
+          await prisma.$transaction(async (tx) => {
+            await disbandSyndicate(tx, syndicateId);
+            await tx.profile.update({ where: { userId }, data: { lastLeftSyndicateAt: new Date() } });
+            await tx.eventLog.create({ data: { userId, type: "syndicate_disbanded", message: "Disbanded their syndicate", metadata: { syndicateId } } });
           });
-          const warIds = involvedWars.map((w) => w.id);
+          return reply.send({ success: true, disbanded: true });
+        }
 
-          // Delete all war actions for those wars (both sides' actions reference the war via warId)
-          if (warIds.length > 0) {
-            await tx.syndicateWarAction.deleteMany({ where: { warId: { in: warIds } } });
-            await tx.syndicateWar.deleteMany({ where: { id: { in: warIds } } });
-          }
-
-          await tx.territoryContribution.deleteMany({ where: { syndicateId } });
-          await tx.territoryControl.deleteMany({ where: { syndicateId } });
-          await tx.championshipMatch.deleteMany({
-            where: { OR: [{ syndicateAId: syndicateId }, { syndicateBId: syndicateId }] },
-          });
-          await tx.championshipEntry.deleteMany({ where: { syndicateId } });
-          await tx.hallOfFameEntry.deleteMany({ where: { syndicateId } });
-          await tx.syndicateMember.delete({ where: { id: membership.id } });
-          await tx.syndicate.delete({ where: { id: syndicateId } });
-          await tx.eventLog.create({ data: { userId, type: "syndicate_left", message: "Left and disbanded your syndicate" } });
+        // Auto-transfer leadership to the member with highest contributionScore (excluding self)
+        const nextLeader = await prisma.syndicateMember.findFirst({
+          where: { syndicateId, userId: { not: userId } },
+          orderBy: { contributionScore: "desc" },
         });
-
-        return reply.send({ success: true, disbanded: true });
+        if (!nextLeader) return reply.status(500).send({ error: "No eligible member to transfer leadership to" });
+        await prisma.$transaction(async (tx) => {
+          await tx.syndicate.update({ where: { id: syndicateId }, data: { leaderId: nextLeader.userId } });
+          await tx.syndicateMember.update({ where: { id: nextLeader.id }, data: { role: "leader", lastActiveAt: new Date() } });
+          await tx.syndicateMember.delete({ where: { id: membership.id } });
+          await tx.profile.update({ where: { userId }, data: { lastLeftSyndicateAt: new Date() } });
+          await tx.eventLog.create({
+            data: {
+              userId,
+              type: "syndicate_left",
+              message: "Left the syndicate (leadership transferred)",
+              metadata: { syndicateId, leadershipTransferredTo: nextLeader.userId },
+            },
+          });
+        });
+        return reply.send({ success: true, disbanded: false });
       }
 
-      await prisma.$transaction([
-        prisma.syndicateMember.delete({ where: { id: membership.id } }),
-        prisma.eventLog.create({ data: { userId, type: "syndicate_left", message: "Left your syndicate" } }),
-      ]);
+      // Non-leader leave
+      await prisma.$transaction(async (tx) => {
+        await tx.syndicateMember.delete({ where: { id: membership.id } });
+        await tx.profile.update({ where: { userId }, data: { lastLeftSyndicateAt: new Date() } });
+        await tx.eventLog.create({ data: { userId, type: "syndicate_left", message: "Left the syndicate", metadata: { syndicateId } } });
+      });
 
       return reply.send({ success: true, disbanded: false });
     } catch (err) {
       request.log.error(err, "/syndicates/leave error");
+      return reply.status(500).send({ error: "Internal server error" });
+    }
+  });
+
+  fastify.delete<{ Params: { id: string } }>("/syndicates/:id", { preHandler: requireAuth }, async (request, reply) => {
+    const { id } = request.params;
+    const { userId } = request.user;
+
+    try {
+      const membership = await prisma.syndicateMember.findUnique({ where: { userId } });
+      if (!membership || membership.syndicateId !== id) {
+        return reply.status(403).send({ error: "Not a member of this syndicate" });
+      }
+
+      const syndicate = await prisma.syndicate.findUnique({ where: { id }, select: { creatorId: true, leaderId: true } });
+      if (!syndicate) return reply.status(404).send({ error: "Syndicate not found" });
+
+      if (membership.role !== "leader" && syndicate.creatorId !== userId && syndicate.leaderId !== userId) {
+        return reply.status(403).send({ error: "Only the leader can disband the syndicate" });
+      }
+
+      await prisma.$transaction(async (tx) => {
+        await disbandSyndicate(tx, id);
+        await tx.profile.update({ where: { userId }, data: { lastLeftSyndicateAt: new Date() } });
+        await tx.eventLog.create({ data: { userId, type: "syndicate_disbanded", message: "Disbanded their syndicate", metadata: { syndicateId: id } } });
+      });
+
+      return reply.send({ success: true, disbanded: true });
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      const errCode = (err as { code?: string }).code;
+      request.log.error({ syndicateId: id, userId, errMsg, errCode, err }, "/syndicates/:id DELETE error — full details");
+      return reply.status(500).send({ error: `Disband failed: ${errMsg}` });
+    }
+  });
+
+  fastify.get<{ Params: { id: string } }>("/syndicates/:id/history", { preHandler: requireAuth }, async (request, reply) => {
+    const { id } = request.params;
+    const { userId } = request.user;
+
+    try {
+      const membership = await prisma.syndicateMember.findUnique({ where: { userId } });
+      if (!membership || membership.syndicateId !== id) {
+        return reply.status(403).send({ error: "Not a member of this syndicate" });
+      }
+
+      const logs = await prisma.eventLog.findMany({
+        where: {
+          type: {
+            in: [
+              "syndicate_created",
+              "syndicate_joined",
+              "syndicate_left",
+              "syndicate_disbanded",
+              "syndicate_role_change",
+              "syndicate_vault_deposit",
+              "syndicate_vault_withdraw",
+            ],
+          },
+          metadata: { path: ["syndicateId"], equals: id },
+        },
+        include: { user: { include: { profile: true } } },
+        orderBy: { ts: "desc" },
+        take: 50,
+      });
+
+      return reply.send(
+        logs.map((log) => ({
+          id: log.id,
+          type: log.type,
+          message: log.message,
+          playerName: log.user.profile?.name ?? log.user.wallet.slice(0, 8) + "...",
+          ts: log.ts,
+        }))
+      );
+    } catch (err) {
+      request.log.error(err, "/syndicates/:id/history error");
       return reply.status(500).send({ error: "Internal server error" });
     }
   });

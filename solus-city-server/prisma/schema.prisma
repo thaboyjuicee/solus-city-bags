@@ -89,6 +89,7 @@ model Profile {
   slsSpent             Float    @default(0)
   hospitalReleaseCount Int      @default(0)
   hospitalReleaseDate  DateTime?
+  lastLeftSyndicateAt  DateTime?
 }
 
 model Item {
@@ -233,6 +234,7 @@ model Syndicate {
   leaderId    String            @unique
   leader      User              @relation("SyndicateLeader", fields: [leaderId], references: [id])
   creatorId   String?
+  visibility  String            @default("public")
   members     SyndicateMember[]
   territories TerritoryControl[]
   territoryContributions TerritoryContribution[]
