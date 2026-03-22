@@ -103,7 +103,7 @@ export default async function syndicateRoutes(
           creatorId: s.creatorId ?? s.leaderId,
           memberCount: s.members.length,
           totalRp,
-          territoriesOwned: s.territories.map((t) => ({ id: t.territory.id, name: t.territory.name, code: t.territory.code })),
+          territoriesOwned: s.territories.map((t) => ({ id: t.territory.id, name: t.territory.name, code: t.territory.code, bonusType: t.territory.bonusType, bonusValue: t.territory.bonusValue })),
           currentWarStatus: s.warsAsAttacker[0]?.status ?? s.warsAsDefender[0]?.status ?? null,
           rolePermissions: viewerMembership?.syndicateId === s.id ? {
             manageRoles: canManageRoles(viewerMembership.role),
