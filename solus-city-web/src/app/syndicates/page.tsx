@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api/client";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { SyndicateVaultCard } from "@/components/game/SyndicateVaultCard";
@@ -15,6 +15,7 @@ type SyndicateSummary = {
   id: string;
   name: string;
   description: string;
+  leaderId?: string | null;
   vaultCash: number;
   seasonPoints: number;
   territoryCount: number;
@@ -56,6 +57,25 @@ type SyndicateSummary = {
 const DEFAULT_BUFF_TYPE = "crime_payout";
 const DEFAULT_BUFF_VALUE = 0.05;
 
+const ROLES = ["leader", "co_leader", "treasurer", "war_captain", "recruiter", "member"] as const;
+
+function formatRole(role: string) {
+  return role
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+type RoleFilter = "all" | "creator" | (typeof ROLES)[number];
+
+function extractErrMsg(err: unknown, fallback: string) {
+  return (
+    (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
+    (err as { message?: string })?.message ??
+    fallback
+  );
+}
+
 export default function SyndicatesPage() {
   const [syndicates, setSyndicates] = useState<SyndicateSummary[]>([]);
   const [detail, setDetail] = useState<SyndicateSummary | null>(null);
@@ -63,6 +83,10 @@ export default function SyndicatesPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
+  const [vaultError, setVaultError] = useState<string | null>(null);
+  const [vaultSuccess, setVaultSuccess] = useState<string | null>(null);
+  const vaultSuccessTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -157,6 +181,12 @@ export default function SyndicatesPage() {
     );
   }
 
+  const filteredMembers = (detail.members ?? []).filter((member) => {
+    if (roleFilter === "all") return true;
+    if (roleFilter === "creator") return member.userId === detail.leaderId;
+    return member.role === roleFilter;
+  });
+
   return (
     <div className="flex flex-col gap-4">
       <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
@@ -190,6 +220,8 @@ export default function SyndicatesPage() {
         </div>
       </div>
 
+      {vaultError && <p className="text-[10px] font-bold text-[#ef5350]">{vaultError}</p>}
+      {vaultSuccess && <p className="text-[10px] font-bold text-[#66bb6a]">{vaultSuccess}</p>}
       <SyndicateVaultCard
         vaultCash={detail.vaultCash}
         canDeposit
@@ -197,23 +229,42 @@ export default function SyndicatesPage() {
         busy={busy === "deposit" || busy === "withdraw"}
         onDeposit={async (amount) => {
           setBusy("deposit");
+          setVaultError(null);
+          setVaultSuccess(null);
           try {
             await api.post("/syndicates/vault/deposit", { amount });
             await load();
+            setVaultSuccess(`Deposited $${amount.toLocaleString()} to vault.`);
+            if (vaultSuccessTimer.current) clearTimeout(vaultSuccessTimer.current);
+            vaultSuccessTimer.current = setTimeout(() => setVaultSuccess(null), 3000);
+          } catch (err) {
+            setVaultError(extractErrMsg(err, "Deposit failed."));
           } finally {
             setBusy(null);
           }
         }}
         onWithdraw={async (amount) => {
           setBusy("withdraw");
+          setVaultError(null);
+          setVaultSuccess(null);
           try {
             await api.post("/syndicates/vault/withdraw", { amount });
             await load();
+            setVaultSuccess(`Withdrew $${amount.toLocaleString()} from vault.`);
+            if (vaultSuccessTimer.current) clearTimeout(vaultSuccessTimer.current);
+            vaultSuccessTimer.current = setTimeout(() => setVaultSuccess(null), 3000);
+          } catch (err) {
+            setVaultError(extractErrMsg(err, "Withdrawal failed."));
           } finally {
             setBusy(null);
           }
         }}
       />
+
+      <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+        <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase mb-1">$SLS Syndicate Deposits</p>
+        <p className="text-[11px] text-[#555]">$SLS syndicate deposits coming soon.</p>
+      </div>
 
       {detail.currentWarStatus ? (
         <WarScoreboard war={detail.currentWarStatus} canManageActions={!!detail.rolePermissions?.manageWar} />
@@ -250,39 +301,32 @@ export default function SyndicatesPage() {
       )}
 
       <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-        <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Member Roster</p>
-        {(detail.members ?? []).map((member) => (
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Member Roster</p>
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value as RoleFilter)}
+            className="rounded-md border border-[#9945FF] bg-[#0d0d0d] px-2 py-1 text-[10px] font-bold text-[#eee] outline-none cursor-pointer"
+          >
+            <option value="all">All</option>
+            <option value="creator">Creator</option>
+            {ROLES.map((r) => (
+              <option key={r} value={r}>{formatRole(r)}</option>
+            ))}
+          </select>
+        </div>
+        {filteredMembers.map((member) => (
           <div key={member.userId} className="rounded-md border border-white/10 bg-black/20 p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-[12px] font-bold text-[#eee]">{member.name}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-[12px] font-bold text-[#eee]">{member.name}</p>
+                {member.userId === detail.leaderId && (
+                  <span className="text-[9px] font-black tracking-[1px] uppercase px-1.5 py-0.5 rounded bg-[#fdd835]/20 text-[#fdd835] border border-[#fdd835]/30">CREATOR</span>
+                )}
+              </div>
               <div className="mt-1"><SyndicateRoleBadge role={member.role} /></div>
               <p className="text-[10px] text-[#777] mt-2">Contribution {member.contributionScore} • War {member.warParticipation}</p>
             </div>
-            {detail.rolePermissions?.manageRoles && (
-              <select
-                defaultValue={member.role}
-                onChange={async (event) => {
-                  setBusy(`role-${member.userId}`);
-                  try {
-                    await api.post(`/syndicates/${detail.id}/role`, {
-                      targetUserId: member.userId,
-                      role: event.target.value,
-                    });
-                    await load();
-                  } finally {
-                    setBusy(null);
-                  }
-                }}
-                className="rounded-md border border-white/10 bg-black/20 px-3 py-2 text-[12px] text-[#eee] outline-none"
-              >
-                <option value="leader">leader</option>
-                <option value="co_leader">co_leader</option>
-                <option value="treasurer">treasurer</option>
-                <option value="war_captain">war_captain</option>
-                <option value="recruiter">recruiter</option>
-                <option value="member">member</option>
-              </select>
-            )}
           </div>
         ))}
       </div>
@@ -315,4 +359,3 @@ export default function SyndicatesPage() {
     </div>
   );
 }
-

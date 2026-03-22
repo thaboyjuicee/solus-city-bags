@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api/client";
 import { HeatMeter } from "@/components/game/HeatMeter";
 import { WantedBadge } from "@/components/game/WantedBadge";
@@ -14,6 +14,34 @@ import { WarScoreboard } from "@/components/game/WarScoreboard";
 import { StatusBars } from "@/components/ui/StatusBars";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { MeResponse } from "@/lib/gameApi";
+
+type EventEntry = {
+  id: string;
+  type: string;
+  message: string;
+  createdAt: string;
+};
+
+function eventDotColor(type: string): string {
+  const t = type.toLowerCase();
+  if (t.includes("level_up")) return "#9945FF";
+  if (t.includes("attack_win") || t === "win") return "#66bb6a";
+  if (t.includes("attack_loss") || t.includes("hospital") || t === "loss") return "#ef5350";
+  if (t.includes("crime")) return "#fdd835";
+  if (t.includes("gym")) return "#ff9800";
+  if (t.includes("shop") || t.includes("buy") || t.includes("purchase")) return "#42a5f5";
+  return "#555";
+}
+
+function timeAgo(ts: string): string {
+  const diffMs = Date.now() - new Date(ts).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
 
 function formatCash(value: number) {
   return `$${Math.floor(value).toLocaleString()}`;
@@ -41,15 +69,30 @@ function formatRecovery(ts?: string | null) {
 
 export default function HomePage() {
   const [me, setMe] = useState<MeResponse | null>(null);
+  const [events, setEvents] = useState<EventEntry[]>([]);
+  const fetchedEvents = useRef(false);
 
   const fetchMe = useCallback(async () => {
     const res = await api.get<MeResponse>("/me");
     setMe(res.data);
   }, []);
 
+  const fetchEvents = useCallback(async () => {
+    if (fetchedEvents.current) return;
+    fetchedEvents.current = true;
+    try {
+      const res = await api.get<EventEntry[] | { events: EventEntry[] }>("/events");
+      const list = Array.isArray(res.data) ? res.data : (res.data as { events: EventEntry[] }).events;
+      setEvents((list ?? []).slice(0, 20));
+    } catch {
+      // non-critical
+    }
+  }, []);
+
   useEffect(() => {
     fetchMe();
-  }, [fetchMe]);
+    fetchEvents();
+  }, [fetchMe, fetchEvents]);
 
   const topMissions = useMemo(() => (me?.missionsPreview ?? []).slice(0, 3), [me]);
 
@@ -291,6 +334,25 @@ export default function HomePage() {
           </div>
         )}
       </section>
+
+      {/* Recent Activity */}
+      {events.length > 0 && (
+        <section className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
+          <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Recent Activity</p>
+          <div className="flex flex-col gap-1.5">
+            {events.map((event) => (
+              <div key={event.id} className="flex items-center gap-2.5">
+                <span
+                  className="flex-shrink-0 w-2 h-2 rounded-full"
+                  style={{ backgroundColor: eventDotColor(event.type) }}
+                />
+                <p className="flex-1 text-[11px] text-[#aaa]">{event.message}</p>
+                <p className="flex-shrink-0 text-[10px] text-[#555]">{timeAgo(event.createdAt)}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
     </div>
   );

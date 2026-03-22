@@ -3,16 +3,10 @@
 import { useEffect, useRef } from "react";
 
 const BARS = [
-  { key: "hp", label: "HP", currentKey: "health", maxKey: "maxHealth", color: "#e53935" },
-  { key: "en", label: "EN", currentKey: "energy", maxKey: "maxEnergy", color: "#43a047" },
-  { key: "nv", label: "NV", currentKey: "nerve", maxKey: "maxNerve", color: "#1e88e5" },
-  {
-    key: "happiness",
-    label: "HA",
-    currentKey: "happiness",
-    maxKey: "maxHappiness",
-    color: "#fdd835",
-  },
+  { key: "hp", label: "Health", currentKey: "health", maxKey: "maxHealth", color: "#e53935" },
+  { key: "en", label: "Energy", currentKey: "energy", maxKey: "maxEnergy", color: "#43a047" },
+  { key: "nv", label: "Nerve", currentKey: "nerve", maxKey: "maxNerve", color: "#1e88e5" },
+  { key: "happiness", label: "Happiness", currentKey: "happiness", maxKey: "maxHappiness", color: "#fdd835" },
 ] as const;
 
 export interface ProfileStats {
@@ -85,7 +79,7 @@ export function StatusBars({ profile }: StatusBarsProps) {
 
           return (
             <div key={key} className="flex items-center gap-2">
-              <span className="w-6 text-[10px] font-bold tracking-[2px] text-right uppercase">
+              <span className="w-[64px] shrink-0 text-[10px] font-bold text-[#777]">
                 {label}
               </span>
               <AnimatedBar current={current} max={max} color={color} />

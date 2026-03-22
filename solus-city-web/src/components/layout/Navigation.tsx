@@ -77,7 +77,6 @@ const PRIMARY_TABS: NavTab[] = [
 const MORE_TABS: NavTab[] = [
   { href: "/inventory",     label: "Inventory",     icon: "inventory" },
   { href: "/seasons",       label: "Seasons",       icon: "seasons" },
-  { href: "/prestige",      label: "Prestige",      icon: "prestige" },
   { href: "/championships", label: "Championships", icon: "championships" },
   { href: "/missions",      label: "Missions",      icon: "missions" },
   { href: "/syndicates",    label: "Syndicates",    icon: "syndicates" },

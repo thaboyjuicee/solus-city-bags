@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Pencil, Check, X } from "lucide-react";
 import { api } from "@/lib/api/client";
 import { EquippedSlotCard } from "@/components/game/EquippedSlotCard";
 import { HallOfFameList } from "@/components/game/HallOfFameList";
@@ -8,8 +9,18 @@ import { PerkTree } from "@/components/game/PerkTree";
 import { PrestigePanel } from "@/components/game/PrestigePanel";
 import { SeasonHistoryCard } from "@/components/game/SeasonHistoryCard";
 import { SeasonRankCard } from "@/components/game/SeasonRankCard";
+import { StatusBars } from "@/components/ui/StatusBars";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { HallOfFameEntry, MeResponse, PerksResponse } from "@/lib/gameApi";
+
+function StatBox({ label, value, color }: { label: string; value: string | number; color?: string }) {
+  return (
+    <div className="rounded-md border border-white/10 bg-black/20 p-2 text-center">
+      <p className="text-[8px] text-[#555] font-bold tracking-[2px] uppercase">{label}</p>
+      <p className={`text-[13px] font-black mt-0.5 ${color ?? "text-[#eee]"}`}>{value}</p>
+    </div>
+  );
+}
 
 export default function ProfilePage() {
   const [me, setMe] = useState<MeResponse | null>(null);
@@ -17,6 +28,8 @@ export default function ProfilePage() {
   const [hallOfFame, setHallOfFame] = useState<HallOfFameEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [nameEdit, setNameEdit] = useState<string | null>(null);
+  const [nameBusy, setNameBusy] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -40,17 +53,59 @@ export default function ProfilePage() {
     fetchData();
   }, [fetchData]);
 
+  const saveName = async () => {
+    if (nameEdit === null || nameEdit.trim().length < 2) return;
+    setNameBusy(true);
+    try {
+      await api.patch("/me", { name: nameEdit.trim() });
+      await fetchData();
+      setNameEdit(null);
+    } catch {
+      // keep editing open on failure
+    } finally {
+      setNameBusy(false);
+    }
+  };
+
   if (loading) return <div className="flex min-h-dvh items-center justify-center"><LoadingSpinner size={32} /></div>;
   if (!me || !perks) return <div className="flex min-h-dvh items-center justify-center text-[#ef5350]">{error ?? "Profile unavailable"}</div>;
 
   const equipmentBySlot = new Map(me.equipmentSummary.map((item) => [item.slot ?? "utility", item]));
+  const shieldActive = me.shieldUntil && new Date(me.shieldUntil) > new Date();
 
   return (
     <div className="flex flex-col gap-4">
+      <StatusBars profile={me} />
+
       <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-        <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Profile Progression</p>
-        <p className="text-[20px] font-black text-[#eee] mt-1">{me.name || "Unnamed Operator"}</p>
-        <div className="grid grid-cols-4 gap-2 mt-3 text-center">
+        <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Profile</p>
+        <div className="flex items-center gap-2 mt-1">
+          {nameEdit !== null ? (
+            <>
+              <input
+                autoFocus
+                value={nameEdit}
+                onChange={(e) => setNameEdit(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && saveName()}
+                className="flex-1 rounded border border-white/10 bg-black/20 px-2 py-1 text-[16px] font-black text-[#eee] outline-none"
+              />
+              <button onClick={saveName} disabled={nameBusy} className="text-[#66bb6a] disabled:opacity-40">
+                <Check size={16} />
+              </button>
+              <button onClick={() => setNameEdit(null)} className="text-[#555]">
+                <X size={16} />
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-[20px] font-black text-[#eee]">{me.name || "Unnamed Operator"}</p>
+              <button onClick={() => setNameEdit(me.name ?? "")} className="text-[#555] hover:text-[#aaa]">
+                <Pencil size={13} />
+              </button>
+            </>
+          )}
+        </div>
+        <div className="grid grid-cols-3 gap-2 mt-3 text-center">
           <div className="rounded-md border border-white/10 bg-black/20 p-3">
             <p className="text-[9px] text-[#555] font-bold tracking-[2px]">LEVEL</p>
             <p className="text-[16px] font-black text-[#42a5f5]">{me.level}</p>
@@ -63,10 +118,46 @@ export default function ProfilePage() {
             <p className="text-[9px] text-[#555] font-bold tracking-[2px]">PRESTIGE</p>
             <p className="text-[16px] font-black text-[#fdd835]">{me.prestigeLevel}</p>
           </div>
-          <div className="rounded-md border border-white/10 bg-black/20 p-3">
-            <p className="text-[9px] text-[#555] font-bold tracking-[2px]">P. POINTS</p>
-            <p className="text-[16px] font-black text-[#ff8a65]">{me.prestigePoints}</p>
-          </div>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
+        <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Stats</p>
+        <div className="grid grid-cols-4 gap-1.5">
+          <StatBox label="ATK" value={me.ap} color="text-[#ef5350]" />
+          <StatBox label="DEF" value={me.dp} color="text-[#42a5f5]" />
+          <StatBox label="STR" value={me.strength} color="text-[#ff8a65]" />
+          <StatBox label="SPD" value={me.speed} color="text-[#66bb6a]" />
+          <StatBox label="DEF" value={me.defense} color="text-[#42a5f5]" />
+          <StatBox label="DEX" value={me.dexterity} color="text-[#fdd835]" />
+          <StatBox label="CASH" value={`$${Math.floor(me.cash).toLocaleString()}`} color="text-[#66bb6a]" />
+          <StatBox label="$/HR" value={`$${Math.floor(me.incomePerHour).toLocaleString()}`} color="text-[#aaa]" />
+        </div>
+        <div className="flex flex-col gap-1 mt-2">
+          {me.syndicate && (
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-bold tracking-[2px] text-[#444] uppercase w-[72px] shrink-0">Syndicate</span>
+              <span className="text-[10px] font-bold text-[#9945FF]">{me.syndicate.name}</span>
+            </div>
+          )}
+          {shieldActive && (
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-bold tracking-[2px] text-[#444] uppercase w-[72px] shrink-0">Shield</span>
+              <span className="text-[10px] font-bold text-[#42a5f5]">Active</span>
+            </div>
+          )}
+          {me.inHospital && (
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-bold tracking-[2px] text-[#444] uppercase w-[72px] shrink-0">Status</span>
+              <span className="text-[10px] font-bold text-[#ef5350]">Hospitalized</span>
+            </div>
+          )}
+          {me.activeProtectionEffects.map((effect) => (
+            <div key={effect.id} className="flex items-center gap-2">
+              <span className="text-[9px] font-bold tracking-[2px] text-[#444] uppercase w-[72px] shrink-0">Active Effect</span>
+              <span className="text-[10px] font-bold text-[#fdd835]">{effect.type.replaceAll("_", " ")}</span>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -123,4 +214,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-

@@ -10,7 +10,7 @@ type LeaderboardTab = LeaderboardResponse["type"];
 const TABS: LeaderboardTab[] = ["season", "pvp", "crime", "syndicates", "territories", "prestige", "hall_of_fame"];
 
 export default function LeaderboardPage() {
-  const [tab, setTab] = useState<LeaderboardTab>("season");
+  const [tab, setTab] = useState<LeaderboardTab>("pvp");
   const [data, setData] = useState<LeaderboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -30,12 +30,12 @@ export default function LeaderboardPage() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex gap-2 overflow-x-auto">
+      <div className="grid grid-cols-7">
         {TABS.map((entry) => (
           <button
             key={entry}
             onClick={() => setTab(entry)}
-            className={`px-3 py-2 rounded-md border text-[10px] font-black tracking-[2px] uppercase ${tab === entry ? "bg-[#1a0a2e] border-[rgba(153,69,255,0.3)] text-[#9945FF]" : "bg-black/20 border-white/10 text-[#666]"}`}
+            className={`px-2 py-2 border text-[9px] font-black tracking-[1px] uppercase text-center ${tab === entry ? "bg-[#1a0a2e] border-[rgba(153,69,255,0.3)] text-[#9945FF]" : "bg-black/20 border-white/10 text-[#666]"}`}
           >
             {entry.replace(/_/g, " ")}
           </button>

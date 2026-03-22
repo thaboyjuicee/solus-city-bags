@@ -1,30 +1,29 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { Transaction, VersionedTransaction } from "@solana/web3.js";
+import { PublicKey, Transaction, VersionedTransaction } from "@solana/web3.js";
+import { createTransferInstruction, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import {
   ArrowLeftRight,
+  ArrowUpFromLine,
   CircleDollarSign,
   Clock3,
-  Coins,
+  HeartPulse,
   History,
+  Send,
   ShoppingBag,
+  ShoppingCart,
   Wallet,
 } from "lucide-react";
 import { api } from "@/lib/api/client";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { StatusBars } from "@/components/ui/StatusBars";
 import { HospitalOptionsCard } from "@/components/game/HospitalOptionsCard";
-import { RarityBadge } from "@/components/game/RarityBadge";
-import { useSLSBalance } from "@/hooks/useSLSBalance";
-import {
-  BlackMarketListing,
-  BlackMarketRotation,
-  MeResponse,
-} from "@/lib/gameApi";
+import { SLS_BALANCE_REFRESH_EVENT, useSLSBalance } from "@/hooks/useSLSBalance";
+import { MeResponse } from "@/lib/gameApi";
 
-type BlackMarketTab = "listings" | "swap" | "sell" | "hospital" | "history";
+type BlackMarketTab = "swap" | "sell" | "send" | "hospital" | "history";
 
 type SlsQuote = {
   outAmount: string;
@@ -136,84 +135,127 @@ function ConnectPrompt({ label }: { label: string }) {
   );
 }
 
-function ListingsPanel({
-  profile,
-  rotation,
-  listings,
-  buyingId,
-  onBuy,
-}: {
-  profile: MeResponse;
-  rotation: BlackMarketRotation | null;
-  listings: BlackMarketListing[];
-  buyingId: string | null;
-  onBuy: (listing: BlackMarketListing) => void;
-}) {
-  const grouped = useMemo(() => {
-    return listings.reduce<Record<string, BlackMarketListing[]>>((acc, listing) => {
-      acc[listing.listingType] = [...(acc[listing.listingType] ?? []), listing];
-      return acc;
-    }, {});
-  }, [listings]);
+const SLS_MINT = new PublicKey("ELTXCFp1tmtfu39CPw6afnMSjW1BBxjinorJQsKmBAGS");
+const SLS_DECIMALS = 9;
+
+function SendSLSPanel({ onSendComplete }: { onSendComplete: (entry: SlsTransactionItem) => void }) {
+  const { connection } = useConnection();
+  const { publicKey, signTransaction, connected } = useWallet();
+  const slsBalance = useSLSBalance();
+  const [recipient, setRecipient] = useState("");
+  const [amount, setAmount] = useState("");
+  const [phase, setPhase] = useState<"idle" | "sending" | "done">("idle");
+  const [error, setError] = useState<string | null>(null);
+
+  const send = async () => {
+    const parsed = parseFloat(amount);
+    if (!recipient.trim() || isNaN(parsed) || parsed <= 0) {
+      setError("Enter a valid recipient and amount.");
+      return;
+    }
+    if (slsBalance !== null && parsed > slsBalance) {
+      setError("You do not have enough $SLS.");
+      return;
+    }
+    if (!publicKey || !signTransaction) return;
+
+    let recipientPubkey: PublicKey;
+    try {
+      recipientPubkey = new PublicKey(recipient.trim());
+    } catch {
+      setError("Invalid Solana wallet address.");
+      return;
+    }
+
+    setPhase("sending");
+    setError(null);
+
+    try {
+      const senderATA = getAssociatedTokenAddressSync(SLS_MINT, publicKey);
+      const recipientATA = getAssociatedTokenAddressSync(SLS_MINT, recipientPubkey);
+      const lamports = BigInt(Math.floor(parsed * Math.pow(10, SLS_DECIMALS)));
+
+      const transferIx = createTransferInstruction(
+        senderATA,
+        recipientATA,
+        publicKey,
+        lamports
+      );
+
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+      const transaction = new Transaction({ recentBlockhash: blockhash, feePayer: publicKey }).add(transferIx);
+
+      const signed = await signTransaction(transaction);
+      const signature = await connection.sendRawTransaction(signed.serialize(), {
+        skipPreflight: false,
+        maxRetries: 3,
+      });
+      await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight });
+
+      window.dispatchEvent(new Event(SLS_BALANCE_REFRESH_EVENT));
+      onSendComplete({
+        id: signature,
+        type: "send",
+        amount: -parsed,
+        usdValue: 0,
+        description: `Sent ${parsed.toFixed(2)} $SLS to ${recipient.trim().slice(0, 8)}...`,
+        createdAt: new Date().toISOString(),
+      });
+
+      setPhase("done");
+      setRecipient("");
+      setAmount("");
+    } catch (err) {
+      setError(extractErrMsg(err, "Transfer failed."));
+      setPhase("idle");
+    }
+  };
+
+  if (!connected || !publicKey || !signTransaction) {
+    return <ConnectPrompt label="CONNECT WALLET TO SEND" />;
+  }
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="rounded-lg border border-white/10 bg-black/20 backdrop-blur-sm p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-black tracking-[3px] text-[#9945FF] uppercase">Active Rotation</p>
-            <p className="text-lg font-black text-[#eee]">{rotation?.theme?.toUpperCase() ?? "BLACK MARKET"}</p>
-            <p className="text-[11px] text-[#555]">Heat {profile.heat} • Wanted {profile.wantedTier}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-[9px] font-bold tracking-[2px] text-[#555]">ENDS IN</p>
-            <p className="text-sm font-black text-[#fdd835]">{formatTimeLeft(rotation?.secondsRemaining ?? 0)}</p>
-          </div>
-        </div>
+      <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
+        <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">YOUR $SLS</p>
+        <p className="text-sm font-black text-[#9945FF]">{slsBalance !== null ? slsBalance.toFixed(2) : "-"}</p>
       </div>
 
-      {Object.entries(grouped).map(([group, entries]) => (
-        <div key={group} className="flex flex-col gap-2">
-          <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">{group}</p>
-          {entries.map((listing) => {
-            const blockedByLevel = profile.level < listing.requiredLevelMin;
-            const blockedByHeat = profile.heat < listing.requiredHeatMin;
-            const blockedByCash = profile.cash < listing.finalPrice;
-            const soldOut = listing.remainingStock <= 0;
-            const disabled = blockedByLevel || blockedByHeat || blockedByCash || soldOut || buyingId === listing.id;
+      <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3">
+        <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-2">RECIPIENT WALLET</p>
+        <input
+          type="text"
+          placeholder="Solana wallet address"
+          value={recipient}
+          onChange={(e) => setRecipient(e.target.value)}
+          className="w-full bg-black/20 border border-white/10 rounded-md px-3 py-2 text-sm font-black text-[#eee] outline-none placeholder:text-[#333]"
+        />
+      </div>
 
-            return (
-              <div key={listing.id} className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 flex flex-col gap-2">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <p className="text-[13px] font-bold text-[#eee]">{listing.item.name}</p>
-                    <p className="text-[10px] text-[#555]">{listing.item.description}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <RarityBadge rarity={listing.item.rarity} />
-                    <span className="text-[10px] font-black text-[#66bb6a]">${Math.floor(listing.finalPrice).toLocaleString()}</span>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2 text-[10px] font-bold">
-                  <span className="text-[#42a5f5]">Stock {listing.remainingStock}/{listing.stock}</span>
-                  <span className="text-[#fdd835]">Heat {listing.requiredHeatMin}+</span>
-                  <span className="text-[#ff9800]">Level {listing.requiredLevelMin}+</span>
-                  <span className="text-[#ef5350]">Risk {listing.riskPercent}%</span>
-                  {listing.item.slot && <span className="text-[#9945FF]">Slot {listing.item.slot}</span>}
-                  {listing.item.effectType && <span className="text-[#14F195]">{listing.item.effectType.replaceAll("_", " ")}</span>}
-                </div>
-                <button
-                  onClick={() => onBuy(listing)}
-                  disabled={disabled}
-                  className="w-full py-2 rounded border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF] text-[10px] font-black tracking-[2px] disabled:opacity-40"
-                >
-                  {buyingId === listing.id ? "BUYING..." : soldOut ? "SOLD OUT" : "BUY"}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      ))}
+      <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3">
+        <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-2">AMOUNT ($SLS)</p>
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="0.00"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          className="w-full bg-black/20 border border-white/10 rounded-md px-3 py-2 text-sm font-black text-[#eee] outline-none"
+        />
+      </div>
+
+      {error && <p className="text-[10px] font-bold text-[#ef5350]">{error}</p>}
+      {phase === "done" && <p className="text-[10px] font-bold text-[#66bb6a]">Transfer confirmed on-chain.</p>}
+
+      <button
+        onClick={send}
+        disabled={phase === "sending"}
+        className="w-full py-2.5 rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF] text-[11px] font-bold tracking-[2px] disabled:opacity-40"
+      >
+        {phase === "sending" ? "SIGNING..." : "SEND $SLS"}
+      </button>
     </div>
   );
 }
@@ -504,7 +546,15 @@ function HospitalPanel({
   );
 }
 
-function HistoryPanel() {
+function getTxIcon(type: string) {
+  if (type.includes("send")) return Send;
+  if (type.includes("sell")) return ArrowUpFromLine;
+  if (type.includes("hospital")) return HeartPulse;
+  if (type.includes("swap") || type.includes("buy")) return ShoppingCart;
+  return Clock3;
+}
+
+function HistoryPanel({ localEntries }: { localEntries: SlsTransactionItem[] }) {
   const [transactions, setTransactions] = useState<SlsTransactionItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -519,26 +569,34 @@ function HistoryPanel() {
     return <div className="flex justify-center py-12"><LoadingSpinner size={24} /></div>;
   }
 
-  if (transactions.length === 0) {
+  const all = [...localEntries, ...transactions];
+
+  if (all.length === 0) {
     return <p className="text-[11px] text-[#555] text-center py-8">No transaction history yet.</p>;
   }
 
   return (
     <div className="flex flex-col gap-2">
-      {transactions.map((tx) => (
-        <div key={tx.id} className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-bold text-[#eee]">{tx.description}</p>
-            <p className="text-[9px] text-[#555]">{formatDate(tx.createdAt)}</p>
+      {all.map((tx) => {
+        const Icon = getTxIcon(tx.type);
+        return (
+          <div key={tx.id} className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 flex items-center gap-3">
+            <div className="shrink-0 w-8 h-8 rounded-full bg-black/30 border border-white/10 flex items-center justify-center">
+              <Icon size={14} className="text-[#9945FF]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-bold text-[#eee] truncate">{tx.description}</p>
+              <p className="text-[9px] text-[#555]">{formatDate(tx.createdAt)}</p>
+            </div>
+            <div className="text-right shrink-0">
+              <p className={`text-[11px] font-black ${tx.amount < 0 ? "text-[#ef5350]" : "text-[#fdd835]"}`}>
+                {tx.amount < 0 ? "-" : "+"}{Math.abs(tx.amount).toFixed(2)} $SLS
+              </p>
+              <p className="text-[9px] text-[#888]">{tx.usdValue.toFixed(2)}</p>
+            </div>
           </div>
-          <div className="text-right">
-            <p className={`text-[11px] font-black ${tx.amount < 0 ? "text-[#ef5350]" : "text-[#fdd835]"}`}>
-              {tx.amount < 0 ? "-" : "+"}{Math.abs(tx.amount).toFixed(2)} $SLS
-            </p>
-            <p className="text-[9px] text-[#888]">{tx.usdValue.toFixed(2)}</p>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -546,24 +604,16 @@ function HistoryPanel() {
 export default function BlackMarketPage() {
   const slsBalance = useSLSBalance();
   const [profile, setProfile] = useState<MeResponse | null>(null);
-  const [rotation, setRotation] = useState<BlackMarketRotation | null>(null);
-  const [listings, setListings] = useState<BlackMarketListing[]>([]);
   const [slsPrice, setSlsPrice] = useState<number | null>(null);
-  const [tab, setTab] = useState<BlackMarketTab>("listings");
+  const [tab, setTab] = useState<BlackMarketTab>("swap");
   const [loading, setLoading] = useState(true);
-  const [buyingId, setBuyingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [localSendHistory, setLocalSendHistory] = useState<SlsTransactionItem[]>([]);
 
   const fetchData = useCallback(async () => {
     try {
-      const [meRes, listingsRes] = await Promise.all([
-        api.get<MeResponse>("/me"),
-        api.get<{ rotation: BlackMarketRotation; listings: BlackMarketListing[] }>("/black-market/listings"),
-      ]);
-
+      const meRes = await api.get<MeResponse>("/me");
       setProfile(meRes.data);
-      setRotation(listingsRes.data.rotation);
-      setListings(listingsRes.data.listings);
       setError(null);
     } catch (err) {
       setError(extractErrMsg(err, "Failed to load black market."));
@@ -586,18 +636,6 @@ export default function BlackMarketPage() {
     fetchPrice();
   }, [fetchData, fetchPrice]);
 
-  const buy = async (listing: BlackMarketListing) => {
-    setBuyingId(listing.id);
-    try {
-      await api.post("/black-market/buy", { listingId: listing.id, qty: 1 });
-      await fetchData();
-    } catch (err) {
-      setError(extractErrMsg(err, "Purchase failed."));
-    } finally {
-      setBuyingId(null);
-    }
-  };
-
   if (loading) {
     return <div className="flex min-h-dvh items-center justify-center"><LoadingSpinner size={32} /></div>;
   }
@@ -607,9 +645,9 @@ export default function BlackMarketPage() {
   }
 
   const tabs: Array<{ id: BlackMarketTab; label: string; icon: typeof ShoppingBag }> = [
-    { id: "listings", label: "Listings", icon: ShoppingBag },
     { id: "swap", label: "Get $SLS", icon: ArrowLeftRight },
     { id: "sell", label: "Sell $SLS", icon: CircleDollarSign },
+    { id: "send", label: "Send $SLS", icon: Send },
     { id: "hospital", label: "Hospital", icon: Clock3 },
     { id: "history", label: "History", icon: History },
   ];
@@ -624,19 +662,19 @@ export default function BlackMarketPage() {
           <ShoppingBag size={18} className="text-[#9945FF] mb-0.5" />
           <div>
             <p className="text-[10px] font-black text-[#9945FF] tracking-[3px] uppercase">Black Market</p>
-            <p className="text-[11px] font-semibold text-[#888]">Listings plus the classic $SLS utility flows</p>
+            <p className="text-[11px] font-semibold text-[#888]">$SLS utility — swap, sell, send, and more</p>
           </div>
         </div>
       </div>
 
       <SLSOverview cash={profile.cash} slsBalance={slsBalance} slsPrice={slsPrice} slsSpent={profile.slsSpent} />
 
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="grid grid-cols-5">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => setTab(id)}
-            className={`flex-shrink-0 px-3 py-2 rounded-md border text-[10px] font-black tracking-[2px] uppercase flex items-center gap-1.5 ${
+            className={`px-1 py-2 border text-[9px] font-black tracking-[1px] uppercase flex flex-col items-center gap-1 ${
               tab === id
                 ? "bg-[#1a0a2e] border-[rgba(153,69,255,0.3)] text-[#9945FF]"
                 : "bg-black/20 border-white/10 text-[#555]"
@@ -650,13 +688,11 @@ export default function BlackMarketPage() {
 
       {error && <p className="text-[10px] font-bold text-[#ef5350]">{error}</p>}
 
-      {tab === "listings" && (
-        <ListingsPanel profile={profile} rotation={rotation} listings={listings} buyingId={buyingId} onBuy={buy} />
-      )}
       {tab === "swap" && <GetSLSPanel />}
       {tab === "sell" && <SellSLSPanel onSold={fetchData} />}
+      {tab === "send" && <SendSLSPanel onSendComplete={(entry) => setLocalSendHistory((prev) => [entry, ...prev])} />}
       {tab === "hospital" && <HospitalPanel profile={profile} onRefresh={fetchData} />}
-      {tab === "history" && <HistoryPanel />}
+      {tab === "history" && <HistoryPanel localEntries={localSendHistory} />}
 
       <div className="h-16 md:hidden" />
     </div>

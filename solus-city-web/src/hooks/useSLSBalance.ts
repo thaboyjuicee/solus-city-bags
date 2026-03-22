@@ -1,43 +1,43 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 
 const SLS_MINT = new PublicKey("ELTXCFp1tmtfu39CPw6afnMSjW1BBxjinorJQsKmBAGS");
+
+export const SLS_BALANCE_REFRESH_EVENT = "sls-balance-refresh";
 
 export function useSLSBalance(): number | null {
   const { connection } = useConnection();
   const { publicKey } = useWallet();
   const [balance, setBalance] = useState<number | null>(null);
 
-  useEffect(() => {
+  const fetchBalance = useCallback(async () => {
     if (!publicKey) {
       setBalance(null);
       return;
     }
-
-    let cancelled = false;
-
-    async function fetchBalance() {
-      try {
-        const accounts = await connection.getParsedTokenAccountsByOwner(publicKey!, {
-          mint: SLS_MINT,
-        });
-        if (cancelled) return;
-        const uiAmount =
-          accounts.value[0]?.account.data.parsed.info.tokenAmount.uiAmount ?? 0;
-        setBalance(uiAmount);
-      } catch {
-        if (!cancelled) setBalance(null);
-      }
+    try {
+      const accounts = await connection.getParsedTokenAccountsByOwner(publicKey, {
+        mint: SLS_MINT,
+      });
+      const uiAmount =
+        accounts.value[0]?.account.data.parsed.info.tokenAmount.uiAmount ?? 0;
+      setBalance(uiAmount);
+    } catch {
+      setBalance(null);
     }
-
-    fetchBalance();
-    return () => {
-      cancelled = true;
-    };
   }, [connection, publicKey]);
+
+  useEffect(() => {
+    fetchBalance();
+  }, [fetchBalance]);
+
+  useEffect(() => {
+    window.addEventListener(SLS_BALANCE_REFRESH_EVENT, fetchBalance);
+    return () => window.removeEventListener(SLS_BALANCE_REFRESH_EVENT, fetchBalance);
+  }, [fetchBalance]);
 
   return balance;
 }
