@@ -9,13 +9,26 @@ import { WarScoreboard } from "@/components/game/WarScoreboard";
 import { ContributionList } from "@/components/game/ContributionList";
 import { TerritoryBonusBadge } from "@/components/game/TerritoryBonusBadge";
 
-type MeLite = { syndicate?: { id: string } | null };
+type MeLite = {
+  id?: string;
+  syndicate?: { id: string } | null;
+  currentSyndicateRole?: string | null;
+};
+
+type SyndicateMember = {
+  userId: string;
+  name: string;
+  role: string;
+  contributionScore: number;
+  warParticipation: number;
+};
 
 type SyndicateSummary = {
   id: string;
   name: string;
   description: string;
   leaderId?: string | null;
+  creatorId?: string | null;
   vaultCash: number;
   seasonPoints: number;
   territoryCount: number;
@@ -33,8 +46,8 @@ type SyndicateSummary = {
     defenderSyndicate?: { id: string; name: string } | null;
   } | null;
   territoriesOwned?: Array<{ id: string; name: string; code: string; bonusType: string; bonusValue: number }>;
-  members?: Array<{ userId: string; name: string; role: string; contributionScore: number; warParticipation: number }>;
-  memberContributionLeaders?: Array<{ userId: string; name: string; role: string; contributionScore: number; warParticipation: number }>;
+  members?: SyndicateMember[];
+  memberContributionLeaders?: SyndicateMember[];
   championshipQualification?: {
     qualified: boolean;
     championshipSeasonId: string | null;
@@ -52,6 +65,14 @@ type SyndicateSummary = {
     } | null;
   };
   championHistory?: Array<{ id: string; seasonId: string; seasonName: string; rank: number; display: Record<string, unknown> }>;
+};
+
+type MemberRoleState = {
+  open: boolean;
+  draft: string;
+  busy: boolean;
+  success: string | null;
+  error: string | null;
 };
 
 const DEFAULT_BUFF_TYPE = "crime_payout";
@@ -76,6 +97,14 @@ function extractErrMsg(err: unknown, fallback: string) {
   );
 }
 
+const EMPTY_ROLE_STATE: MemberRoleState = {
+  open: false,
+  draft: "",
+  busy: false,
+  success: null,
+  error: null,
+};
+
 export default function SyndicatesPage() {
   const [syndicates, setSyndicates] = useState<SyndicateSummary[]>([]);
   const [detail, setDetail] = useState<SyndicateSummary | null>(null);
@@ -88,14 +117,36 @@ export default function SyndicatesPage() {
   const [vaultSuccess, setVaultSuccess] = useState<string | null>(null);
   const vaultSuccessTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Current user identity
+  const [myUserId, setMyUserId] = useState<string | null>(null);
+  const [myRole, setMyRole] = useState<string | null>(null);
+
+  // Stable creator ID — latches on first non-null value, never cleared by role reloads
+  const [creatorId, setCreatorId] = useState<string | null>(null);
+
+  // Per-member role editing state
+  const [memberRoleStates, setMemberRoleStates] = useState<Record<string, MemberRoleState>>({});
+
+  const patchMemberRole = (userId: string, patch: Partial<MemberRoleState>) => {
+    setMemberRoleStates((prev) => ({
+      ...prev,
+      [userId]: { ...EMPTY_ROLE_STATE, ...prev[userId], ...patch },
+    }));
+  };
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const meRes = await api.get<MeLite>("/me");
+      setMyUserId(meRes.data.id ?? null);
+      setMyRole(meRes.data.currentSyndicateRole ?? null);
       if (meRes.data.syndicate?.id) {
         const detailRes = await api.get<SyndicateSummary>(`/syndicates/${meRes.data.syndicate.id}`);
         setDetail(detailRes.data);
         setSyndicates([]);
+        // Latch creatorId once — prefer the dedicated field, fall back to leaderId on first load
+        const incoming = detailRes.data.creatorId ?? detailRes.data.leaderId;
+        if (incoming) setCreatorId(incoming);
       } else {
         const listRes = await api.get<SyndicateSummary[] | { syndicates: SyndicateSummary[] }>("/syndicates");
         const nextList = Array.isArray(listRes.data) ? listRes.data : listRes.data.syndicates;
@@ -181,11 +232,56 @@ export default function SyndicatesPage() {
     );
   }
 
+  // ── Permission helpers ───────────────────────────────────────────────────────
+  const isCreator = myUserId !== null && myUserId === creatorId;
+  const iAmLeader = myRole === "leader";
+  const iAmCoLeader = myRole === "co_leader";
+  const canManageRoles = iAmLeader || iAmCoLeader || isCreator;
+
+  function canChangeRole(member: SyndicateMember): boolean {
+    if (!canManageRoles) return false;
+    if (member.userId === myUserId) return false; // can't change own role
+    // co_leader (who is not creator/leader) cannot touch the leader or creator
+    if (iAmCoLeader && !isCreator && !iAmLeader) {
+      if (member.userId === creatorId) return false;
+      if (member.role === "leader") return false;
+    }
+    return true;
+  }
+
   const filteredMembers = (detail.members ?? []).filter((member) => {
     if (roleFilter === "all") return true;
-    if (roleFilter === "creator") return member.userId === detail.leaderId;
+    if (roleFilter === "creator") return member.userId === creatorId;
     return member.role === roleFilter;
   });
+
+  const confirmRoleChange = async (member: SyndicateMember) => {
+    const rs = memberRoleStates[member.userId];
+    if (!rs || !rs.draft || rs.draft === member.role) return;
+    patchMemberRole(member.userId, { busy: true, error: null, success: null });
+    try {
+      await api.post(`/syndicates/${detail.id}/role`, {
+        targetUserId: member.userId,
+        role: rs.draft,
+      });
+      patchMemberRole(member.userId, {
+        busy: false,
+        open: false,
+        success: `Role updated to ${formatRole(rs.draft)}.`,
+        draft: "",
+      });
+      // Auto-clear success after 3s then reload
+      setTimeout(() => {
+        patchMemberRole(member.userId, { success: null });
+        load();
+      }, 3000);
+    } catch (err) {
+      patchMemberRole(member.userId, {
+        busy: false,
+        error: extractErrMsg(err, "Failed to update role."),
+      });
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -300,6 +396,7 @@ export default function SyndicatesPage() {
         </div>
       )}
 
+      {/* ── Member Roster ─────────────────────────────────────────────────── */}
       <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
           <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Member Roster</p>
@@ -315,20 +412,89 @@ export default function SyndicatesPage() {
             ))}
           </select>
         </div>
-        {filteredMembers.map((member) => (
-          <div key={member.userId} className="rounded-md border border-white/10 bg-black/20 p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="text-[12px] font-bold text-[#eee]">{member.name}</p>
-                {member.userId === detail.leaderId && (
-                  <span className="text-[9px] font-black tracking-[1px] uppercase px-1.5 py-0.5 rounded bg-[#fdd835]/20 text-[#fdd835] border border-[#fdd835]/30">CREATOR</span>
+
+        {filteredMembers.map((member) => {
+          const rs: MemberRoleState = memberRoleStates[member.userId] ?? EMPTY_ROLE_STATE;
+          const eligible = canChangeRole(member);
+
+          return (
+            <div key={member.userId} className="rounded-md border border-white/10 bg-black/20 p-3 flex flex-col gap-2">
+              {/* Top row: name + badges + change role button */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-[12px] font-bold text-[#eee]">{member.name}</p>
+                    {member.userId === creatorId && (
+                      <span className="text-[9px] font-black tracking-[1px] uppercase px-1.5 py-0.5 rounded bg-[#fdd835]/20 text-[#fdd835] border border-[#fdd835]/30">CREATOR</span>
+                    )}
+                  </div>
+                  <SyndicateRoleBadge role={member.role} />
+                </div>
+
+                {eligible && !rs.open && (
+                  <button
+                    onClick={() => patchMemberRole(member.userId, { open: true, draft: member.role })}
+                    className="shrink-0 px-2 py-1 rounded border border-[rgba(153,69,255,0.4)] bg-[#1a0a2e] text-[#9945FF] text-[9px] font-black tracking-[1px] hover:border-[rgba(153,69,255,0.8)] transition-colors"
+                  >
+                    CHANGE ROLE
+                  </button>
                 )}
               </div>
-              <div className="mt-1"><SyndicateRoleBadge role={member.role} /></div>
-              <p className="text-[10px] text-[#777] mt-2">Contribution {member.contributionScore} • War {member.warParticipation}</p>
+
+              <p className="text-[10px] text-[#777]">Contribution {member.contributionScore} • War {member.warParticipation}</p>
+
+              {/* Inline role editor */}
+              {rs.open && (
+                <div className="flex flex-col gap-2 pt-1 border-t border-white/10">
+                  <p className="text-[9px] font-bold tracking-[2px] text-[#555] uppercase">Change Role</p>
+                  <div className="flex gap-2 flex-wrap">
+                    <select
+                      value={rs.draft}
+                      onChange={(e) => patchMemberRole(member.userId, { draft: e.target.value })}
+                      className="flex-1 min-w-0 rounded-md border border-[#9945FF]/60 bg-[#0d0d0d] px-2 py-1.5 text-[11px] font-bold text-[#eee] outline-none cursor-pointer"
+                    >
+                      {ROLES.map((r) => (
+                        <option
+                          key={r}
+                          value={r}
+                          disabled={r === member.role}
+                          className={r === member.role ? "text-[#555]" : "text-[#eee]"}
+                        >
+                          {formatRole(r)}{r === member.role ? " (current)" : ""}
+                        </option>
+                      ))}
+                    </select>
+
+                    <button
+                      disabled={rs.busy || rs.draft === member.role}
+                      onClick={() => confirmRoleChange(member)}
+                      className="px-3 py-1.5 rounded-md bg-[#9945FF] text-white text-[10px] font-black tracking-[1px] hover:bg-[#7a35cc] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {rs.busy ? "SAVING..." : "CONFIRM"}
+                    </button>
+
+                    <button
+                      disabled={rs.busy}
+                      onClick={() => patchMemberRole(member.userId, { open: false, draft: "", error: null })}
+                      className="px-3 py-1.5 rounded-md border border-white/10 bg-black/20 text-[#777] text-[10px] font-black tracking-[1px] hover:text-[#aaa] disabled:opacity-40 transition-colors"
+                    >
+                      CANCEL
+                    </button>
+                  </div>
+
+                  {rs.error && (
+                    <p className="text-[10px] font-bold text-[#ef5350]">{rs.error}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Success message (shown after editor closes) */}
+              {rs.success && (
+                <p className="text-[10px] font-bold text-[#66bb6a]">{rs.success}</p>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {detail.championHistory && detail.championHistory.length > 0 && (

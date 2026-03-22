@@ -49,6 +49,7 @@ export default async function syndicateRoutes(
             name: parsed.data.name.trim(),
             description: parsed.data.description?.trim() ?? "",
             leaderId: userId,
+            creatorId: userId,
             buffType: "ap",
             buffValue: SYNDICATE_AP_BUFF,
           },
@@ -99,6 +100,7 @@ export default async function syndicateRoutes(
         return {
           ...serializeSyndicateOverview(s),
           leaderId: s.leaderId,
+          creatorId: s.creatorId ?? s.leaderId,
           memberCount: s.members.length,
           totalRp,
           territoriesOwned: s.territories.map((t) => ({ id: t.territory.id, name: t.territory.name, code: t.territory.code })),
@@ -184,6 +186,7 @@ export default async function syndicateRoutes(
       return reply.send({
         ...serializeSyndicateOverview(syndicate),
         leaderId: syndicate.leaderId,
+        creatorId: syndicate.creatorId ?? syndicate.leaderId,
         memberCount: members.length,
         totalRp: members.reduce((sum, m) => sum + m.rp, 0),
         members,

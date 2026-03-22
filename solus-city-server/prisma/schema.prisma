@@ -232,6 +232,7 @@ model Syndicate {
   safehouseLevel Int            @default(1)
   leaderId    String            @unique
   leader      User              @relation("SyndicateLeader", fields: [leaderId], references: [id])
+  creatorId   String?
   members     SyndicateMember[]
   territories TerritoryControl[]
   territoryContributions TerritoryContribution[]
