@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
@@ -35,20 +35,20 @@ export default function SeasonsPage() {
 
       {rewardPreview && (
         <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-          <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Reward Preview</p>
+          <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">Reward Preview</p>
           <div className="grid gap-2 md:grid-cols-3">
             <div className="rounded-md border border-white/10 bg-black/20 p-3">
-              <p className="text-[9px] font-bold tracking-[2px] text-[#555]">OVERALL</p>
+              <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3]">OVERALL</p>
               <p className="text-[14px] font-black text-[#66bb6a]">{rewardPreview.projected.overall?.label ?? "-"}</p>
               <p className="text-[10px] text-[#777] mt-1">{rewardPreview.projected.overall?.rankLabel ?? "No tier"}</p>
             </div>
             <div className="rounded-md border border-white/10 bg-black/20 p-3">
-              <p className="text-[9px] font-bold tracking-[2px] text-[#555]">PVP</p>
+              <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3]">PVP</p>
               <p className="text-[14px] font-black text-[#42a5f5]">{rewardPreview.projected.pvp?.label ?? "-"}</p>
               <p className="text-[10px] text-[#777] mt-1">{rewardPreview.projected.pvp?.rankLabel ?? "No tier"}</p>
             </div>
             <div className="rounded-md border border-white/10 bg-black/20 p-3">
-              <p className="text-[9px] font-bold tracking-[2px] text-[#555]">CRIME</p>
+              <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3]">CRIME</p>
               <p className="text-[14px] font-black text-[#ff8a65]">{rewardPreview.projected.crime?.label ?? "-"}</p>
               <p className="text-[10px] text-[#777] mt-1">{rewardPreview.projected.crime?.rankLabel ?? "No tier"}</p>
             </div>
@@ -57,7 +57,7 @@ export default function SeasonsPage() {
       )}
 
       <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-        <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Season History</p>
+        <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">Season History</p>
         {history.map((entry) => (
           <SeasonHistoryCard key={entry.season.id} entry={entry} />
         ))}
@@ -67,4 +67,5 @@ export default function SeasonsPage() {
     </div>
   );
 }
+
 

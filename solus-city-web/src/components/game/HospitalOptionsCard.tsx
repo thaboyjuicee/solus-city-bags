@@ -50,7 +50,7 @@ export function HospitalOptionsCard({
     <div className="bg-[#1a0a0a] border border-[#7f1919] rounded-md p-3 flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <p className="text-[10px] font-black tracking-[2px] text-[#ef5350]">HOSPITAL OPTIONS</p>
-        <span className="text-[10px] font-bold text-[#888]">{options.remainingMinutes} min left</span>
+        <span className="text-[10px] font-bold text-[#d0d5ca]">{options.remainingMinutes} min left</span>
       </div>
       <button
         onClick={() => run("cash", api.post("/hospital/release-cash"))}
@@ -64,7 +64,7 @@ export function HospitalOptionsCard({
           key={item.itemId}
           onClick={() => run(item.itemId, api.post("/hospital/release-item", { itemId: item.itemId }))}
           disabled={!!busy}
-          className="w-full py-2 rounded border border-white/10 bg-black/20 text-[#eee] text-[10px] font-black tracking-[2px] disabled:opacity-50"
+          className="w-full py-2 rounded border border-white/10 bg-black/20 text-[#f2f4ec] text-[10px] font-black tracking-[2px] disabled:opacity-50"
         >
           {busy === item.itemId ? "USING..." : `USE ${item.name.toUpperCase()} (${item.qty})`}
         </button>
@@ -85,3 +85,4 @@ export function HospitalOptionsCard({
     </div>
   );
 }
+

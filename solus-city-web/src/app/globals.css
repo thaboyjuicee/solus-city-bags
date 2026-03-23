@@ -4,8 +4,13 @@
 
 body {
   background-color: #0a0a0a;
-  color: #eeeeee;
+  color: #f2f4ec;
   font-family: "Inter", system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   min-height: 100dvh;
 }
 
@@ -20,19 +25,19 @@ body {
   }
 
   .text-danger {
-    color: #ef5350;
+    color: #ff8a80;
   }
 
   .text-text-dim {
-    color: #ccc;
+    color: #dde1d6;
   }
 
   .text-text-secondary {
-    color: #555;
+    color: #b0b5ab;
   }
 
   .text-secondary {
-    color: #444;
+    color: #979d92;
   }
 
   .bg-accent {

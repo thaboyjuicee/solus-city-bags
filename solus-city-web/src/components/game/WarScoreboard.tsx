@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 type WarSummary = {
   id: string;
@@ -34,11 +34,11 @@ export function WarScoreboard({ war, canManageActions = false, onJoin, onAction,
     <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Active War</p>
-          <p className="text-[14px] font-black text-[#eee] mt-1">
+          <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">Active War</p>
+          <p className="text-[14px] font-black text-[#f2f4ec] mt-1">
             {war.attackerSyndicate?.name ?? "Attacker"} vs {war.defenderSyndicate?.name ?? "Defender"}
           </p>
-          {war.territory && <p className="text-[11px] text-[#888] mt-1">Linked territory: {war.territory.name}</p>}
+          {war.territory && <p className="text-[11px] text-[#d0d5ca] mt-1">Linked territory: {war.territory.name}</p>}
         </div>
         <p className="text-[11px] font-bold text-[#fdd835] uppercase tracking-[2px]">{timeRemaining(war.endsAt)}</p>
       </div>
@@ -46,11 +46,11 @@ export function WarScoreboard({ war, canManageActions = false, onJoin, onAction,
       <div className="grid grid-cols-2 gap-2">
         <div className="rounded-md border border-[#1f5f36] bg-[#0f2a18] p-3">
           <p className="text-[9px] font-black tracking-[2px] text-[#66bb6a] uppercase">Attacker</p>
-          <p className="text-[20px] font-black text-[#eee] mt-1">{war.attackerScore}</p>
+          <p className="text-[20px] font-black text-[#f2f4ec] mt-1">{war.attackerScore}</p>
         </div>
         <div className="rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] p-3 text-right">
           <p className="text-[9px] font-black tracking-[2px] text-[#9945FF] uppercase">Defender</p>
-          <p className="text-[20px] font-black text-[#eee] mt-1">{war.defenderScore}</p>
+          <p className="text-[20px] font-black text-[#f2f4ec] mt-1">{war.defenderScore}</p>
         </div>
       </div>
 
@@ -86,3 +86,4 @@ export function WarScoreboard({ war, canManageActions = false, onJoin, onAction,
     </div>
   );
 }
+

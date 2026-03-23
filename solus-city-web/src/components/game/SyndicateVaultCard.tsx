@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 
@@ -30,8 +30,8 @@ export function SyndicateVaultCard({
     <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Syndicate Vault</p>
-          <p className="text-[12px] text-[#888] mt-1">Shared funds for war pressure, safehouse upkeep, and social progression.</p>
+          <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">Syndicate Vault</p>
+          <p className="text-[12px] text-[#d0d5ca] mt-1">Shared funds for war pressure, safehouse upkeep, and social progression.</p>
         </div>
         <p className="text-[20px] font-black text-[#fdd835]">{formatCash(vaultCash)}</p>
       </div>
@@ -42,7 +42,7 @@ export function SyndicateVaultCard({
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
             inputMode="numeric"
-            className="flex-1 rounded-md border border-white/10 bg-black/20 px-3 py-2 text-[12px] text-[#eee] outline-none"
+            className="flex-1 rounded-md border border-white/10 bg-black/20 px-3 py-2 text-[12px] text-[#f2f4ec] outline-none"
             placeholder="Amount"
           />
           <div className="flex gap-2">
@@ -72,3 +72,4 @@ export function SyndicateVaultCard({
     </div>
   );
 }
+

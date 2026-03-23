@@ -112,12 +112,12 @@ function CrimeCard({
     >
       {/* Header row */}
       <div className="flex items-center justify-between">
-        <span className={`text-[15px] font-bold ${locked ? "text-[#a6a6a6]" : "text-[#eee]"}`}>
+        <span className={`text-[15px] font-bold ${locked ? "text-[#c8cdc2]" : "text-[#f2f4ec]"}`}>
           {crime.name}
         </span>
         <span
           className={`flex items-center gap-1 rounded px-1.5 py-0.5 ${
-            locked ? "bg-[#66666620] text-[#888]" : "bg-[#9945FF20] text-[#9945ff]"
+            locked ? "bg-[#66666620] text-[#d0d5ca]" : "bg-[#9945FF20] text-[#9945ff]"
           }`}
         >
           {locked && (
@@ -320,7 +320,7 @@ export default function CrimesPage() {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
           <div className="relative z-10 px-3 pb-3">
-            <p className="text-[20px] font-black text-[#eee] tracking-[4px]">CRIMES</p>
+            <p className="text-[20px] font-black text-[#f2f4ec] tracking-[4px]">CRIMES</p>
             <p className="text-[11px] font-semibold text-text-dim">
               Use nerve to commit crimes for cash and XP
             </p>
@@ -352,5 +352,6 @@ export default function CrimesPage() {
     </div>
   );
 }
+
 
 

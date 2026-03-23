@@ -48,17 +48,17 @@ export default function LeaderboardPage() {
           {data.entries.map((entry) => {
             const secondaryText =
               tab === "syndicates"
-                ? `${entry.membersCount ?? 0} members • ${entry.warRating ?? 0} war rating`
+                ? `${entry.membersCount ?? 0} members - ${entry.warRating ?? 0} war rating`
                 : tab === "prestige"
-                    ? `Prestige ${entry.prestigeLevel ?? 0} • Points ${entry.prestigePoints ?? 0}`
+                    ? `Prestige ${entry.prestigeLevel ?? 0} - Points ${entry.prestigePoints ?? 0}`
                     : tab === "hall_of_fame"
-                      ? `${entry.category?.replaceAll("_", " ") ?? "fame"} • ${entry.seasonName ?? "history"}`
-                      : `LV ${entry.level ?? 1} • RP ${entry.rp ?? 0}`;
+                      ? `${entry.category?.replaceAll("_", " ") ?? "fame"} - ${entry.seasonName ?? "history"}`
+                      : `LV ${entry.level ?? 1} - RP ${entry.rp ?? 0}`;
 
             return (
               <div key={`${tab}-${entry.userId}-${entry.rank}`} className={`rounded-lg border p-3 flex items-center justify-between gap-3 ${entry.isMe ? "border-[rgba(153,69,255,0.3)] bg-[#1a0a2e]" : "border-white/10 bg-black/20"}`}>
                 <div>
-                  <p className="text-[12px] font-bold text-[#eee]">#{entry.rank} {entry.name}</p>
+                  <p className="text-[12px] font-bold text-[#f2f4ec]">#{entry.rank} {entry.name}</p>
                   <p className="text-[10px] text-[#777]">{secondaryText}</p>
                 </div>
                 <div className="text-right">
@@ -73,4 +73,6 @@ export default function LeaderboardPage() {
     </div>
   );
 }
+
+
 

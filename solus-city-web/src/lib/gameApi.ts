@@ -1,4 +1,4 @@
-﻿export interface MissionReward {
+export interface MissionReward {
   cash: number;
   rp: number;
   item: { id: string; name: string } | null;

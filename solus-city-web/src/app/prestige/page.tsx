@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
@@ -47,11 +47,12 @@ export default function PrestigePage() {
           }
         }}
       />
-      {result && <div className="rounded-lg border border-white/10 bg-black/20 p-4 text-[12px] text-[#eee]">{result}</div>}
-      <div className="rounded-lg border border-white/10 bg-black/20 p-4 text-[12px] text-[#888]">
+      {result && <div className="rounded-lg border border-white/10 bg-black/20 p-4 text-[12px] text-[#f2f4ec]">{result}</div>}
+      <div className="rounded-lg border border-white/10 bg-black/20 p-4 text-[12px] text-[#d0d5ca]">
         Prestige is a transparent reset loop. Review the reset scope above carefully before committing.
       </div>
     </div>
   );
 }
+
 

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { TerritoryBonusBadge } from "./TerritoryBonusBadge";
 
@@ -27,24 +27,24 @@ export function TerritoryCard({ territory, canContribute = false, busyAction, on
     <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">{territory.code.replaceAll("_", " ")}</p>
-          <p className="text-[16px] font-black text-[#eee] mt-1">{territory.name}</p>
+          <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">{territory.code.replaceAll("_", " ")}</p>
+          <p className="text-[16px] font-black text-[#f2f4ec] mt-1">{territory.name}</p>
         </div>
         <TerritoryBonusBadge bonusType={territory.bonusType} bonusValue={territory.bonusValue} />
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-center">
         <div className="rounded-md border border-white/10 bg-black/20 p-3">
-          <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Owner</p>
-          <p className="text-[12px] font-bold text-[#eee] mt-1">{territory.owner?.name ?? "Unclaimed"}</p>
+          <p className="text-[9px] font-black tracking-[2px] text-[#aab0a3] uppercase">Owner</p>
+          <p className="text-[12px] font-bold text-[#f2f4ec] mt-1">{territory.owner?.name ?? "Unclaimed"}</p>
         </div>
         <div className="rounded-md border border-white/10 bg-black/20 p-3">
-          <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Influence</p>
+          <p className="text-[9px] font-black tracking-[2px] text-[#aab0a3] uppercase">Influence</p>
           <p className="text-[12px] font-bold text-[#66bb6a] mt-1">{territory.influence}</p>
         </div>
       </div>
 
-      <p className="text-[11px] text-[#888]">State: {territory.contestState.replaceAll("_", " ")}</p>
+      <p className="text-[11px] text-[#d0d5ca]">State: {territory.contestState.replaceAll("_", " ")}</p>
 
       <div className="flex flex-wrap gap-2">
         <button
@@ -86,3 +86,4 @@ export function TerritoryCard({ territory, canContribute = false, busyAction, on
     </div>
   );
 }
+

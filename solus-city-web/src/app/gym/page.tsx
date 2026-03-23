@@ -52,7 +52,7 @@ type PageProfile = ProfileStats & {
 };
 
 // ---------------------------------------------------------------------------
-// Constants â€” mirrors GymScreen.tsx and the server constants
+// Constants - mirrors GymScreen.tsx and the server constants
 // ---------------------------------------------------------------------------
 
 type StatIcon = "dumbbell" | "target" | "shield" | "swords";
@@ -67,7 +67,7 @@ const STATS: { key: Stat; label: string; color: string; icon: StatIcon }[] = [
 const GYM_ENERGY_COST = 5;
 
 // ---------------------------------------------------------------------------
-// Animated stat bar â€” mirrors GymScreen AnimatedStatBar
+// Animated stat bar - mirrors GymScreen AnimatedStatBar
 // Fill % = Math.min(value / 5, 100) so the bar is "full" at 500 points
 // ---------------------------------------------------------------------------
 
@@ -234,7 +234,7 @@ export default function GymPage() {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
           <div className="relative z-10 px-3 pb-3">
-            <p className="text-[10px] font-black text-[#eee] tracking-[3px] uppercase mb-1">
+            <p className="text-[10px] font-black text-[#f2f4ec] tracking-[3px] uppercase mb-1">
               Gym
             </p>
             <p className="text-[11px] font-semibold text-text-dim">
@@ -266,7 +266,7 @@ export default function GymPage() {
                   {s.label}
                 </span>
                 <AnimatedStatBar value={val} color={s.color} />
-                <span className="w-10 text-right text-[13px] font-bold text-[#eee]">
+                <span className="w-10 text-right text-[13px] font-bold text-[#f2f4ec]">
                   {val}
                 </span>
               </div>
@@ -327,7 +327,7 @@ export default function GymPage() {
                               (happiness bonus!)
                             </span>
                           )}
-                          {" · "}
+                          {" - "}
                           +{result.data.xpGained} XP
                         </span>
                         {result.data.leveledUp && (
@@ -364,5 +364,8 @@ export default function GymPage() {
     </div>
   );
 }
+
+
+
 
 

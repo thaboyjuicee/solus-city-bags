@@ -6,7 +6,7 @@ export function HeatMeter({ heat }: { heat: number }) {
   return (
     <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-[9px] font-bold tracking-[2px] text-[#555]">HEAT</p>
+        <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3]">HEAT</p>
         <span className="text-sm font-black" style={{ color }}>
           {pct}/100
         </span>
@@ -17,3 +17,4 @@ export function HeatMeter({ heat }: { heat: number }) {
     </div>
   );
 }
+

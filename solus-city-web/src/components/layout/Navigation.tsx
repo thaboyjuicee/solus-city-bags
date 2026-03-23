@@ -95,8 +95,8 @@ function isActive(href: string, path: string) {
 }
 
 function formatSls(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(2)}K`;
   return n.toFixed(2);
 }
 
@@ -153,7 +153,7 @@ function WalletDropdown() {
         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm border text-[11px] font-bold tracking-[1px] whitespace-nowrap transition-colors ${
           open
             ? "bg-[#1a0a2e] border-[rgba(153,69,255,0.5)] text-[#9945FF]"
-            : "bg-transparent border-[rgba(153,69,255,0.2)] text-[#555] hover:border-[rgba(153,69,255,0.4)] hover:text-[#9945FF]"
+            : "bg-transparent border-[rgba(153,69,255,0.2)] text-[#aab0a3] hover:border-[rgba(153,69,255,0.4)] hover:text-[#9945FF]"
         }`}
       >
         <Wallet size={13} />
@@ -166,7 +166,7 @@ function WalletDropdown() {
           <button
             onClick={copyAddress}
             type="button"
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[10px] font-bold tracking-[1px] uppercase text-[#555] hover:text-[#ccc] hover:bg-white/5 transition-colors text-left"
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[10px] font-bold tracking-[1px] uppercase text-[#aab0a3] hover:text-[#dde1d6] hover:bg-white/5 transition-colors text-left"
           >
             <Copy size={13} />
             Copy Address
@@ -175,7 +175,7 @@ function WalletDropdown() {
           <button
             onClick={doLogout}
             type="button"
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[10px] font-bold tracking-[1px] uppercase text-[#555] hover:text-[#ccc] hover:bg-white/5 transition-colors text-left"
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[10px] font-bold tracking-[1px] uppercase text-[#aab0a3] hover:text-[#dde1d6] hover:bg-white/5 transition-colors text-left"
           >
             <Wallet size={13} />
             Change Wallet
@@ -238,7 +238,7 @@ export function Navigation() {
           {/* Logo */}
           <Link
             href="/home"
-            className="flex items-center gap-2 text-[#eee] font-black tracking-[3px] text-sm flex-shrink-0"
+            className="flex items-center gap-2 text-[#f2f4ec] font-black tracking-[3px] text-sm flex-shrink-0"
           >
             <Image src="/assets/images/app_icon.png" alt="Solus City" width={32} height={32} className="rounded-md" />
             <span className="hidden xl:inline">SOLUS CITY</span>
@@ -253,7 +253,7 @@ export function Navigation() {
                   key={tab.href}
                   href={tab.href}
                   className={`flex items-center gap-1.5 px-2.5 h-full text-[11px] font-bold tracking-[2px] uppercase transition-colors whitespace-nowrap ${
-                    active ? "bg-[#1a0a2e] text-[#9945FF]" : "text-[#555] hover:text-[#888]"
+                    active ? "bg-[#1a0a2e] text-[#9945FF]" : "text-[#aab0a3] hover:text-[#d0d5ca]"
                   }`}
                 >
                   <Icon name={tab.icon} />
@@ -268,7 +268,7 @@ export function Navigation() {
                 onClick={() => setMoreOpen((v) => !v)}
                 type="button"
                 className={`h-full px-2.5 inline-flex items-center gap-1.5 text-[11px] font-bold tracking-[2px] uppercase transition-colors ${
-                  moreOpen || moreActive ? "text-[#9945FF]" : "text-[#555] hover:text-[#888]"
+                  moreOpen || moreActive ? "text-[#9945FF]" : "text-[#aab0a3] hover:text-[#d0d5ca]"
                 }`}
               >
                 <MoreHorizontal size={16} />
@@ -289,7 +289,7 @@ export function Navigation() {
                         href={tab.href}
                         onClick={() => setMoreOpen(false)}
                         className={`flex items-center gap-2.5 px-4 py-2.5 text-[11px] font-bold tracking-[2px] uppercase border-b border-[#161616] transition-colors whitespace-nowrap last:border-b-0 ${
-                          active ? "bg-[#1a0a2e] text-[#9945FF]" : "text-[#555] hover:text-[#888] hover:bg-white/[0.02]"
+                          active ? "bg-[#1a0a2e] text-[#9945FF]" : "text-[#aab0a3] hover:text-[#d0d5ca] hover:bg-white/[0.02]"
                         }`}
                       >
                         <Icon name={tab.icon} />
@@ -311,13 +311,15 @@ export function Navigation() {
       </nav>
 
       {/* ── Mobile: top bar ── */}
-      <nav className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-black/25 backdrop-blur-sm border-b border-white/10 z-50 flex items-center justify-between px-3">
-        <Link href="/home" className="flex items-center gap-2 text-[#eee] font-black tracking-[3px] text-sm">
-          <Image src="/assets/images/app_icon.png" alt="Solus City" width={32} height={32} className="rounded-md" />
-        </Link>
-        <div className="flex items-center gap-2">
-          <SLSBadge />
+      <nav className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-black/25 backdrop-blur-sm border-b border-white/10 z-50 grid grid-cols-[1fr_auto_1fr] items-center px-3">
+        <div className="justify-self-start">
           <WalletDropdown />
+        </div>
+        <Link href="/home" className="justify-self-center text-[#f2f4ec] font-black tracking-[3px] text-sm">
+          SOLUS CITY
+        </Link>
+        <div className="justify-self-end">
+          <SLSBadge />
         </div>
       </nav>
 
@@ -331,10 +333,10 @@ export function Navigation() {
               href={tab.href}
               className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full"
             >
-              <span className={active ? "text-[#9945FF]" : "text-[#555]"}>
+              <span className={active ? "text-[#9945FF]" : "text-[#aab0a3]"}>
                 <Icon name={tab.icon} />
               </span>
-              <span className={`text-[9px] font-bold tracking-[2px] uppercase ${active ? "text-[#9945FF]" : "text-[#555]"}`}>
+              <span className={`text-[9px] font-bold tracking-[2px] uppercase ${active ? "text-[#9945FF]" : "text-[#aab0a3]"}`}>
                 {tab.label}
               </span>
             </Link>
@@ -345,8 +347,8 @@ export function Navigation() {
           type="button"
           className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full"
         >
-          <MoreHorizontal size={18} className={moreOpen || moreActiveMobile ? "text-[#9945FF]" : "text-[#555]"} />
-          <span className={`text-[9px] font-bold tracking-[2px] uppercase ${moreOpen || moreActiveMobile ? "text-[#9945FF]" : "text-[#555]"}`}>
+          <MoreHorizontal size={18} className={moreOpen || moreActiveMobile ? "text-[#9945FF]" : "text-[#aab0a3]"} />
+          <span className={`text-[9px] font-bold tracking-[2px] uppercase ${moreOpen || moreActiveMobile ? "text-[#9945FF]" : "text-[#aab0a3]"}`}>
             MORE
           </span>
         </button>
@@ -363,7 +365,7 @@ export function Navigation() {
                 href={tab.href}
                 onClick={() => setMoreOpen(false)}
                 className={`flex items-center gap-2 px-4 py-3 text-[11px] font-bold tracking-[2px] uppercase border-b border-r border-[#161616] transition-colors ${
-                  active ? "bg-[#1a0a2e] text-[#9945FF]" : "text-[#555] hover:text-[#888]"
+                  active ? "bg-[#1a0a2e] text-[#9945FF]" : "text-[#aab0a3] hover:text-[#d0d5ca]"
                 }`}
               >
                 <Icon name={tab.icon} />
@@ -376,3 +378,4 @@ export function Navigation() {
     </>
   );
 }
+

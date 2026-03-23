@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
@@ -30,8 +30,8 @@ export default function ChampionshipsPage() {
       {current && (
         <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex items-center justify-between gap-3">
           <div>
-            <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Current Championship</p>
-            <p className="text-[18px] font-black text-[#eee]">{current.season.name}</p>
+            <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">Current Championship</p>
+            <p className="text-[18px] font-black text-[#f2f4ec]">{current.season.name}</p>
           </div>
           <p className="text-[11px] font-black tracking-[2px] text-[#fdd835] uppercase">{current.status}</p>
         </div>
@@ -39,11 +39,11 @@ export default function ChampionshipsPage() {
 
       {qualifiers && qualifiers.length > 0 && (
         <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-          <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Qualifiers</p>
+          <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">Qualifiers</p>
           {qualifiers.map((entry) => (
             <div key={entry.syndicate.id} className="rounded-md border border-white/10 bg-black/20 p-3 flex items-center justify-between gap-3">
               <div>
-                <p className="text-[12px] font-bold text-[#eee]">#{entry.seed} {entry.syndicate.name}</p>
+                <p className="text-[12px] font-bold text-[#f2f4ec]">#{entry.seed} {entry.syndicate.name}</p>
                 <p className="text-[10px] text-[#777]">Qualifier score {entry.qualifyingPoints}</p>
               </div>
               <p className="text-[9px] uppercase tracking-[2px] text-[#66bb6a]">Qualified</p>
@@ -56,4 +56,5 @@ export default function ChampionshipsPage() {
     </div>
   );
 }
+
 

@@ -81,7 +81,7 @@ export default function AttackLogsPage() {
           <ScrollText size={18} className="text-[#fdd835] mb-0.5" />
           <div>
             <p className="text-[10px] font-black text-[#fdd835] tracking-[3px] uppercase">Attack Logs</p>
-            <p className="text-[11px] font-semibold text-[#888]">Your combat history and revenge opportunities</p>
+            <p className="text-[11px] font-semibold text-[#d0d5ca]">Your combat history and revenge opportunities</p>
           </div>
         </div>
       </div>
@@ -94,7 +94,7 @@ export default function AttackLogsPage() {
             className={`py-2 border text-[10px] font-black tracking-[2px] uppercase ${
               filter === id
                 ? "bg-[#1a0a2e] border-[rgba(153,69,255,0.3)] text-[#9945FF]"
-                : "bg-black/20 border-white/10 text-[#555]"
+                : "bg-black/20 border-white/10 text-[#aab0a3]"
             }`}
           >
             {label}
@@ -103,13 +103,13 @@ export default function AttackLogsPage() {
       </div>
 
       {filtered.length === 0 && (
-        <p className="text-[11px] text-[#555] text-center py-8">No logs found.</p>
+        <p className="text-[11px] text-[#aab0a3] text-center py-8">No logs found.</p>
       )}
 
       {filtered.map((entry) => (
         <div key={entry.id} className="rounded-lg border border-white/10 bg-black/20 p-3 flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[11px] font-black text-[#eee]">{entry.attackerName} vs {entry.defenderName}</p>
+            <p className="text-[11px] font-black text-[#f2f4ec]">{entry.attackerName} vs {entry.defenderName}</p>
             <div className="flex items-center gap-2">
               <ResultBadge entry={entry} />
               <p className="text-[10px] text-[#666]">{timeAgo(entry.createdAt)}</p>
@@ -149,3 +149,4 @@ export default function AttackLogsPage() {
     </div>
   );
 }
+

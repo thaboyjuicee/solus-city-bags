@@ -107,19 +107,19 @@ function SLSOverview({
   return (
     <div className="grid grid-cols-4 gap-1.5">
       <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
-        <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">CASH</p>
+        <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">CASH</p>
         <p className="text-sm font-black text-[#66bb6a]">${Math.floor(cash).toLocaleString()}</p>
       </div>
       <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
-        <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">$SLS</p>
+        <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">$SLS</p>
         <p className="text-sm font-black text-[#9945FF]">{slsBalance !== null ? slsBalance.toFixed(2) : "-"}</p>
       </div>
       <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
-        <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">PRICE</p>
-        <p className="text-sm font-black text-[#eee]">{formatPrice(slsPrice)}</p>
+        <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">PRICE</p>
+        <p className="text-sm font-black text-[#f2f4ec]">{formatPrice(slsPrice)}</p>
       </div>
       <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
-        <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">SPENT</p>
+        <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">SPENT</p>
         <p className="text-sm font-black text-[#fdd835]">{slsSpent.toFixed(2)}</p>
       </div>
     </div>
@@ -129,8 +129,8 @@ function SLSOverview({
 function ConnectPrompt({ label }: { label: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-12">
-      <Wallet size={28} className="text-[#555]" />
-      <p className="text-[#555] text-[11px] font-bold tracking-[2px]">{label}</p>
+      <Wallet size={28} className="text-[#aab0a3]" />
+      <p className="text-[#aab0a3] text-[11px] font-bold tracking-[2px]">{label}</p>
     </div>
   );
 }
@@ -218,23 +218,23 @@ function SendSLSPanel({ onSendComplete }: { onSendComplete: (entry: SlsTransacti
   return (
     <div className="flex flex-col gap-3">
       <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
-        <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">YOUR $SLS</p>
+        <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">YOUR $SLS</p>
         <p className="text-sm font-black text-[#9945FF]">{slsBalance !== null ? slsBalance.toFixed(2) : "-"}</p>
       </div>
 
       <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3">
-        <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-2">RECIPIENT WALLET</p>
+        <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-2">RECIPIENT WALLET</p>
         <input
           type="text"
           placeholder="Solana wallet address"
           value={recipient}
           onChange={(e) => setRecipient(e.target.value)}
-          className="w-full bg-black/20 border border-white/10 rounded-md px-3 py-2 text-sm font-black text-[#eee] outline-none placeholder:text-[#333]"
+          className="w-full bg-black/20 border border-white/10 rounded-md px-3 py-2 text-sm font-black text-[#f2f4ec] outline-none placeholder:text-[#333]"
         />
       </div>
 
       <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3">
-        <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-2">AMOUNT ($SLS)</p>
+        <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-2">AMOUNT ($SLS)</p>
         <input
           type="number"
           min="0"
@@ -242,7 +242,7 @@ function SendSLSPanel({ onSendComplete }: { onSendComplete: (entry: SlsTransacti
           placeholder="0.00"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          className="w-full bg-black/20 border border-white/10 rounded-md px-3 py-2 text-sm font-black text-[#eee] outline-none"
+          className="w-full bg-black/20 border border-white/10 rounded-md px-3 py-2 text-sm font-black text-[#f2f4ec] outline-none"
         />
       </div>
 
@@ -361,17 +361,17 @@ function GetSLSPanel() {
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-1.5">
         <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
-          <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">YOUR SOL</p>
-          <p className="text-sm font-black text-[#eee]">{solBalance !== null ? solBalance.toFixed(4) : "-"}</p>
+          <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">YOUR SOL</p>
+          <p className="text-sm font-black text-[#f2f4ec]">{solBalance !== null ? solBalance.toFixed(4) : "-"}</p>
         </div>
         <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
-          <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">YOUR $SLS</p>
+          <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">YOUR $SLS</p>
           <p className="text-sm font-black text-[#9945FF]">{slsBalance !== null ? slsBalance.toFixed(2) : "-"}</p>
         </div>
       </div>
 
       <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3">
-        <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-2">SOL TO SWAP</p>
+        <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-2">SOL TO SWAP</p>
         <input
           type="number"
           min="0"
@@ -379,13 +379,13 @@ function GetSLSPanel() {
           placeholder="0.00"
           value={solInput}
           onChange={(e) => setSolInput(e.target.value)}
-          className="w-full bg-black/20 border border-white/10 rounded-md px-3 py-2 text-sm font-black text-[#eee] outline-none"
+          className="w-full bg-black/20 border border-white/10 rounded-md px-3 py-2 text-sm font-black text-[#f2f4ec] outline-none"
         />
       </div>
 
       {slsOut !== null && (
         <div className="bg-[#0a0a1a] border border-[rgba(153,69,255,0.3)] rounded-md p-3">
-          <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">ESTIMATED OUT</p>
+          <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">ESTIMATED OUT</p>
           <p className="text-sm font-black text-[#9945FF]">{slsOut.toFixed(2)} $SLS</p>
         </div>
       )}
@@ -475,17 +475,17 @@ function SellSLSPanel({ onSold }: { onSold: () => void }) {
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-1.5">
         <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
-          <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">YOUR $SLS</p>
+          <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">YOUR $SLS</p>
           <p className="text-sm font-black text-[#9945FF]">{slsBalance !== null ? slsBalance.toFixed(2) : "-"}</p>
         </div>
         <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
-          <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">RATE</p>
-          <p className="text-sm font-black text-[#eee]">50 $SLS / 1 CASH</p>
+          <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">RATE</p>
+          <p className="text-sm font-black text-[#f2f4ec]">50 $SLS / 1 CASH</p>
         </div>
       </div>
 
       <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3">
-        <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-2">SELL $SLS</p>
+        <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-2">SELL $SLS</p>
         <input
           type="number"
           min="0"
@@ -493,13 +493,13 @@ function SellSLSPanel({ onSold }: { onSold: () => void }) {
           placeholder="0.00"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          className="w-full bg-black/20 border border-white/10 rounded-md px-3 py-2 text-sm font-black text-[#eee] outline-none"
+          className="w-full bg-black/20 border border-white/10 rounded-md px-3 py-2 text-sm font-black text-[#f2f4ec] outline-none"
         />
       </div>
 
       {quote && (
         <div className="bg-[#0a0a1a] border border-[rgba(153,69,255,0.3)] rounded-md p-3">
-          <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">YOU RECEIVE</p>
+          <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">YOU RECEIVE</p>
           <p className="text-sm font-black text-[#66bb6a]">{quote.cashToReceive.toFixed(2)} CASH</p>
         </div>
       )}
@@ -530,7 +530,7 @@ function HospitalPanel({
     <div className="flex flex-col gap-3">
       <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] font-black tracking-[2px] text-[#eee]">HOSPITAL STATUS</p>
+          <p className="text-[10px] font-black tracking-[2px] text-[#f2f4ec]">HOSPITAL STATUS</p>
           <span className={`text-[10px] font-bold ${profile.inHospital ? "text-[#ef5350]" : "text-[#66bb6a]"}`}>
             {profile.inHospital ? "HOSPITALIZED" : "CLEAR"}
           </span>
@@ -572,7 +572,7 @@ function HistoryPanel({ localEntries }: { localEntries: SlsTransactionItem[] }) 
   const all = [...localEntries, ...transactions];
 
   if (all.length === 0) {
-    return <p className="text-[11px] text-[#555] text-center py-8">No transaction history yet.</p>;
+    return <p className="text-[11px] text-[#aab0a3] text-center py-8">No transaction history yet.</p>;
   }
 
   return (
@@ -585,14 +585,14 @@ function HistoryPanel({ localEntries }: { localEntries: SlsTransactionItem[] }) 
               <Icon size={14} className="text-[#9945FF]" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-bold text-[#eee] truncate">{tx.description}</p>
-              <p className="text-[9px] text-[#555]">{formatDate(tx.createdAt)}</p>
+              <p className="text-[11px] font-bold text-[#f2f4ec] truncate">{tx.description}</p>
+              <p className="text-[9px] text-[#aab0a3]">{formatDate(tx.createdAt)}</p>
             </div>
             <div className="text-right shrink-0">
               <p className={`text-[11px] font-black ${tx.amount < 0 ? "text-[#ef5350]" : "text-[#fdd835]"}`}>
                 {tx.amount < 0 ? "-" : "+"}{Math.abs(tx.amount).toFixed(2)} $SLS
               </p>
-              <p className="text-[9px] text-[#888]">{tx.usdValue.toFixed(2)}</p>
+              <p className="text-[9px] text-[#d0d5ca]">{tx.usdValue.toFixed(2)}</p>
             </div>
           </div>
         );
@@ -662,7 +662,7 @@ export default function BlackMarketPage() {
           <ShoppingBag size={18} className="text-[#9945FF] mb-0.5" />
           <div>
             <p className="text-[10px] font-black text-[#9945FF] tracking-[3px] uppercase">Black Market</p>
-            <p className="text-[11px] font-semibold text-[#888]">$SLS utility — swap, sell, send, and more</p>
+            <p className="text-[11px] font-semibold text-[#d0d5ca]">$SLS utility — swap, sell, send, and more</p>
           </div>
         </div>
       </div>
@@ -677,7 +677,7 @@ export default function BlackMarketPage() {
             className={`px-1 py-2 border text-[9px] font-black tracking-[1px] uppercase flex flex-col items-center gap-1 ${
               tab === id
                 ? "bg-[#1a0a2e] border-[rgba(153,69,255,0.3)] text-[#9945FF]"
-                : "bg-black/20 border-white/10 text-[#555]"
+                : "bg-black/20 border-white/10 text-[#aab0a3]"
             }`}
           >
             <Icon size={14} />
@@ -698,3 +698,4 @@ export default function BlackMarketPage() {
     </div>
   );
 }
+

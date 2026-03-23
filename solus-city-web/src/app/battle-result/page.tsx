@@ -35,7 +35,7 @@ function Row({
             ? "text-[#66bb6a]"
             : negative
             ? "text-[#ef5350]"
-            : "text-[#eee]"
+            : "text-[#f2f4ec]"
         }`}
       >
         {value}
@@ -187,7 +187,7 @@ export default function BattleResultPage() {
         <div className="h-28 rounded-lg overflow-hidden border border-white/10 bg-black/20 backdrop-blur-sm flex items-end relative">
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
           <div className="relative z-10 px-3 pb-3">
-            <p className="text-[10px] font-black text-[#eee] tracking-[3px] uppercase mb-1">
+            <p className="text-[10px] font-black text-[#f2f4ec] tracking-[3px] uppercase mb-1">
               {heroTitle}
             </p>
             <p className="text-[11px] font-semibold text-text-dim">
@@ -330,7 +330,7 @@ export default function BattleResultPage() {
           </button>
           <button
             onClick={() => router.push("/attack-logs")}
-            className="flex-1 flex items-center justify-center gap-2 py-3 bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg text-[#888] text-[11px] font-bold tracking-[2px]"
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg text-[#d0d5ca] text-[11px] font-bold tracking-[2px]"
           >
             VIEW LOGS
           </button>
@@ -355,4 +355,5 @@ export default function BattleResultPage() {
     </div>
   );
 }
+
 

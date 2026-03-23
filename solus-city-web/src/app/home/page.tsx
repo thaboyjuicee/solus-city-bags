@@ -127,12 +127,12 @@ export default function HomePage() {
       {/* Hero: identity */}
       <section className="rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(153,69,255,0.18),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(66,165,245,0.14),transparent_32%),rgba(0,0,0,0.28)] p-5 md:p-6">
         <div className="flex flex-wrap items-center gap-2 mb-3">
-          <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-black tracking-[2px] text-[#888] uppercase">
+          <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-black tracking-[2px] text-[#d0d5ca] uppercase">
             Solus City Operator Hub
           </span>
           {me.currentSyndicateRole ? <SyndicateRoleBadge role={me.currentSyndicateRole} /> : null}
         </div>
-        <p className="text-[30px] font-black leading-none text-[#eee] md:text-[36px]">{me.name ?? "Unnamed Operator"}</p>
+        <p className="text-[30px] font-black leading-none text-[#f2f4ec] md:text-[36px]">{me.name ?? "Unnamed Operator"}</p>
         <p className="mt-2 text-[12px] text-[#9a9a9a] max-w-2xl">
           Keep your wallet liquid, your vault protected, your heat controlled, and your syndicate pressure rising.
         </p>
@@ -141,32 +141,32 @@ export default function HomePage() {
       {/* Top row: key stats */}
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
         <div className="rounded-md border border-white/10 bg-black/20 p-3">
-          <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Level</p>
+          <p className="text-[9px] font-black tracking-[2px] text-[#aab0a3] uppercase">Level</p>
           <p className="mt-1 text-[18px] font-black text-[#42a5f5]">{me.level}</p>
         </div>
         <div className="rounded-md border border-white/10 bg-black/20 p-3">
-          <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Wallet</p>
+          <p className="text-[9px] font-black tracking-[2px] text-[#aab0a3] uppercase">Wallet</p>
           <p className="mt-1 text-[18px] font-black text-[#66bb6a]">{formatCash(me.cash)}</p>
         </div>
         <div className="rounded-md border border-white/10 bg-black/20 p-3">
-          <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Vault</p>
+          <p className="text-[9px] font-black tracking-[2px] text-[#aab0a3] uppercase">Vault</p>
           <p className="mt-1 text-[18px] font-black text-[#42a5f5]">{formatCash(me.vaultCash)}</p>
         </div>
         <div className="rounded-md border border-white/10 bg-black/20 p-3">
-          <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">RP</p>
+          <p className="text-[9px] font-black tracking-[2px] text-[#aab0a3] uppercase">RP</p>
           <p className="mt-1 text-[18px] font-black text-[#fdd835]">{me.rp}</p>
         </div>
         <div className="rounded-md border border-white/10 bg-black/20 p-3">
-          <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Season</p>
+          <p className="text-[9px] font-black tracking-[2px] text-[#aab0a3] uppercase">Season</p>
           <p className="mt-1 text-[18px] font-black text-[#ff8a65]">{me.seasonScore}</p>
         </div>
         <div className="rounded-md border border-white/10 bg-black/20 p-3">
-          <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Perk Pts</p>
+          <p className="text-[9px] font-black tracking-[2px] text-[#aab0a3] uppercase">Perk Pts</p>
           <p className="mt-1 text-[18px] font-black text-[#9945FF]">{me.availablePerkPoints}</p>
         </div>
       </div>
 
-      {/* Hospital (conditional — urgent, shown when active) */}
+      {/* Hospital (conditional - urgent, shown when active) */}
       <HospitalOptionsCard active={me.inHospital} onUpdated={fetchMe} />
 
       {/* Middle row: Heat/Wanted | Cash Storage | Black Market */}
@@ -177,7 +177,7 @@ export default function HomePage() {
         </div>
         <VaultCard walletCash={me.cash} vaultCash={me.vaultCash} />
         <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-2">
-          <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Black Market</p>
+          <p className="text-[9px] font-black tracking-[2px] text-[#aab0a3] uppercase">Black Market</p>
           <p className="text-[16px] font-black text-[#9945FF]">{formatTimer(me.blackMarketEndsAt)}</p>
           <p className="text-[11px] text-[#777]">Recovery items, contraband, and rotating risk buys.</p>
         </div>
@@ -192,24 +192,24 @@ export default function HomePage() {
         {/* Core Condition */}
         <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
           <div>
-            <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Core Condition</p>
-            <p className="mt-1 text-[12px] text-[#888]">Live stats, recovery timers, and active edge.</p>
+            <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">Core Condition</p>
+            <p className="mt-1 text-[12px] text-[#d0d5ca]">Live stats, recovery timers, and active edge.</p>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-md border border-white/10 bg-black/20 p-3">
-              <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Health</p>
+              <p className="text-[9px] font-black tracking-[2px] text-[#aab0a3] uppercase">Health</p>
               <p className="mt-1 text-[16px] font-black text-[#ef5350]">{me.health}/{me.maxHealth}</p>
             </div>
             <div className="rounded-md border border-white/10 bg-black/20 p-3">
-              <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Energy</p>
+              <p className="text-[9px] font-black tracking-[2px] text-[#aab0a3] uppercase">Energy</p>
               <p className="mt-1 text-[16px] font-black text-[#42a5f5]">{me.energy}/{me.maxEnergy}</p>
             </div>
             <div className="rounded-md border border-white/10 bg-black/20 p-3">
-              <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Nerve</p>
+              <p className="text-[9px] font-black tracking-[2px] text-[#aab0a3] uppercase">Nerve</p>
               <p className="mt-1 text-[16px] font-black text-[#ff9800]">{me.nerve}/{me.maxNerve}</p>
             </div>
             <div className="rounded-md border border-white/10 bg-black/20 p-3">
-              <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Happiness</p>
+              <p className="text-[9px] font-black tracking-[2px] text-[#aab0a3] uppercase">Happiness</p>
               <p className="mt-1 text-[16px] font-black text-[#fdd835]">{me.happiness}/{me.maxHappiness}</p>
             </div>
           </div>
@@ -221,15 +221,15 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-3 gap-2 text-[10px]">
             <div className="rounded-md border border-white/10 bg-black/20 p-2">
-              <p className="font-black tracking-[2px] text-[#555] uppercase">Next Energy</p>
+              <p className="font-black tracking-[2px] text-[#aab0a3] uppercase">Next Energy</p>
               <p className="mt-1 text-[#ddd]">{formatRecovery(me.nextEnergyAt)}</p>
             </div>
             <div className="rounded-md border border-white/10 bg-black/20 p-2">
-              <p className="font-black tracking-[2px] text-[#555] uppercase">Next Nerve</p>
+              <p className="font-black tracking-[2px] text-[#aab0a3] uppercase">Next Nerve</p>
               <p className="mt-1 text-[#ddd]">{formatRecovery(me.nextNerveAt)}</p>
             </div>
             <div className="rounded-md border border-white/10 bg-black/20 p-2">
-              <p className="font-black tracking-[2px] text-[#555] uppercase">Next Happiness</p>
+              <p className="font-black tracking-[2px] text-[#aab0a3] uppercase">Next Happiness</p>
               <p className="mt-1 text-[#ddd]">{formatRecovery(me.nextHappinessAt)}</p>
             </div>
           </div>
@@ -238,8 +238,8 @@ export default function HomePage() {
         {/* Loadout & Protection */}
         <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
           <div>
-            <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Loadout & Protection</p>
-            <p className="mt-1 text-[12px] text-[#888]">What is currently shaping your survival odds.</p>
+            <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">Loadout & Protection</p>
+            <p className="mt-1 text-[12px] text-[#d0d5ca]">What is currently shaping your survival odds.</p>
           </div>
           <div className="grid gap-2 grid-cols-2">
             {me.equipmentSummary.length === 0 ? (
@@ -247,9 +247,9 @@ export default function HomePage() {
             ) : (
               me.equipmentSummary.map((item) => (
                 <div key={item.itemId} className="rounded-md border border-white/10 bg-black/20 p-3">
-                  <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">{item.slot ?? "utility"}</p>
-                  <p className="mt-1 text-[12px] font-bold text-[#eee]">{item.name}</p>
-                  <p className="mt-1 text-[10px] text-[#888]">{item.rarity ?? "standard"}</p>
+                  <p className="text-[9px] font-black tracking-[2px] text-[#aab0a3] uppercase">{item.slot ?? "utility"}</p>
+                  <p className="mt-1 text-[12px] font-bold text-[#f2f4ec]">{item.name}</p>
+                  <p className="mt-1 text-[10px] text-[#d0d5ca]">{item.rarity ?? "standard"}</p>
                 </div>
               ))
             )}
@@ -269,32 +269,32 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Syndicate State — full width, conditional */}
+      {/* Syndicate State - full width, conditional */}
       {me.syndicateVaultSummary && (
         <section className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Syndicate State</p>
-              <p className="mt-1 text-[12px] text-[#888]">Your current social power layer.</p>
+              <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">Syndicate State</p>
+              <p className="mt-1 text-[12px] text-[#d0d5ca]">Your current social power layer.</p>
             </div>
             <div className="flex flex-col items-end gap-1">
               {me.currentSyndicateRole ? <SyndicateRoleBadge role={me.currentSyndicateRole} /> : null}
               {me.syndicate?.name ? (
-                <p className="text-[9px] tracking-[1px] text-[#555] uppercase">{me.syndicate.name}</p>
+                <p className="text-[9px] tracking-[1px] text-[#aab0a3] uppercase">{me.syndicate.name}</p>
               ) : null}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <div className="rounded-md border border-white/10 bg-black/20 p-3">
-              <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Syndicate Vault</p>
+              <p className="text-[9px] font-black tracking-[2px] text-[#aab0a3] uppercase">Syndicate Vault</p>
               <p className="mt-1 text-[16px] font-black text-[#fdd835]">{formatCash(me.syndicateVaultSummary.vaultCash)}</p>
             </div>
             <div className="rounded-md border border-white/10 bg-black/20 p-3">
-              <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">War Rating</p>
+              <p className="text-[9px] font-black tracking-[2px] text-[#aab0a3] uppercase">War Rating</p>
               <p className="mt-1 text-[16px] font-black text-[#ff8a65]">{me.syndicateVaultSummary.warRating}</p>
             </div>
             <div className="rounded-md border border-white/10 bg-black/20 p-3">
-              <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Season Pts</p>
+              <p className="text-[9px] font-black tracking-[2px] text-[#aab0a3] uppercase">Season Pts</p>
               <p className="mt-1 text-[16px] font-black text-[#66bb6a]">{me.syndicateVaultSummary.seasonPoints}</p>
             </div>
           </div>
@@ -303,12 +303,12 @@ export default function HomePage() {
 
       {me.currentWarSummary && <WarScoreboard war={me.currentWarSummary} />}
 
-      {/* Mission Board — full width */}
+      {/* Mission Board - full width */}
       <section className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Mission Board</p>
-            <p className="mt-1 text-[12px] text-[#888]">Your hottest objectives right now.</p>
+            <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">Mission Board</p>
+            <p className="mt-1 text-[12px] text-[#d0d5ca]">Your hottest objectives right now.</p>
           </div>
           <p className="text-[10px] font-black tracking-[2px] text-[#9945FF] uppercase">{topMissions.length} showing</p>
         </div>
@@ -326,7 +326,7 @@ export default function HomePage() {
       {/* Recent Activity */}
       {events.length > 0 && (
         <section className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-          <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Recent Activity</p>
+          <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">Recent Activity</p>
           <div className="flex flex-col gap-1.5">
             {events.map((event) => (
               <div key={event.id} className="flex items-center gap-2.5">
@@ -335,7 +335,7 @@ export default function HomePage() {
                   style={{ backgroundColor: eventDotColor(event.type) }}
                 />
                 <p className="flex-1 text-[11px] text-[#aaa]">{event.message}</p>
-                <p className="flex-shrink-0 text-[10px] text-[#555]">{timeAgo(event.createdAt)}</p>
+                <p className="flex-shrink-0 text-[10px] text-[#aab0a3]">{timeAgo(event.createdAt)}</p>
               </div>
             ))}
           </div>
@@ -345,3 +345,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+

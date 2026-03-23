@@ -83,7 +83,7 @@ export function StatusBars({ profile }: StatusBarsProps) {
                 {label}
               </span>
               <AnimatedBar current={current} max={max} color={color} />
-              <span className="w-14 text-right text-[10px] text-[#888]">
+              <span className="w-14 text-right text-[10px] text-[#d0d5ca]">
                 {current}/{max}
               </span>
             </div>
@@ -96,7 +96,7 @@ export function StatusBars({ profile }: StatusBarsProps) {
           <span className="bg-[#9945FF] text-white text-[9px] font-bold px-2 py-0.5 rounded">
             LV {profile.level}
           </span>
-          <span className="text-[9px] font-bold text-[#888]">
+          <span className="text-[9px] font-bold text-[#d0d5ca]">
             XP {profile.xp}/{xpNext}
           </span>
         </div>
@@ -110,3 +110,4 @@ export function StatusBars({ profile }: StatusBarsProps) {
     </div>
   );
 }
+

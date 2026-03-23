@@ -16,16 +16,16 @@ export function MissionCard({
     <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <p className="text-[11px] font-bold text-[#eee]">{mission.name}</p>
-          <p className="text-[10px] text-[#555]">{mission.description}</p>
+          <p className="text-[11px] font-bold text-[#f2f4ec]">{mission.name}</p>
+          <p className="text-[10px] text-[#aab0a3]">{mission.description}</p>
         </div>
-        <span className="text-[9px] font-bold tracking-[2px] text-[#888] uppercase">{mission.type}</span>
+        <span className="text-[9px] font-bold tracking-[2px] text-[#d0d5ca] uppercase">{mission.type}</span>
       </div>
       <div className="h-2 rounded-full bg-[#1e1e1e] overflow-hidden">
         <div className="h-full rounded-full bg-[#9945FF] transition-all duration-500" style={{ width: `${pct}%` }} />
       </div>
       <div className="flex items-center justify-between text-[10px] font-bold">
-        <span className="text-[#888]">
+        <span className="text-[#d0d5ca]">
           {mission.progress}/{mission.goalValue}
         </span>
         <span className="text-[#66bb6a]">
@@ -39,7 +39,7 @@ export function MissionCard({
           className={`w-full py-2 rounded border text-[10px] font-black tracking-[2px] ${
             canClaim && !busy
               ? "border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF]"
-              : "border-white/10 bg-black/20 text-[#555] opacity-60"
+              : "border-white/10 bg-black/20 text-[#aab0a3] opacity-60"
           }`}
         >
           {mission.claimed ? "CLAIMED" : busy ? "CLAIMING..." : canClaim ? "CLAIM" : "IN PROGRESS"}
@@ -48,3 +48,4 @@ export function MissionCard({
     </div>
   );
 }
+
