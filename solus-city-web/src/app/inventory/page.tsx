@@ -13,19 +13,71 @@ export default function InventoryPage() {
   const slsBalance = useSLSBalance();
 
   const fetchInventory = useCallback(async () => {
-    const [inventoryRes, meRes] = await Promise.all([api.get<InventoryResponse>("/inventory"), api.get<MeResponse>("/me")]);
+    const [inventoryRes, meRes] = await Promise.all([
+      api.get<InventoryResponse>("/inventory"),
+      api.get<MeResponse>("/me"),
+    ]);
     setInventory(inventoryRes.data);
     setMe(meRes.data);
   }, []);
 
-  useEffect(() => { fetchInventory(); }, [fetchInventory]);
+  useEffect(() => {
+    fetchInventory();
+  }, [fetchInventory]);
 
-  const totalItems = useMemo(() => {
-    if (!inventory) return 0;
-    return [...inventory.equipped, ...inventory.consumables, ...inventory.utilities, ...inventory.contraband, ...inventory.protection, ...inventory.general].reduce((sum, row) => sum + row.qty, 0);
+  const totals = useMemo(() => {
+    if (!inventory) return { items: 0, protection: 0, consumables: 0, crew: 0 };
+    const crewRows = inventory.general.filter(
+      (row) => row.item.category?.toLowerCase() === "unit" || row.item.subCategory?.toLowerCase() === "crew",
+    );
+    return {
+      items: [...inventory.equipped, ...inventory.consumables, ...inventory.utilities, ...inventory.contraband, ...inventory.protection, ...inventory.general].reduce((sum, row) => sum + row.qty, 0),
+      protection: inventory.protection.length,
+      consumables: inventory.consumables.length,
+      crew: crewRows.reduce((sum, row) => sum + row.qty, 0),
+    };
   }, [inventory]);
 
-  if (!inventory) return <div className="flex min-h-[60vh] items-center justify-center"><LoadingSpinner size={32} /></div>;
+  if (!inventory) {
+    return <div className="flex min-h-[60vh] items-center justify-center"><LoadingSpinner size={32} /></div>;
+  }
 
-  return <div className="space-y-4"><div className="flex items-start justify-between gap-4"><div><p className="sc-page-title">Inventory</p><p className="sc-subtitle mt-2">Your gear and consumables</p></div><div className="text-right"><p className="sc-kicker">Equipped</p><p className="mt-2 text-[24px] font-black text-[#9f64ff]">{inventory.equipped.length}/3</p></div></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><div className="sc-stat"><p className="sc-label">Wallet</p><p className="mt-3 text-[24px] font-black text-[#36d47f]">${Math.floor(me?.cash ?? 0).toLocaleString()}</p></div><div className="sc-stat"><p className="sc-label">SLS</p><p className="mt-3 text-[24px] font-black text-[#9f64ff]">{slsBalance !== null ? slsBalance.toFixed(2) : "-"}</p></div><div className="sc-stat"><p className="sc-label">Items</p><p className="mt-3 text-[24px] font-black text-[#f4f5fb]">{totalItems}</p></div><div className="sc-stat"><p className="sc-label">Protection</p><p className="mt-3 text-[24px] font-black text-[#ff9d32]">{inventory.protection.length}</p></div></div><div className="sc-panel p-4 text-[12px] text-[#7a7f95]">Units stay passive. Slotted equipment affects combat only when equipped.</div><InventoryGrid inventory={inventory} onRefresh={fetchInventory} /></div>;
+  return (
+    <div className="space-y-6 pb-12">
+      <section className="sc-panel-strong overflow-hidden p-6 md:p-7">
+        <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="sc-kicker">INVENTORY</span>
+              <span className="sc-chip sc-chip-purple">organized storage</span>
+            </div>
+            <div>
+              <h1 className="sc-page-title">Know what you own and what is active</h1>
+              <p className="sc-subtitle max-w-3xl">
+                Crew, equipment, consumables, protection, and contraband are now separated so each group reads like its own gameplay system instead of a generic pile.
+              </p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-4">
+              <div className="sc-stat"><div className="sc-label">Wallet</div><div className="sc-value">${Math.floor(me?.cash ?? 0).toLocaleString()}</div></div>
+              <div className="sc-stat"><div className="sc-label">Vault</div><div className="sc-value">${Math.floor(me?.vaultCash ?? 0).toLocaleString()}</div></div>
+              <div className="sc-stat"><div className="sc-label">$SLS</div><div className="sc-value">{slsBalance !== null ? slsBalance.toFixed(2) : "-"}</div></div>
+              <div className="sc-stat"><div className="sc-label">Total items</div><div className="sc-value">{totals.items}</div></div>
+            </div>
+          </div>
+
+          <div className="sc-panel p-5">
+            <div className="sc-kicker">INVENTORY NOTES</div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+              <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4"><div className="sc-label">Crew</div><div className="mt-2 text-lg font-black text-[#7ea8ff]">{totals.crew}</div></div>
+              <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4"><div className="sc-label">Consumables</div><div className="mt-2 text-lg font-black text-[#ffd36b]">{totals.consumables}</div></div>
+              <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4"><div className="sc-label">Protection</div><div className="mt-2 text-lg font-black text-[#ff9d6b]">{totals.protection}</div></div>
+              <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4"><div className="sc-label">Rule</div><div className="mt-2 text-sm leading-6 text-white/60">Crew lives in its own section. Slotted equipment affects combat only when equipped.</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <InventoryGrid inventory={inventory} onRefresh={fetchInventory} />
+    </div>
+  );
 }

@@ -35,6 +35,16 @@ function pct(current?: number, max?: number) {
   return Math.max(0, Math.min(100, Math.round((Number(current ?? 0) / Number(max)) * 100)));
 }
 
+function sectionCard(title: string, value: string, note?: string) {
+  return (
+    <div className="sc-stat">
+      <div className="sc-label">{title}</div>
+      <div className="sc-value">{value}</div>
+      {note ? <div className="mt-2 text-xs text-white/45">{note}</div> : null}
+    </div>
+  );
+}
+
 export default function ProfilePage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -63,9 +73,7 @@ export default function ProfilePage() {
           setError(null);
         }
       } catch (err: any) {
-        if (!cancelled) {
-          setError(err?.message ?? "Could not load profile.");
-        }
+        if (!cancelled) setError(err?.message ?? "Could not load profile.");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -77,16 +85,10 @@ export default function ProfilePage() {
     };
   }, []);
 
-  const equipped = useMemo(() => {
-    return data?.inventory?.equipped ?? data?.inventory?.groups?.equipped ?? [];
-  }, [data]);
-
+  const equipped = useMemo(() => data?.inventory?.equipped ?? data?.inventory?.groups?.equipped ?? [], [data]);
   const definitions = data?.perks?.definitions ?? [];
   const unlockedRows = data?.perks?.unlockedPerks ?? data?.perks?.unlocked ?? [];
-  const unlockedIds = new Set(
-    unlockedRows.map((item: any) => item.perkDefinitionId ?? item.id ?? item.code),
-  );
-
+  const unlockedIds = new Set(unlockedRows.map((item: any) => item.perkDefinitionId ?? item.id ?? item.code));
   const branchSummary = ["enforcer", "hustler", "grinder"].map((branch) => {
     const rows = definitions.filter((perk: any) => perk.branch === branch);
     const unlocked = rows.filter((perk: any) => unlockedIds.has(perk.id) || unlockedIds.has(perk.code));
@@ -124,11 +126,12 @@ export default function ProfilePage() {
 
   const me = data.me;
   const wantedTier = String(me.wantedTier ?? "low").replaceAll("_", " ");
+  const projectedTier = String(me.projectedSeasonRewardTier ?? data?.season?.projectedTier ?? "Scout").replaceAll("_", " ");
 
   return (
     <div className="space-y-6 pb-12">
       <section className="sc-panel-strong overflow-hidden p-6 md:p-7">
-        <div className="grid gap-6 xl:grid-cols-[1.45fr_0.95fr]">
+        <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
           <div className="space-y-5">
             <div className="flex flex-wrap items-center gap-2">
               <span className="sc-kicker">PLAYER DOSSIER</span>
@@ -136,69 +139,36 @@ export default function ProfilePage() {
               <span className="sc-chip sc-chip-red">{wantedTier}</span>
               {me.syndicateName ? <span className="sc-chip sc-chip-green">{me.syndicateName}</span> : null}
             </div>
-
             <div>
               <h1 className="sc-page-title">{me.name ?? "Operator"}</h1>
-              <p className="sc-subtitle max-w-2xl">
-                Progression identity, permanent meta chase, perk posture, and combat loadout all in one place.
+              <p className="sc-subtitle max-w-3xl">
+                Your profile is now split into clear operating blocks: condition, economy, combat build, and long-term meta progression.
               </p>
             </div>
-
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <div className="sc-stat">
-                <div className="sc-label">Wallet</div>
-                <div className="sc-value">{money(me.cash)}</div>
-                <div className="mt-2 text-xs text-white/45">Active on-hand spend and PvP risk.</div>
-              </div>
-              <div className="sc-stat">
-                <div className="sc-label">Vault</div>
-                <div className="sc-value">{money(me.vaultCash)}</div>
-                <div className="mt-2 text-xs text-white/45">Protected reserves outside wallet theft.</div>
-              </div>
-              <div className="sc-stat">
-                <div className="sc-label">Season score</div>
-                <div className="sc-value">{Number(me.seasonScore ?? season?.playerScore ?? 0).toLocaleString()}</div>
-                <div className="mt-2 text-xs text-white/45">Live meta progression inside the active season.</div>
-              </div>
-              <div className="sc-stat">
-                <div className="sc-label">Perk points</div>
-                <div className="sc-value">{Number(me.availablePerkPoints ?? data?.perks?.availablePoints ?? 0)}</div>
-                <div className="mt-2 text-xs text-white/45">Unspent account power waiting on your branch choice.</div>
-              </div>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-3">
-              <div className="sc-panel p-4">
-                <div className="flex items-center justify-between">
-                  <span className="sc-label">Health</span>
-                  <span className="text-xs text-white/55">{me.hp ?? 0}/{me.maxHp ?? 0}</span>
-                </div>
-                <div className="sc-progress mt-3"><span style={{ width: `${pct(me.hp, me.maxHp)}%`, background: "linear-gradient(90deg, #34d399, #86efac)" }} /></div>
-              </div>
-              <div className="sc-panel p-4">
-                <div className="flex items-center justify-between">
-                  <span className="sc-label">Energy</span>
-                  <span className="text-xs text-white/55">{me.energy ?? 0}/{me.maxEnergy ?? 0}</span>
-                </div>
-                <div className="sc-progress mt-3"><span style={{ width: `${pct(me.energy, me.maxEnergy)}%`, background: "linear-gradient(90deg, #8b5cf6, #d8b4fe)" }} /></div>
-              </div>
-              <div className="sc-panel p-4">
-                <div className="flex items-center justify-between">
-                  <span className="sc-label">Nerve</span>
-                  <span className="text-xs text-white/55">{me.nerve ?? 0}/{me.maxNerve ?? 0}</span>
-                </div>
-                <div className="sc-progress mt-3"><span style={{ width: `${pct(me.nerve, me.maxNerve)}%`, background: "linear-gradient(90deg, #f59e0b, #fcd34d)" }} /></div>
-              </div>
+              {sectionCard("Wallet", money(me.cash), "Active on-hand spend and PvP risk.")}
+              {sectionCard("Vault", money(me.vaultCash), "Protected reserves outside wallet theft.")}
+              {sectionCard("Season score", Number(me.seasonScore ?? season?.playerScore ?? 0).toLocaleString(), "Current season contribution.")}
+              {sectionCard("Perk points", String(Number(me.availablePerkPoints ?? data?.perks?.availablePoints ?? 0)), "Unspent account power.")}
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
-            <div className="sc-panel p-5">
-              <div className="sc-kicker">PROGRESSION</div>
-              <div className="mt-3 text-2xl font-black text-white">Level {me.level ?? 1}</div>
-              <div className="mt-1 text-sm text-white/55">XP {Number(me.xp ?? 0).toLocaleString()} / {Number(me.xpForNext ?? me.nextLevelXp ?? 100).toLocaleString()}</div>
-              <div className="sc-progress mt-4"><span style={{ width: `${pct(me.xp, me.xpForNext ?? me.nextLevelXp ?? 100)}%` }} /></div>
-              <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-white/70">
+          <div className="sc-panel p-5">
+            <div className="sc-kicker">STATUS</div>
+            <div className="mt-3 grid gap-4">
+              <div>
+                <div className="flex items-center justify-between text-sm text-white/65"><span>Health</span><span>{me.hp ?? 0}/{me.maxHp ?? 0}</span></div>
+                <div className="sc-progress mt-2"><span style={{ width: `${pct(me.hp, me.maxHp)}%`, background: "linear-gradient(90deg, #34d399, #86efac)" }} /></div>
+              </div>
+              <div>
+                <div className="flex items-center justify-between text-sm text-white/65"><span>Energy</span><span>{me.energy ?? 0}/{me.maxEnergy ?? 0}</span></div>
+                <div className="sc-progress mt-2"><span style={{ width: `${pct(me.energy, me.maxEnergy)}%`, background: "linear-gradient(90deg, #8b5cf6, #d8b4fe)" }} /></div>
+              </div>
+              <div>
+                <div className="flex items-center justify-between text-sm text-white/65"><span>Nerve</span><span>{me.nerve ?? 0}/{me.maxNerve ?? 0}</span></div>
+                <div className="sc-progress mt-2"><span style={{ width: `${pct(me.nerve, me.maxNerve)}%`, background: "linear-gradient(90deg, #f59e0b, #fcd34d)" }} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm text-white/70">
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
                   <div className="sc-label">Attack</div>
                   <div className="mt-1 text-lg font-semibold text-white">{Number(me.attack ?? me.ap ?? 0).toLocaleString()}</div>
@@ -209,45 +179,22 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
-
-            <div className="sc-panel p-5">
-              <div className="sc-kicker">META LOOP</div>
-              <div className="mt-3 flex items-center justify-between text-sm text-white/65">
-                <span>Projected reward tier</span>
-                <span className="font-semibold text-[#ffd36b]">{String(me.projectedSeasonRewardTier ?? data?.season?.projectedTier ?? "Scout").replaceAll("_", " ")}</span>
-              </div>
-              <div className="mt-3 flex items-center justify-between text-sm text-white/65">
-                <span>Prestige eligibility</span>
-                <span className={me.prestigeEligibility?.eligible ? "font-semibold text-[#7ef0c5]" : "font-semibold text-[#ff8d8d]"}>
-                  {me.prestigeEligibility?.eligible ? "Ready" : "Locked"}
-                </span>
-              </div>
-              <div className="mt-3 flex items-center justify-between text-sm text-white/65">
-                <span>Unlocked perks</span>
-                <span className="font-semibold text-white">{unlockedRows.length}</span>
-              </div>
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                <Link href="/prestige" className="sc-button sc-button-primary justify-center">Open prestige room</Link>
-                <Link href="/inventory" className="sc-button justify-center">Manage equipment</Link>
-              </div>
-            </div>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+      <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <div className="sc-panel-strong p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <div className="sc-kicker">ACTIVE LOADOUT</div>
-              <h2 className="mt-2 text-2xl font-black text-white">Equipment posture</h2>
+              <div className="sc-kicker">COMBAT BUILD</div>
+              <h2 className="mt-2 text-2xl font-black text-white">Loadout and readiness</h2>
             </div>
-            <Link href="/inventory" className="sc-button">Inventory</Link>
+            <Link href="/inventory" className="sc-button">Open inventory</Link>
           </div>
-          <div className="sc-divider my-4" />
-          {equipped.length ? (
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {equipped.map((item: any) => (
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {equipped.length ? (
+              equipped.map((item: any) => (
                 <div key={item.id} className="rounded-[26px] border border-white/10 bg-white/5 p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div>
@@ -262,35 +209,44 @@ export default function ProfilePage() {
                     {item.item?.rarity ? <div>Rarity: {item.item.rarity}</div> : null}
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-[26px] border border-dashed border-white/12 bg-white/[0.04] p-5 text-sm text-white/55">
-              No equipment is active. Slotted gear only affects combat when equipped.
-            </div>
-          )}
+              ))
+            ) : (
+              <div className="rounded-[26px] border border-dashed border-white/12 bg-white/[0.04] p-5 text-sm text-white/55 md:col-span-2 xl:col-span-3">
+                No equipment is active. Slotted gear only affects combat when equipped.
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="sc-panel-strong p-6">
-          <div className="sc-kicker">SEASON POSITION</div>
-          <h2 className="mt-2 text-2xl font-black text-white">Current standing</h2>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+          <div className="sc-kicker">META LOOP</div>
+          <h2 className="mt-2 text-2xl font-black text-white">Season and prestige</h2>
+          <div className="mt-5 space-y-3">
             <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
               <div className="sc-label">Active season</div>
               <div className="mt-2 text-lg font-semibold text-white">{season?.name ?? "No active season"}</div>
               <div className="mt-1 text-sm text-white/55">Rank {season?.playerRank ?? data?.season?.playerRank ?? "-"}</div>
             </div>
-            <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-              <div className="sc-label">PvP score</div>
-              <div className="mt-2 text-lg font-semibold text-white">{Number(scoreBreakdown?.pvpScore ?? 0).toLocaleString()}</div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                <div className="sc-label">Projected reward</div>
+                <div className="mt-2 text-lg font-semibold text-[#ffd36b]">{projectedTier}</div>
+              </div>
+              <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                <div className="sc-label">Prestige eligibility</div>
+                <div className={`mt-2 text-lg font-semibold ${me.prestigeEligibility?.eligible ? "text-[#7ef0c5]" : "text-[#ff8d8d]"}`}>
+                  {me.prestigeEligibility?.eligible ? "Ready" : "Locked"}
+                </div>
+              </div>
             </div>
-            <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-              <div className="sc-label">Crime score</div>
-              <div className="mt-2 text-lg font-semibold text-white">{Number(scoreBreakdown?.crimeScore ?? 0).toLocaleString()}</div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-[24px] border border-white/10 bg-white/5 p-4"><div className="sc-label">PvP</div><div className="mt-2 text-lg font-semibold text-white">{Number(scoreBreakdown?.pvpScore ?? 0).toLocaleString()}</div></div>
+              <div className="rounded-[24px] border border-white/10 bg-white/5 p-4"><div className="sc-label">Crime</div><div className="mt-2 text-lg font-semibold text-white">{Number(scoreBreakdown?.crimeScore ?? 0).toLocaleString()}</div></div>
+              <div className="rounded-[24px] border border-white/10 bg-white/5 p-4"><div className="sc-label">Mission</div><div className="mt-2 text-lg font-semibold text-white">{Number(scoreBreakdown?.missionScore ?? 0).toLocaleString()}</div></div>
             </div>
-            <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-              <div className="sc-label">Mission score</div>
-              <div className="mt-2 text-lg font-semibold text-white">{Number(scoreBreakdown?.missionScore ?? 0).toLocaleString()}</div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Link href="/prestige" className="sc-button sc-button-primary justify-center">Open prestige room</Link>
+              <Link href="/seasons" className="sc-button justify-center">Open season room</Link>
             </div>
           </div>
         </div>
@@ -299,7 +255,7 @@ export default function ProfilePage() {
       <section className="sc-panel-strong p-6">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <div className="sc-kicker">PERK TREE</div>
+            <div className="sc-kicker">PERK BRANCHES</div>
             <h2 className="mt-2 text-2xl font-black text-white">Branch posture</h2>
           </div>
           <span className="sc-chip sc-chip-purple">{unlockedRows.length} unlocked</span>

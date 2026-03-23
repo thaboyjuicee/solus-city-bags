@@ -306,7 +306,7 @@ export function Navigation() {
   const [hudPulse, setHudPulse] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
   const previousMeRef = useRef<MeResponse | null>(null);
-  const pulseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pulseTimeoutRef = useRef<number | null>(null);
   const path = useMemo(() => (pathname === "/" ? "/home" : pathname ?? "/home"), [pathname]);
 
   useEffect(() => {
@@ -323,15 +323,15 @@ export function Navigation() {
           const hasMeaningfulChange =
             !!previous &&
             [
-              "health",
-              "energy",
-              "nerve",
-              "happiness",
-              "cash",
-              "heat",
-              "xp",
-              "level",
-            ].some((key) => Number((previous as Record<string, unknown>)[key] ?? 0) !== Number((nextMe as Record<string, unknown>)[key] ?? 0));
+              [previous.health, nextMe.health],
+              [previous.energy, nextMe.energy],
+              [previous.nerve, nextMe.nerve],
+              [previous.happiness, nextMe.happiness],
+              [previous.cash, nextMe.cash],
+              [previous.heat, nextMe.heat],
+              [previous.xp, nextMe.xp],
+              [previous.level, nextMe.level],
+            ].some(([before, after]) => Number(before ?? 0) !== Number(after ?? 0));
 
           setMe(nextMe);
           previousMeRef.current = nextMe;
