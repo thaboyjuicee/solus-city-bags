@@ -15,6 +15,7 @@ import {
   SYNDICATE_AP_BUFF,
 } from "./constants";
 import { getPlayerPerkContext } from "./player/perks";
+import { getHospitalPenaltyEffects } from "./player/hospitalPenalty";
 
 interface CombatBreakdown {
   baseStats: {
@@ -212,6 +213,7 @@ export async function computeCombatStats(
     getPlayerPerkContext(userId, prisma),
   ]);
   const buffMultiplier = member ? 1 + SYNDICATE_AP_BUFF : 1;
+  const hospitalPenaltyEffects = getHospitalPenaltyEffects(profile);
 
   const speedApBonus = Math.floor(speedBonus / 2);
   const dexDpBonus = Math.floor(dexBonus / 2);
@@ -219,8 +221,23 @@ export async function computeCombatStats(
   const baseDp = BASE_DEF + baseDefense + Math.floor(baseDexterity / 2);
   const apPerkMultiplier = 1 + (perkContext.effects.battle_ap_percent ?? 0);
   const dpPerkMultiplier = 1 + (perkContext.effects.battle_dp_percent ?? 0);
-  const totalAp = Math.round((baseAp + atkBonus + speedApBonus) * buffMultiplier * apPerkMultiplier);
-  const totalDp = Math.round((baseDp + defBonus + dexDpBonus) * dpPerkMultiplier);
+  const totalAp = Math.max(
+    1,
+    Math.round(
+      (baseAp + atkBonus + speedApBonus) *
+        buffMultiplier *
+        apPerkMultiplier *
+        hospitalPenaltyEffects.combatApMultiplier
+    )
+  );
+  const totalDp = Math.max(
+    1,
+    Math.round(
+      (baseDp + defBonus + dexDpBonus) *
+        dpPerkMultiplier *
+        hospitalPenaltyEffects.combatDpMultiplier
+    )
+  );
 
   return {
     baseStats: {

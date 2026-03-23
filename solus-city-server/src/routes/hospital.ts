@@ -4,12 +4,14 @@ import { z } from "zod";
 import { requireAuth } from "../lib/auth";
 import { isInHospital } from "../lib/game";
 import {
-  HOSPITAL_CASH_RELEASE_BASE,
-  HOSPITAL_CASH_RELEASE_PER_LEVEL,
-  HOSPITAL_CASH_RELEASE_PER_MINUTE,
   HOSPITAL_PENALTY_DURATION_HOURS,
 } from "../lib/config/balance";
 import { getPlayerPerkContext } from "../lib/player/perks";
+import {
+  getHospitalSlsReleasePricing,
+  getReleasedHealth,
+} from "../lib/player/hospital";
+import { fetchSlsPrice } from "../lib/economy/sls";
 
 const releaseItemBody = z.object({
   itemId: z.string().min(1),
@@ -18,21 +20,6 @@ const releaseItemBody = z.object({
 const penaltyReleaseBody = z.object({
   type: z.enum(["weakened", "shaken", "exposed"]),
 });
-
-function getHospitalCashReleaseCost(profile: { level: number; hospitalUntil: Date }) {
-  const minutesRemaining = Math.max(0, Math.ceil((profile.hospitalUntil.getTime() - Date.now()) / 60000));
-  return {
-    minutesRemaining,
-    cashReleaseCost:
-      HOSPITAL_CASH_RELEASE_BASE +
-      profile.level * HOSPITAL_CASH_RELEASE_PER_LEVEL +
-      minutesRemaining * HOSPITAL_CASH_RELEASE_PER_MINUTE,
-  };
-}
-
-function getReleasedHealth(maxHealth: number, recoveryBonus = 0) {
-  return Math.min(maxHealth, Math.max(1, Math.ceil(maxHealth * (0.25 + recoveryBonus))));
-}
 
 export default async function hospitalRoutes(
   fastify: FastifyInstance,
@@ -52,12 +39,15 @@ export default async function hospitalRoutes(
       ]);
 
       if (!profile) return reply.status(404).send({ error: "Profile not found" });
-      const { minutesRemaining, cashReleaseCost } = getHospitalCashReleaseCost(profile);
+      const slsPrice = await fetchSlsPrice();
+      const { minutesRemaining, slsReleaseCost, costUsd, multiplier } = getHospitalSlsReleasePricing(profile, slsPrice);
 
       return reply.send({
         hospitalized: isInHospital(profile),
         remainingMinutes: minutesRemaining,
-        cashReleaseCost,
+        slsReleaseCost,
+        slsReleaseUsd: costUsd,
+        slsReleaseMultiplier: multiplier,
         recoveryBonus: perkContext.effects.recovery_efficiency_percent ?? 0,
         hospitalReductionBonus: perkContext.effects.hospital_time_reduction_percent ?? 0,
         itemOptions: items.map((entry) => ({
@@ -75,52 +65,6 @@ export default async function hospitalRoutes(
       });
     } catch (err) {
       request.log.error(err, "/hospital/options error");
-      return reply.status(500).send({ error: "Internal server error" });
-    }
-  });
-
-  fastify.post("/hospital/release-cash", { preHandler: requireAuth }, async (request, reply) => {
-    const { userId } = request.user;
-
-    try {
-      const [profile, perkContext] = await Promise.all([
-        prisma.profile.findUnique({ where: { userId } }),
-        getPlayerPerkContext(userId, prisma),
-      ]);
-      if (!profile) return reply.status(404).send({ error: "Profile not found" });
-      if (!isInHospital(profile)) return reply.status(400).send({ error: "You are not hospitalized" });
-
-      const { cashReleaseCost } = getHospitalCashReleaseCost(profile);
-      if (profile.cash < cashReleaseCost) {
-        return reply.status(400).send({ error: "Insufficient wallet cash" });
-      }
-
-      const recoveryBonus = Math.min(0.5, perkContext.effects.recovery_efficiency_percent ?? 0);
-      const updated = await prisma.$transaction(async (tx) => {
-        const next = await tx.profile.update({
-          where: { userId },
-          data: {
-            cash: profile.cash - cashReleaseCost,
-            health: getReleasedHealth(profile.maxHealth, recoveryBonus),
-            hospitalUntil: new Date(0),
-          },
-        });
-
-        await tx.eventLog.create({
-          data: {
-            userId,
-            type: "hospital_release",
-            message: "Paid cash to leave the hospital early.",
-            metadata: { method: "cash", cashReleaseCost },
-          },
-        });
-
-        return next;
-      });
-
-      return reply.send({ success: true, cashReleaseCost, cash: updated.cash, hospitalUntil: updated.hospitalUntil });
-    } catch (err) {
-      request.log.error(err, "/hospital/release-cash error");
       return reply.status(500).send({ error: "Internal server error" });
     }
   });

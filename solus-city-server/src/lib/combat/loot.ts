@@ -6,6 +6,7 @@ import {
 } from "../config/balance";
 import { HEAT_MAX } from "../config/balance";
 import { applyLootProtection, type ActiveProtectionEffect } from "./protection";
+import { getHospitalPenaltyEffectsByType } from "../player/hospitalPenalty";
 
 export function getRepeatTargetLootMultiplier(recentAttackCount: number): number {
   return recentAttackCount > 0 ? REPEAT_TARGET_LOOT_REDUCTION_MULTIPLIER : 1;
@@ -42,12 +43,13 @@ export function calculateWalletCashSteal({
 
   const heatFactor = Math.max(0, Math.min(1, defenderHeat / HEAT_MAX));
   let stealPercent = PVP_STEAL_MIN_PERCENT + (PVP_STEAL_MAX_PERCENT - PVP_STEAL_MIN_PERCENT) * heatFactor;
+  const penaltyEffects = getHospitalPenaltyEffectsByType(defenderPenaltyType, defenderPenaltyActive);
 
   if (defenderLevel <= NEWBIE_PROTECTION_LEVEL_MAX) {
     stealPercent *= 0.75;
   }
-  if (defenderPenaltyActive && defenderPenaltyType === "exposed") {
-    stealPercent *= 1.15;
+  if (defenderPenaltyActive) {
+    stealPercent *= penaltyEffects.lootTakenMultiplier;
   }
 
   let baseAmount = availableWalletCash * stealPercent;

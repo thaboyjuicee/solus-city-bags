@@ -8,6 +8,7 @@ import { ensurePlayerMissionsAssigned } from "../lib/missions/assign";
 import { progressPlayerMissions } from "../lib/missions/progress";
 import { getPlayerPerkContext } from "../lib/player/perks";
 import { awardSeasonScore } from "../lib/seasons/scoring";
+import { getHospitalPenaltyEffects } from "../lib/player/hospitalPenalty";
 
 const commitBody = z.object({
   crimeId: z.string().min(1),
@@ -88,6 +89,7 @@ export default async function crimeRoutes(
       const happinessUpdate = applyHappiness({ ...recoveredProfile, ...incomeUpdate, ...energyUpdate, ...nerveUpdate });
       const heatState = decayHeat({ ...recoveredProfile, ...incomeUpdate, ...energyUpdate, ...nerveUpdate, ...happinessUpdate });
       const updated = { ...recoveredProfile, ...incomeUpdate, ...energyUpdate, ...nerveUpdate, ...happinessUpdate, ...heatState };
+      const hospitalPenaltyEffects = getHospitalPenaltyEffects(updated);
 
       if (updated.nerve < crime.nerveCost) {
         await prisma.profile.update({
@@ -105,12 +107,17 @@ export default async function crimeRoutes(
         return reply.status(400).send({ error: `Not enough nerve (need ${crime.nerveCost})` });
       }
 
+      const effectiveSuccessRate = Math.max(0.02, Math.min(0.98, crime.successRate * hospitalPenaltyEffects.crimeSuccessMultiplier));
       const roll = Math.random();
-      const success = roll < crime.successRate;
+      const success = roll < effectiveSuccessRate;
       const crimePayoutBonus = perkContext.effects.crime_payout_percent ?? 0;
       const heatReduction = Math.min(0.4, perkContext.effects.heat_reduction_percent ?? 0);
       let cashGained = success
-        ? Math.round((crime.cashMin + Math.floor(Math.random() * (crime.cashMax - crime.cashMin + 1))) * (1 + crimePayoutBonus))
+        ? Math.round(
+            (crime.cashMin + Math.floor(Math.random() * (crime.cashMax - crime.cashMin + 1))) *
+              (1 + crimePayoutBonus) *
+              hospitalPenaltyEffects.crimePayoutMultiplier
+          )
         : 0;
       const xpGained = success ? crime.xpReward : Math.floor(crime.xpReward / 2);
       let heatChange = Math.max(1, Math.round(crime.nerveCost / 2)) + (success ? 0 : 2);
@@ -194,6 +201,8 @@ export default async function crimeRoutes(
               specialOutcome,
               contrabandDrop,
               crimePayoutBonus,
+              effectiveSuccessRate,
+              hospitalPenaltyType: updated.hospitalExitPenaltyType,
               seasonPointsGained: seasonResult.pointsGained,
             },
           },

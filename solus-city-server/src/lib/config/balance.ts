@@ -12,13 +12,39 @@ export const BLACK_MARKET_ROTATION_HOURS = 6;
 export const BLACK_MARKET_MAX_LISTINGS = 6;
 export const BLACK_MARKET_STING_MAX_PERCENT = 22;
 
-export const HOSPITAL_CASH_RELEASE_BASE = 250;
-export const HOSPITAL_CASH_RELEASE_PER_LEVEL = 25;
-export const HOSPITAL_CASH_RELEASE_PER_MINUTE = 5;
+export const HOSPITAL_SLS_RELEASE_USD_BASE = 0.15;
+export const HOSPITAL_SLS_RELEASE_DAILY_MULTIPLIER = 2;
 export const HOSPITAL_PENALTY_DURATION_HOURS = {
   weakened: 4,
   shaken: 6,
   exposed: 8,
+} as const;
+
+export const HOSPITAL_PENALTY_EFFECTS = {
+  weakened: {
+    combatApMultiplier: 0.55,
+    combatDpMultiplier: 0.6,
+    crimeSuccessMultiplier: 0.75,
+    crimePayoutMultiplier: 0.75,
+    gymGainMultiplier: 0.45,
+    lootTakenMultiplier: 1.08,
+  },
+  shaken: {
+    combatApMultiplier: 0.75,
+    combatDpMultiplier: 0.75,
+    crimeSuccessMultiplier: 0.5,
+    crimePayoutMultiplier: 0.6,
+    gymGainMultiplier: 0.6,
+    lootTakenMultiplier: 1.12,
+  },
+  exposed: {
+    combatApMultiplier: 0.7,
+    combatDpMultiplier: 0.7,
+    crimeSuccessMultiplier: 0.65,
+    crimePayoutMultiplier: 0.7,
+    gymGainMultiplier: 0.65,
+    lootTakenMultiplier: 1.35,
+  },
 } as const;
 
 export const DAILY_MISSION_COUNT = 3;

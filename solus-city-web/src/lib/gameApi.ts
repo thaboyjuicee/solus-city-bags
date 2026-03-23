@@ -264,7 +264,9 @@ export interface MeResponse {
 export interface HospitalOptions {
   hospitalized: boolean;
   remainingMinutes: number;
-  cashReleaseCost: number;
+  slsReleaseCost: number | null;
+  slsReleaseUsd: number;
+  slsReleaseMultiplier: number;
   itemOptions: Array<{
     itemId: string;
     name: string;

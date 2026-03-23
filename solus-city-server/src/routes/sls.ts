@@ -9,11 +9,9 @@ import {
 } from "@solana/web3.js";
 import { createTransferInstruction, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { z } from "zod";
-
-interface DexPair {
-  priceUsd?: string;
-  liquidity?: { usd?: number };
-}
+import { isInHospital } from "../lib/game";
+import { getHospitalSlsReleasePricing } from "../lib/player/hospital";
+import { fetchSlsPrice } from "../lib/economy/sls";
 
 const SLS_MINT = new PublicKey("ELTXCFp1tmtfu39CPw6afnMSjW1BBxjinorJQsKmBAGS");
 const TREASURY_WALLET = new PublicKey("5vTZGYbkJ2xGbpNEbgp8TLuob3jjXTLqRgzdG8zP1FiZ");
@@ -26,6 +24,9 @@ const MAX_SLS_PER_TRADE = MAX_CASH_PER_TRADE * SLS_TO_CASH_RATE;
 const SELL_BODY_SCHEMA = z.object({
   signature: z.string().min(60).max(130),
 });
+const HOSPITAL_RELEASE_BODY_SCHEMA = z.object({
+  signature: z.string().min(60).max(130),
+});
 const SELL_QUOTE_BODY_SCHEMA = z.object({
   slsAmount: z.coerce
     .number()
@@ -34,22 +35,7 @@ const SELL_QUOTE_BODY_SCHEMA = z.object({
     .max(MAX_SLS_PER_TRADE, `Maximum sell is ${MAX_CASH_PER_TRADE} CASH (${MAX_SLS_PER_TRADE} SLS).`),
 });
 
-async function fetchSlsPrice(): Promise<number | null> {
-  try {
-    const res = await fetch(
-      "https://api.dexscreener.com/latest/dex/tokens/ELTXCFp1tmtfu39CPw6afnMSjW1BBxjinorJQsKmBAGS",
-      { signal: AbortSignal.timeout(8000) }
-    );
-    if (!res.ok) return null;
-    const data = (await res.json()) as { pairs?: DexPair[] };
-    const priceStr = data.pairs?.[0]?.priceUsd;
-    if (!priceStr) return null;
-  const price = parseFloat(priceStr);
-  return isNaN(price) || price <= 0 ? null : price;
-  } catch {
-    return null;
-  }
-}
+const hospitalReleaseQuotes = new Map<string, { expectedSls: number; expiresAt: number; costUsd: number; multiplier: number }>();
 
 export default async function slsRoutes(
   fastify: FastifyInstance,
@@ -223,6 +209,188 @@ export default async function slsRoutes(
     } catch (err) {
       request.log.error(err, "/sls/transactions error");
       return reply.status(500).send({ error: "Internal server error" });
+    }
+  });
+
+  fastify.post("/sls/hospital/quote", { preHandler: requireAuth }, async (request, reply) => {
+    const { userId } = request.user;
+
+    const [user, profile] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId } }),
+      prisma.profile.findUnique({ where: { userId } }),
+    ]);
+
+    if (!user || !user.wallet) {
+      return reply.status(404).send({ error: "User not found" });
+    }
+    if (!profile) {
+      return reply.status(404).send({ error: "Profile not found" });
+    }
+    if (!isInHospital(profile)) {
+      return reply.status(400).send({ error: "You are not hospitalized" });
+    }
+
+    try {
+      const slsPrice = await fetchSlsPrice();
+      if (slsPrice === null) {
+        return reply.status(503).send({ error: "Unable to fetch live $SLS price. Try again." });
+      }
+      const { slsReleaseCost, costUsd, multiplier } = getHospitalSlsReleasePricing(profile, slsPrice);
+      if (!slsReleaseCost || slsReleaseCost <= 0) {
+        return reply.status(503).send({ error: "Unable to calculate $SLS hospital cost. Try again." });
+      }
+      const playerPk = new PublicKey(user.wallet);
+      const fromAta = getAssociatedTokenAddressSync(SLS_MINT, playerPk);
+      const toAta = getAssociatedTokenAddressSync(SLS_MINT, TREASURY_WALLET);
+      const rawAmount = BigInt(Math.ceil(slsReleaseCost * Math.pow(10, SLS_DECIMALS)));
+
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("finalized");
+      const tx = new Transaction({ recentBlockhash: blockhash, feePayer: playerPk });
+      tx.add(createTransferInstruction(fromAta, toAta, playerPk, rawAmount));
+      hospitalReleaseQuotes.set(userId, {
+        expectedSls: slsReleaseCost,
+        expiresAt: Date.now() + 10 * 60 * 1000,
+        costUsd,
+        multiplier,
+      });
+
+      return reply.send({
+        slsAmount: slsReleaseCost,
+        costUsd,
+        multiplier,
+        transaction: Buffer.from(
+          tx.serialize({ requireAllSignatures: false, verifySignatures: false })
+        ).toString("base64"),
+        blockhash,
+        lastValidBlockHeight,
+      });
+    } catch (err) {
+      request.log.error(err, "/sls/hospital/quote error");
+      return reply.status(500).send({ error: "Failed to build hospital release transaction." });
+    }
+  });
+
+  fastify.post("/sls/hospital/confirm", { preHandler: requireAuth }, async (request, reply) => {
+    const parsed = HOSPITAL_RELEASE_BODY_SCHEMA.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    }
+
+    const { signature } = parsed.data;
+    const { userId } = request.user;
+
+    try {
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user || !user.wallet) {
+        return reply.status(404).send({ error: "User not found" });
+      }
+
+      const [profile, txInfo] = await Promise.all([
+        prisma.profile.findUnique({ where: { userId } }),
+        connection.getTransaction(signature, {
+          commitment: "confirmed",
+          maxSupportedTransactionVersion: 0,
+        }),
+      ]);
+
+      if (!profile) {
+        return reply.status(404).send({ error: "Profile not found" });
+      }
+      if (!isInHospital(profile)) {
+        return reply.status(400).send({ error: "You are not hospitalized" });
+      }
+      if (!txInfo) {
+        return reply.status(400).send({ error: "Transaction not found. Confirm and retry." });
+      }
+      if (txInfo.meta?.err) {
+        return reply.status(400).send({ error: "Transaction failed on-chain." });
+      }
+
+      const treasuryAddress = TREASURY_WALLET.toBase58();
+      const slsMintAddr = SLS_MINT.toBase58();
+      const pendingQuote = hospitalReleaseQuotes.get(userId);
+      if (!pendingQuote || pendingQuote.expiresAt < Date.now()) {
+        hospitalReleaseQuotes.delete(userId);
+        return reply.status(400).send({ error: "Hospital release quote expired. Request a new one." });
+      }
+
+      const preBalances = txInfo.meta?.preTokenBalances ?? [];
+      const postBalances = txInfo.meta?.postTokenBalances ?? [];
+
+      const pre = preBalances.find(
+        (entry) => entry.owner === treasuryAddress && entry.mint === slsMintAddr
+      );
+      const post = postBalances.find(
+        (entry) => entry.owner === treasuryAddress && entry.mint === slsMintAddr
+      );
+
+      if (!pre && !post) {
+        return reply.status(400).send({ error: "No $SLS transfer to treasury detected." });
+      }
+
+      const preAmt = parseFloat(pre?.uiTokenAmount?.uiAmountString ?? "0");
+      const postAmt = parseFloat(post?.uiTokenAmount?.uiAmountString ?? "0");
+      const receivedSls = Math.max(0, postAmt - preAmt);
+
+      if (receivedSls + 0.000001 < pendingQuote.expectedSls) {
+        return reply.status(400).send({ error: "Insufficient $SLS received for full hospital release." });
+      }
+
+      const updatedProfile = await prisma.$transaction(async (tx) => {
+        const nextProfile = await tx.profile.update({
+          where: { userId },
+          data: {
+            health: profile.maxHealth,
+            hospitalUntil: new Date("1970-01-01T00:00:00.000Z"),
+            hospitalReleaseCount:
+              profile.hospitalReleaseDate &&
+              profile.hospitalReleaseDate.getUTCFullYear() === new Date().getUTCFullYear() &&
+              profile.hospitalReleaseDate.getUTCMonth() === new Date().getUTCMonth() &&
+              profile.hospitalReleaseDate.getUTCDate() === new Date().getUTCDate()
+                ? profile.hospitalReleaseCount + 1
+                : 1,
+            hospitalReleaseDate: new Date(),
+          },
+        });
+
+        await tx.slsTransaction.create({
+          data: {
+            userId,
+            type: "hospital_release",
+            amount: -receivedSls,
+            usdValue: pendingQuote.costUsd,
+            description: `Spent ${receivedSls.toFixed(4)} $SLS for full hospital release (~$${pendingQuote.costUsd.toFixed(2)})`,
+          },
+        });
+
+        await tx.eventLog.create({
+          data: {
+            userId,
+            type: "hospital_release",
+            message: "Paid $SLS for a full hospital release.",
+            metadata: {
+              method: "sls",
+              slsAmount: receivedSls,
+              usdCost: pendingQuote.costUsd,
+              multiplier: pendingQuote.multiplier,
+              signature,
+            },
+          },
+        });
+
+        return nextProfile;
+      });
+      hospitalReleaseQuotes.delete(userId);
+
+      return reply.send({
+        success: true,
+        slsSpent: receivedSls,
+        health: updatedProfile.health,
+        hospitalUntil: updatedProfile.hospitalUntil,
+      });
+    } catch (err) {
+      request.log.error(err, "/sls/hospital/confirm error");
+      return reply.status(500).send({ error: "Failed to process SLS hospital release." });
     }
   });
 }

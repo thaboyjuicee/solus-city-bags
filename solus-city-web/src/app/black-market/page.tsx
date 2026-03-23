@@ -530,11 +530,14 @@ function HospitalPanel({
     <div className="flex flex-col gap-3">
       <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] font-black tracking-[2px] text-[#eee]">HOSPITAL STATUS</p>
+          <p className="text-[10px] font-black tracking-[2px] text-[#eee]">BLACK MARKET CLINIC</p>
           <span className={`text-[10px] font-bold ${profile.inHospital ? "text-[#ef5350]" : "text-[#66bb6a]"}`}>
             {profile.inHospital ? "HOSPITALIZED" : "CLEAR"}
           </span>
         </div>
+        <p className="text-[10px] text-[#888] mt-2">
+          Full release runs through the old $0.15-in-$SLS clinic flow again. Same-day full releases get more expensive, and recovery items or penalties still sit below as fallback options.
+        </p>
         {profile.hospitalExitPenalty && (
           <p className="text-[10px] text-[#ff9800] mt-2">
             Active penalty: {profile.hospitalExitPenalty.type}

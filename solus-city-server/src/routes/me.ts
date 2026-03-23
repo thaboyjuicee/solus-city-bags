@@ -87,7 +87,6 @@ export default async function meRoutes(
         user,
         membership,
         negativeSlsSpend,
-        hospitalReleaseSpend,
         activeProtectionEffects,
         missionsPreview,
         rotation,
@@ -103,10 +102,6 @@ export default async function meRoutes(
         }),
         prisma.slsTransaction.aggregate({
           where: { userId, amount: { lt: 0 } },
-          _sum: { amount: true },
-        }),
-        prisma.slsTransaction.aggregate({
-          where: { userId, type: "hospital_release" },
           _sum: { amount: true },
         }),
         fetchActiveProtectionEffects(prisma, userId),
@@ -127,7 +122,6 @@ export default async function meRoutes(
       ]);
 
       const totalNegativeSpend = Math.abs(negativeSlsSpend._sum.amount ?? 0);
-      const totalHospitalReleaseSpend = Math.abs(hospitalReleaseSpend._sum.amount ?? 0);
       const availablePerkPoints = getAvailablePerkPoints(updatedProfile, unlockedPerks.length);
 
       let currentSeason = null;
@@ -249,7 +243,7 @@ export default async function meRoutes(
           combat,
           statBreakdown: combat,
           incomePerHour: BASE_INCOME_PER_HOUR,
-          slsSpent: totalNegativeSpend + totalHospitalReleaseSpend,
+          slsSpent: totalNegativeSpend,
           syndicate: membership
             ? {
                 id: membership.syndicate.id,
