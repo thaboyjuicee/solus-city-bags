@@ -90,18 +90,18 @@ export default function AttackLogsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3">
+      <div className="grid grid-cols-3 gap-1">
         {FILTERS.map(({ id, label }) => (
           <button
             key={id}
             onClick={() => setFilter(id)}
-            className={`py-2 border text-[10px] font-black tracking-[2px] uppercase ${
+            className={`min-w-0 rounded-md border px-1 py-2 text-[9px] font-black uppercase tracking-[1px] sm:text-[10px] sm:tracking-[2px] ${
               filter === id
                 ? "bg-[#1a0a2e] border-[rgba(153,69,255,0.3)] text-[#9945FF]"
                 : "bg-black/20 border-white/10 text-[#555]"
             }`}
           >
-            {label}
+            <span className="block leading-tight text-center">{label}</span>
           </button>
         ))}
       </div>
@@ -112,9 +112,9 @@ export default function AttackLogsPage() {
 
       {filtered.map((entry) => (
         <div key={entry.id} className="rounded-lg border border-white/10 bg-black/20 p-3 flex flex-col gap-2">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-[11px] font-black text-[#eee]">{entry.attackerName} vs {entry.defenderName}</p>
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="break-words text-[11px] font-black text-[#eee]">{entry.attackerName} vs {entry.defenderName}</p>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
               <ResultBadge entry={entry} />
               <p className="text-[10px] text-[#666]">{timeAgo(entry.createdAt)}</p>
             </div>

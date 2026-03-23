@@ -746,8 +746,8 @@ export default function SyndicatesPage() {
                     <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
                       <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Champion History</p>
                       {detail.championHistory.map((entry) => (
-                        <div key={entry.id} className="rounded-md border border-white/10 bg-black/20 p-3 flex items-center justify-between gap-3">
-                          <div>
+                        <div key={entry.id} className="rounded-md border border-white/10 bg-black/20 p-3 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0">
                             <p className="text-[12px] font-bold text-[#eee]">{detail.name}</p>
                             <p className="text-[10px] text-[#777]">{entry.seasonName}</p>
                           </div>
@@ -773,7 +773,7 @@ export default function SyndicatesPage() {
               {/* ── ROSTER sub-tab ─────────────────────────────────────────── */}
               {subTab === "roster" && (
                 <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Member Roster</p>
                     <select
                       value={roleFilter}
@@ -866,7 +866,7 @@ export default function SyndicatesPage() {
               {/* ── HISTORY sub-tab ────────────────────────────────────────── */}
               {subTab === "history" && (
                 <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Syndicate History</p>
                     <button
                       type="button"
@@ -964,7 +964,7 @@ export default function SyndicatesPage() {
           )}
 
           <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Available Syndicates</p>
               <button
                 type="button"

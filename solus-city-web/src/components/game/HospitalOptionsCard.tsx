@@ -100,7 +100,7 @@ export function HospitalOptionsCard({
 
   return (
     <div className="bg-[#1a0a0a] border border-[#7f1919] rounded-md p-3 flex flex-col gap-2">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-[10px] font-black tracking-[2px] text-[#ef5350]">HOSPITAL OPTIONS</p>
         <span className="text-[10px] font-bold text-[#888]">{options.remainingMinutes} min left</span>
       </div>
@@ -114,7 +114,7 @@ export function HospitalOptionsCard({
           options.slsReleaseCost === null ||
           (slsBalance !== null && options.slsReleaseCost !== null && slsBalance < options.slsReleaseCost)
         }
-        className="w-full py-2 rounded border border-[rgba(153,69,255,0.35)] bg-[#1a0a2e] text-[#9945FF] text-[10px] font-black tracking-[2px] disabled:opacity-50"
+        className="w-full rounded border border-[rgba(153,69,255,0.35)] bg-[#1a0a2e] px-2 py-2 text-[9px] font-black leading-tight tracking-[1px] text-[#9945FF] disabled:opacity-50 sm:text-[10px] sm:tracking-[2px]"
       >
         {busy === "sls"
           ? "CONFIRMING..."
@@ -134,7 +134,7 @@ export function HospitalOptionsCard({
           {busy === item.itemId ? "USING..." : `USE ${item.name.toUpperCase()} (${item.qty})`}
         </button>
       ))}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         {options.penaltyReleaseOptions.map((penalty) => (
           <button
             key={penalty.type}

@@ -258,15 +258,15 @@ export default function GymPage() {
           {STATS.map((s) => {
             const val = profile ? (profile as unknown as Record<string, number>)[s.key] ?? 0 : 0;
             return (
-              <div key={s.key} className="flex items-center">
+              <div key={s.key} className="flex items-center gap-2">
                 <span
-                  className="w-[72px] text-[11px] font-bold tracking-wide"
+                  className="w-[64px] shrink-0 text-[10px] font-bold tracking-wide sm:w-[72px] sm:text-[11px]"
                   style={{ color: s.color }}
                 >
                   {s.label}
                 </span>
                 <AnimatedStatBar value={val} color={s.color} />
-                <span className="w-10 text-right text-[13px] font-bold text-[#eee]">
+                <span className="w-9 shrink-0 text-right text-[12px] font-bold text-[#eee] sm:w-10 sm:text-[13px]">
                   {val}
                 </span>
               </div>

@@ -14,12 +14,12 @@ export function PrestigePanel({
 }) {
   return (
     <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-3">
-        <div>
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Prestige</p>
-          <p className="text-[18px] font-black text-[#eee]">Level {prestigeLevel}</p>
+          <p className="break-words text-[18px] font-black text-[#eee]">Level {prestigeLevel}</p>
         </div>
-        <Link href="/prestige" className="rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] px-3 py-2 text-[10px] font-black tracking-[2px] text-[#9945FF]">
+        <Link href="/prestige" className="w-full rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] px-3 py-2 text-center text-[10px] font-black tracking-[2px] text-[#9945FF] sm:w-auto">
           OPEN PRESTIGE
         </Link>
       </div>

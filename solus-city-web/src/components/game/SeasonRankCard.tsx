@@ -22,12 +22,12 @@ export function SeasonRankCard({ season }: { season: SeasonSummary | null }) {
 
   return (
     <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-3">
-        <div>
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <p className="text-[10px] font-black tracking-[3px] text-[#fdd835] uppercase">Current Season</p>
-          <p className="text-[16px] font-black text-[#eee]">{season.name}</p>
+          <p className="break-words text-[16px] font-black text-[#eee]">{season.name}</p>
         </div>
-        <div className="text-right">
+        <div className="text-left sm:text-right">
           <p className="text-[9px] text-[#555] font-bold tracking-[2px]">TIME LEFT</p>
           <p className="text-[12px] font-black text-[#fdd835]">{formatRemaining(season.timeRemainingMs)}</p>
         </div>
@@ -43,7 +43,7 @@ export function SeasonRankCard({ season }: { season: SeasonSummary | null }) {
         </div>
       </div>
       {season.player && (
-        <div className="grid grid-cols-3 gap-2 text-[10px]">
+        <div className="grid grid-cols-1 gap-2 text-[10px] sm:grid-cols-3">
           <div className="rounded-md bg-black/20 border border-white/10 p-2 text-center text-[#42a5f5]">PVP {season.player.pvpScore}</div>
           <div className="rounded-md bg-black/20 border border-white/10 p-2 text-center text-[#ff9800]">CRIME {season.player.crimeScore}</div>
           <div className="rounded-md bg-black/20 border border-white/10 p-2 text-center text-[#fdd835]">MISSION {season.player.missionScore}</div>

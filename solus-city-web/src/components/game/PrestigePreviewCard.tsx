@@ -13,22 +13,22 @@ export function PrestigePreviewCard({
 }) {
   return (
     <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Prestige Preview</p>
-          <p className="text-[18px] font-black text-[#eee]">Level {preview.currentPrestigeLevel} to {preview.nextPrestigeLevel}</p>
+          <p className="break-words text-[18px] font-black text-[#eee]">Level {preview.currentPrestigeLevel} to {preview.nextPrestigeLevel}</p>
         </div>
         <button
           type="button"
           disabled={!preview.eligible || busy}
           onClick={() => onExecute?.()}
-          className="rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] px-3 py-2 text-[10px] font-black tracking-[2px] text-[#9945FF] disabled:opacity-40"
+          className="w-full rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] px-3 py-2 text-[10px] font-black tracking-[2px] text-[#9945FF] disabled:opacity-40 sm:w-auto"
         >
           {busy ? "EXECUTING..." : preview.eligible ? "EXECUTE PRESTIGE" : "NOT READY"}
         </button>
       </div>
 
-      <div className="grid gap-2 md:grid-cols-3">
+      <div className="grid gap-2 sm:grid-cols-3">
         {preview.requirements.map((requirement) => (
           <div key={requirement.key} className="rounded-md border border-white/10 bg-black/20 p-3">
             <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">{requirement.label}</p>
@@ -61,7 +61,7 @@ export function PrestigePreviewCard({
 
       <div className="rounded-md border border-white/10 bg-black/20 p-3">
         <p className="text-[10px] font-black tracking-[2px] text-[#555] uppercase">Permanent Bonuses</p>
-        <div className="mt-2 grid gap-2 md:grid-cols-3">
+        <div className="mt-2 grid gap-2 sm:grid-cols-3">
           {preview.permanentBonuses.map((bonus) => (
             <div key={bonus.key} className="rounded-md border border-white/10 bg-black/20 p-3 text-center">
               <p className="text-[10px] text-[#777]">{bonus.label}</p>

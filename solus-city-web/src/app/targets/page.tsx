@@ -100,9 +100,9 @@ export default function TargetsPage() {
           const state = attackState[target.id];
           return (
             <div key={`${target.type}:${target.id}`} className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3 flex flex-col gap-2">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <p className="text-[14px] font-bold text-[#eee]">{target.displayName}</p>
+              <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="break-words text-[14px] font-bold text-[#eee]">{target.displayName}</p>
                   <p className="text-[10px] text-[#555]">LV {target.level} • {target.rp} RP</p>
                 </div>
                 <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${target.type === "npc" ? "bg-[#14F19520] text-[#14F195]" : "bg-[#9945FF20] text-[#9945FF]"}`}>

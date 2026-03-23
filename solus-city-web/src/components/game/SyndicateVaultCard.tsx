@@ -28,12 +28,12 @@ export function SyndicateVaultCard({
 
   return (
     <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-3">
-        <div>
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Syndicate Vault</p>
-          <p className="text-[12px] text-[#888] mt-1">Shared funds for war pressure, safehouse upkeep, and social progression.</p>
+          <p className="mt-1 break-words text-[12px] text-[#888]">Shared funds for war pressure, safehouse upkeep, and social progression.</p>
         </div>
-        <p className="text-[20px] font-black text-[#fdd835]">{formatCash(vaultCash)}</p>
+        <p className="break-words text-[20px] font-black text-[#fdd835]">{formatCash(vaultCash)}</p>
       </div>
 
       {(canDeposit || canWithdraw) && (
@@ -45,7 +45,7 @@ export function SyndicateVaultCard({
             className="flex-1 rounded-md border border-white/10 bg-black/20 px-3 py-2 text-[12px] text-[#eee] outline-none"
             placeholder="Amount"
           />
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex">
             {canDeposit && (
               <button
                 type="button"

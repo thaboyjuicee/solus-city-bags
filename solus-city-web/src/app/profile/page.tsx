@@ -15,9 +15,9 @@ import { HallOfFameEntry, InventoryResponse, MeResponse, PerksResponse } from "@
 
 function StatBox({ label, value, color }: { label: string; value: string | number; color?: string }) {
   return (
-    <div className="rounded-md border border-white/10 bg-black/20 p-2 text-center">
+    <div className="min-w-0 rounded-md border border-white/10 bg-black/20 p-2 text-center">
       <p className="text-[8px] text-[#555] font-bold tracking-[2px] uppercase">{label}</p>
-      <p className={`text-[13px] font-black mt-0.5 ${color ?? "text-[#eee]"}`}>{value}</p>
+      <p className={`mt-0.5 break-words text-[13px] font-black leading-tight ${color ?? "text-[#eee]"}`}>{value}</p>
     </div>
   );
 }
@@ -114,7 +114,7 @@ export default function ProfilePage() {
             </>
           )}
         </div>
-        <div className="grid grid-cols-3 gap-2 mt-3 text-center">
+        <div className="mt-3 grid grid-cols-1 gap-2 text-center sm:grid-cols-3">
           <div className="rounded-md border border-white/10 bg-black/20 p-3">
             <p className="text-[9px] text-[#555] font-bold tracking-[2px]">LEVEL</p>
             <p className="text-[16px] font-black text-[#42a5f5]">{me.level}</p>
@@ -132,7 +132,7 @@ export default function ProfilePage() {
 
       <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
         <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Stats</p>
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
           <StatBox label="ATK" value={me.ap} color="text-[#ef5350]" />
           <StatBox label="DEF" value={me.dp} color="text-[#42a5f5]" />
           <StatBox label="STR" value={me.strength} color="text-[#ff8a65]" />
@@ -144,27 +144,27 @@ export default function ProfilePage() {
         </div>
         <div className="flex flex-col gap-1 mt-2">
           {me.syndicate && (
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] font-bold tracking-[2px] text-[#444] uppercase w-[72px] shrink-0">Syndicate</span>
+            <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
+              <span className="w-auto shrink-0 text-[9px] font-bold tracking-[2px] text-[#444] uppercase sm:w-[72px]">Syndicate</span>
               <span className="text-[10px] font-bold text-[#9945FF]">{me.syndicate.name}</span>
             </div>
           )}
           {shieldActive && (
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] font-bold tracking-[2px] text-[#444] uppercase w-[72px] shrink-0">Shield</span>
+            <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
+              <span className="w-auto shrink-0 text-[9px] font-bold tracking-[2px] text-[#444] uppercase sm:w-[72px]">Shield</span>
               <span className="text-[10px] font-bold text-[#42a5f5]">Active</span>
             </div>
           )}
           {me.inHospital && (
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] font-bold tracking-[2px] text-[#444] uppercase w-[72px] shrink-0">Status</span>
+            <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
+              <span className="w-auto shrink-0 text-[9px] font-bold tracking-[2px] text-[#444] uppercase sm:w-[72px]">Status</span>
               <span className="text-[10px] font-bold text-[#ef5350]">Hospitalized</span>
             </div>
           )}
           {me.activeProtectionEffects.map((effect) => (
-            <div key={effect.id} className="flex items-center gap-2">
-              <span className="text-[9px] font-bold tracking-[2px] text-[#444] uppercase w-[72px] shrink-0">Active Effect</span>
-              <span className="text-[10px] font-bold text-[#fdd835]">{effect.type.replaceAll("_", " ")}</span>
+            <div key={effect.id} className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
+              <span className="w-auto shrink-0 text-[9px] font-bold tracking-[2px] text-[#444] uppercase sm:w-[72px]">Active Effect</span>
+              <span className="break-words text-[10px] font-bold text-[#fdd835]">{effect.type.replaceAll("_", " ")}</span>
             </div>
           ))}
         </div>
@@ -173,7 +173,7 @@ export default function ProfilePage() {
       <SeasonRankCard season={me.currentSeason} />
 
       <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Force Readiness</p>
             <p className="text-[11px] text-[#888]">Crew sits in its own layer so assets and support gear stop reading like the same thing.</p>
@@ -204,7 +204,7 @@ export default function ProfilePage() {
         <PrestigePanel prestigeLevel={me.prestigeLevel} prestigePoints={me.prestigePoints} preview={me.prestigeSummary} />
         <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
           <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Projected Rewards</p>
-          <div className="grid gap-2 md:grid-cols-3">
+          <div className="grid gap-2 sm:grid-cols-3">
             <div className="rounded-md border border-white/10 bg-black/20 p-3">
               <p className="text-[9px] text-[#555] font-bold tracking-[2px]">OVERALL</p>
               <p className="text-[14px] font-black text-[#66bb6a]">{me.projectedSeasonRewards?.overall?.label ?? "-"}</p>
@@ -222,7 +222,7 @@ export default function ProfilePage() {
       </div>
 
       <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Equipment</p>
             <p className="text-[11px] text-[#888]">Current visible loadout summary.</p>

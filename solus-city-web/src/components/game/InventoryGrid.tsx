@@ -24,14 +24,14 @@ function ItemCard({
 
   return (
     <div className="rounded-md border border-white/10 bg-black/20 p-3 flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <p className="text-[12px] font-bold text-[#eee]">{row.item.name}</p>
+      <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="break-words text-[12px] font-bold text-[#eee]">{row.item.name}</p>
           <p className="text-[10px] text-[#888]">x{row.qty} {row.item.slot ? `• ${row.item.slot}` : ""}</p>
         </div>
         <RarityBadge rarity={row.item.rarity} />
       </div>
-      <p className="text-[10px] text-[#666]">{row.item.description}</p>
+      <p className="break-words text-[10px] text-[#666]">{row.item.description}</p>
       <div className="flex gap-2 flex-wrap">
         {row.item.slot && !row.equipped && (
           <button onClick={() => run("/inventory/equip")} className="px-2 py-1 rounded border border-white/10 text-[10px] text-[#42a5f5]">Equip</button>

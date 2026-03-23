@@ -97,7 +97,7 @@ function ListingsPanel({
     <div className="flex flex-col gap-3">
       {rotation && (
         <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-[10px] font-black tracking-[3px] text-[#9945FF] uppercase">Active Rotation</p>
               <p className="text-lg font-black text-[#eee]">{rotation.theme?.toUpperCase() ?? "BLACK MARKET"}</p>
@@ -119,12 +119,12 @@ function ListingsPanel({
             const justBought = successId?.id === listing.id;
             return (
               <div key={listing.id} className="bg-black/20 border border-white/10 rounded-md p-3 flex flex-col gap-2">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <p className="text-[13px] font-bold text-[#eee]">{listing.item.name}</p>
-                    <p className="text-[10px] text-[#555]">{listing.item.description}</p>
+                <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="break-words text-[13px] font-bold text-[#eee]">{listing.item.name}</p>
+                    <p className="break-words text-[10px] text-[#555]">{listing.item.description}</p>
                   </div>
-                  <div className="flex flex-col items-end gap-1">
+                  <div className="flex flex-col items-start gap-1 sm:items-end">
                     <RarityBadge rarity={listing.item.rarity} />
                     <span className="text-[10px] font-black text-[#66bb6a]">${Math.floor(listing.finalPrice).toLocaleString()}</span>
                   </div>
@@ -262,18 +262,18 @@ export default function ShopPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2">
+      <div className="grid grid-cols-2 gap-1">
         {(["shop", "listings"] as ShopTab[]).map((id) => (
           <button
             key={id}
             onClick={() => setTab(id)}
-            className={`py-2 border text-[10px] font-black tracking-[2px] uppercase ${
+            className={`min-w-0 rounded-md border px-2 py-2 text-[9px] font-black uppercase tracking-[1px] sm:text-[10px] sm:tracking-[2px] ${
               tab === id
                 ? "bg-[#1a0a2e] border-[rgba(153,69,255,0.3)] text-[#9945FF]"
                 : "bg-black/20 border-white/10 text-[#555]"
             }`}
           >
-            {id === "shop" ? "Shop Items" : "Listings"}
+            <span className="block leading-tight text-center">{id === "shop" ? "Shop Items" : "Listings"}</span>
           </button>
         ))}
       </div>
@@ -312,10 +312,10 @@ export default function ShopPage() {
                     const itemCategory = normalizeCategory(item);
                     return (
                       <div key={item.id} className="rounded-lg border border-white/10 bg-black/20 p-3 flex flex-col gap-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <div>
-                            <p className="text-[13px] font-bold text-[#eee]">{item.name}</p>
-                            <p className="text-[10px] text-[#777]">LV {item.levelRequirement} • {SHOP_CATEGORY_LABELS[itemCategory]} • Owned {item.owned}</p>
+                        <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0">
+                            <p className="break-words text-[13px] font-bold text-[#eee]">{item.name}</p>
+                            <p className="break-words text-[10px] text-[#777]">LV {item.levelRequirement} • {SHOP_CATEGORY_LABELS[itemCategory]} • Owned {item.owned}</p>
                           </div>
                           <RarityBadge rarity={item.rarity} />
                         </div>

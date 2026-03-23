@@ -16,10 +16,10 @@ export function ChampionshipBracket({ championship }: { championship: Championsh
 
   return (
     <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Championship Bracket</p>
-          <p className="text-[18px] font-black text-[#eee]">{championship.season.name}</p>
+          <p className="break-words text-[18px] font-black text-[#eee]">{championship.season.name}</p>
         </div>
         <p className="text-[11px] font-black tracking-[2px] text-[#fdd835] uppercase">Round {championship.currentRound || 1}</p>
       </div>
@@ -29,12 +29,12 @@ export function ChampionshipBracket({ championship }: { championship: Championsh
             <p className="text-[10px] font-black tracking-[2px] text-[#555] uppercase">Round {round}</p>
             {matches.map((match) => (
               <div key={match.id} className="rounded-md border border-white/10 bg-black/20 p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[12px] font-bold text-[#eee]">{match.syndicateA.name}</p>
-                    <p className="text-[11px] text-[#888]">vs {match.syndicateB.name}</p>
+                <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="break-words text-[12px] font-bold text-[#eee]">{match.syndicateA.name}</p>
+                    <p className="break-words text-[11px] text-[#888]">vs {match.syndicateB.name}</p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-left sm:text-right">
                     <p className="text-[14px] font-black text-[#66bb6a]">{match.scoreA} - {match.scoreB}</p>
                     <p className="text-[9px] tracking-[2px] uppercase text-[#777]">{match.status}</p>
                   </div>

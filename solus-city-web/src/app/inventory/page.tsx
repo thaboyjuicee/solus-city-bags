@@ -39,21 +39,21 @@ export default function InventoryPage() {
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-1.5 md:grid-cols-4">
-        <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
+        <div className="min-w-0 rounded-md border border-white/10 bg-black/20 p-3 text-center backdrop-blur-sm">
           <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">CASH</p>
-          <p className="text-sm font-black text-[#66bb6a]">${me ? Math.floor(me.cash).toLocaleString() : "-"}</p>
+          <p className="break-all text-[11px] font-black text-[#66bb6a] sm:text-sm">${me ? Math.floor(me.cash).toLocaleString() : "-"}</p>
         </div>
-        <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
+        <div className="min-w-0 rounded-md border border-white/10 bg-black/20 p-3 text-center backdrop-blur-sm">
           <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">$SLS</p>
-          <p className="text-sm font-black text-[#9945FF]">{slsBalance !== null ? slsBalance.toFixed(2) : "-"}</p>
+          <p className="break-all text-[11px] font-black text-[#9945FF] sm:text-sm">{slsBalance !== null ? slsBalance.toFixed(2) : "-"}</p>
         </div>
-        <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
+        <div className="min-w-0 rounded-md border border-white/10 bg-black/20 p-3 text-center backdrop-blur-sm">
           <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">CREW</p>
-          <p className="text-sm font-black text-[#42a5f5]">{crewCount}</p>
+          <p className="break-all text-[11px] font-black text-[#42a5f5] sm:text-sm">{crewCount}</p>
         </div>
-        <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
+        <div className="min-w-0 rounded-md border border-white/10 bg-black/20 p-3 text-center backdrop-blur-sm">
           <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">EQUIPPED</p>
-          <p className="text-sm font-black text-[#fdd835]">{equippedCount}</p>
+          <p className="break-all text-[11px] font-black text-[#fdd835] sm:text-sm">{equippedCount}</p>
         </div>
       </div>
       <div className="rounded-lg border border-white/10 bg-black/20 p-4">

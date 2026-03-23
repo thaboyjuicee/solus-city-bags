@@ -188,30 +188,30 @@ export default function HomePage() {
       </section>
 
       {/* Top row: key stats */}
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
         <div className="rounded-md border border-white/10 bg-black/20 p-3">
           <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Level</p>
-          <p className="mt-1 text-[18px] font-black text-[#42a5f5]">{me.level}</p>
+          <p className="mt-1 break-words text-[15px] font-black text-[#42a5f5] sm:text-[18px]">{me.level}</p>
         </div>
         <div className="rounded-md border border-white/10 bg-black/20 p-3">
           <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Wallet</p>
-          <p className="mt-1 text-[18px] font-black text-[#66bb6a]">{formatCash(me.cash)}</p>
+          <p className="mt-1 break-words text-[15px] font-black text-[#66bb6a] sm:text-[18px]">{formatCash(me.cash)}</p>
         </div>
         <div className="rounded-md border border-white/10 bg-black/20 p-3">
           <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Vault</p>
-          <p className="mt-1 text-[18px] font-black text-[#42a5f5]">{formatCash(me.vaultCash)}</p>
+          <p className="mt-1 break-words text-[15px] font-black text-[#42a5f5] sm:text-[18px]">{formatCash(me.vaultCash)}</p>
         </div>
         <div className="rounded-md border border-white/10 bg-black/20 p-3">
           <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">RP</p>
-          <p className="mt-1 text-[18px] font-black text-[#fdd835]">{me.rp}</p>
+          <p className="mt-1 break-words text-[15px] font-black text-[#fdd835] sm:text-[18px]">{me.rp}</p>
         </div>
         <div className="rounded-md border border-white/10 bg-black/20 p-3">
           <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Season</p>
-          <p className="mt-1 text-[18px] font-black text-[#ff8a65]">{me.seasonScore}</p>
+          <p className="mt-1 break-words text-[15px] font-black text-[#ff8a65] sm:text-[18px]">{me.seasonScore}</p>
         </div>
         <div className="rounded-md border border-white/10 bg-black/20 p-3">
           <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Perk Pts</p>
-          <p className="mt-1 text-[18px] font-black text-[#9945FF]">{me.availablePerkPoints}</p>
+          <p className="mt-1 break-words text-[15px] font-black text-[#9945FF] sm:text-[18px]">{me.availablePerkPoints}</p>
         </div>
       </div>
 
@@ -227,7 +227,7 @@ export default function HomePage() {
         <VaultCard walletCash={me.cash} vaultCash={me.vaultCash} />
         <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-2">
           <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Black Market</p>
-          <p className="text-[16px] font-black text-[#9945FF]">{formatTimer(me.blackMarketEndsAt)}</p>
+          <p className="break-words text-[15px] font-black text-[#9945FF] sm:text-[16px]">{formatTimer(me.blackMarketEndsAt)}</p>
           <p className="text-[11px] text-[#777]">Recovery items, contraband, and rotating risk buys.</p>
         </div>
       </div>
@@ -268,7 +268,7 @@ export default function HomePage() {
             <div className="rounded-md border border-white/10 bg-black/20 p-2 text-center text-[#ff9800]">Income {formatCash(me.incomePerHour)}/h</div>
             <div className="rounded-md border border-white/10 bg-black/20 p-2 text-center text-[#9945FF]">Perks {me.unlockedPerkSummary.total}</div>
           </div>
-          <div className="grid grid-cols-3 gap-2 text-[10px]">
+          <div className="grid grid-cols-1 gap-2 text-[10px] sm:grid-cols-3">
             <div className="rounded-md border border-white/10 bg-black/20 p-2">
               <p className="font-black tracking-[2px] text-[#555] uppercase">Next Energy</p>
               <p className="mt-1 text-[#ddd]">{formatRecovery(me.nextEnergyAt)}</p>
@@ -321,7 +321,7 @@ export default function HomePage() {
       {/* Syndicate State — full width, conditional */}
       {me.syndicateVaultSummary && (
         <section className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Syndicate State</p>
               <p className="mt-1 text-[12px] text-[#888]">Your current social power layer.</p>
@@ -333,7 +333,7 @@ export default function HomePage() {
               ) : null}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-md border border-white/10 bg-black/20 p-3">
               <p className="text-[9px] font-black tracking-[2px] text-[#555] uppercase">Syndicate Vault</p>
               <p className="mt-1 text-[16px] font-black text-[#fdd835]">{formatCash(me.syndicateVaultSummary.vaultCash)}</p>
@@ -354,7 +354,7 @@ export default function HomePage() {
 
       {/* Mission Board — full width */}
       <section className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Mission Board</p>
             <p className="mt-1 text-[12px] text-[#888]">Your hottest objectives right now.</p>
@@ -378,13 +378,15 @@ export default function HomePage() {
           <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Recent Activity</p>
           <div className="flex flex-col gap-1.5">
             {events.map((event) => (
-              <div key={event.id} className="flex items-center gap-2.5">
+              <div key={event.id} className="flex items-start gap-2.5 sm:items-center">
                 <span
                   className="flex-shrink-0 w-2 h-2 rounded-full"
                   style={{ backgroundColor: eventDotColor(event.type, event.message) }}
                 />
-                <p className="flex-1 text-[11px] text-[#aaa]">{event.message}</p>
-                <p className="flex-shrink-0 text-[10px] text-[#555]">{timeAgo(event.createdAt ?? event.ts)}</p>
+                <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                  <p className="min-w-0 flex-1 break-words text-[11px] text-[#aaa]">{event.message}</p>
+                  <p className="flex-shrink-0 text-[10px] text-[#555]">{timeAgo(event.createdAt ?? event.ts)}</p>
+                </div>
               </div>
             ))}
           </div>

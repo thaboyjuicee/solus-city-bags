@@ -81,7 +81,7 @@ export default function WarsPage() {
             key={war.id}
             type="button"
             onClick={() => setSelectedWarId(war.id)}
-            className={`rounded-md border px-3 py-2 text-[10px] font-black tracking-[2px] uppercase ${selectedWarId === war.id ? "border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF]" : "border-white/10 bg-black/20 text-[#888]"}`}
+            className={`rounded-md border px-3 py-2 text-[10px] font-black tracking-[2px] uppercase whitespace-nowrap ${selectedWarId === war.id ? "border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF]" : "border-white/10 bg-black/20 text-[#888]"}`}
           >
             {war.attackerSyndicate?.name ?? "Attacker"} vs {war.defenderSyndicate?.name ?? "Defender"}
           </button>
@@ -117,8 +117,8 @@ export default function WarsPage() {
             <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Action Breakdown</p>
             <div className="grid gap-2 md:grid-cols-2">
               {Object.entries(scoreboard.actionBreakdown).map(([actionType, points]) => (
-                <div key={actionType} className="rounded-md border border-white/10 bg-black/20 p-3 flex items-center justify-between gap-3">
-                  <p className="text-[12px] font-bold text-[#eee]">{actionType.replaceAll("_", " ")}</p>
+                <div key={actionType} className="rounded-md border border-white/10 bg-black/20 p-3 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="break-words text-[12px] font-bold text-[#eee]">{actionType.replaceAll("_", " ")}</p>
                   <p className="text-[14px] font-black text-[#66bb6a]">{points}</p>
                 </div>
               ))}

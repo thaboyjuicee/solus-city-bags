@@ -32,10 +32,10 @@ function timeRemaining(endsAt: string) {
 export function WarScoreboard({ war, canManageActions = false, onJoin, onAction, busyAction }: Props) {
   return (
     <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-      <div className="flex items-start justify-between gap-3">
-        <div>
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Active War</p>
-          <p className="text-[14px] font-black text-[#eee] mt-1">
+          <p className="mt-1 break-words text-[14px] font-black text-[#eee]">
             {war.attackerSyndicate?.name ?? "Attacker"} vs {war.defenderSyndicate?.name ?? "Defender"}
           </p>
           {war.territory && <p className="text-[11px] text-[#888] mt-1">Linked territory: {war.territory.name}</p>}
@@ -54,11 +54,11 @@ export function WarScoreboard({ war, canManageActions = false, onJoin, onAction,
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <button
           type="button"
           onClick={() => onJoin?.()}
-          className="rounded-md border border-white/10 bg-black/20 px-3 py-2 text-[10px] font-black tracking-[2px] text-[#ddd]"
+          className="w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-[10px] font-black tracking-[2px] text-[#ddd]"
         >
           JOIN WAR
         </button>
@@ -68,7 +68,7 @@ export function WarScoreboard({ war, canManageActions = false, onJoin, onAction,
               type="button"
               disabled={busyAction === "supply_deliver"}
               onClick={() => onAction?.("supply_deliver")}
-              className="rounded-md border border-[#1f5f36] bg-[#0f2a18] px-3 py-2 text-[10px] font-black tracking-[2px] text-[#66bb6a] disabled:opacity-40"
+              className="w-full rounded-md border border-[#1f5f36] bg-[#0f2a18] px-3 py-2 text-[10px] font-black tracking-[2px] text-[#66bb6a] disabled:opacity-40"
             >
               {busyAction === "supply_deliver" ? "DELIVERING..." : "SUPPLY DELIVER"}
             </button>
@@ -76,7 +76,7 @@ export function WarScoreboard({ war, canManageActions = false, onJoin, onAction,
               type="button"
               disabled={busyAction === "node_secure"}
               onClick={() => onAction?.("node_secure")}
-              className="rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] px-3 py-2 text-[10px] font-black tracking-[2px] text-[#9945FF] disabled:opacity-40"
+              className="w-full rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] px-3 py-2 text-[10px] font-black tracking-[2px] text-[#9945FF] disabled:opacity-40"
             >
               {busyAction === "node_secure" ? "SECURING..." : "SECURE NODE"}
             </button>

@@ -22,10 +22,10 @@ export function ContributionList({
         <p className="text-[12px] text-[#777]">No contributions yet.</p>
       ) : (
         items.map((item) => (
-          <div key={item.id} className="rounded-md border border-white/10 bg-black/20 p-3 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[12px] font-bold text-[#eee]">{item.userName}</p>
-              <p className="text-[10px] text-[#777]">
+          <div key={item.id} className="rounded-md border border-white/10 bg-black/20 p-3 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="break-words text-[12px] font-bold text-[#eee]">{item.userName}</p>
+              <p className="break-words text-[10px] text-[#777]">
                 {(item.syndicateName ? `${item.syndicateName} • ` : "") + item.actionType.replaceAll("_", " ")}
               </p>
             </div>
