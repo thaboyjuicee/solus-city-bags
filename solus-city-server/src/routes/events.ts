@@ -16,7 +16,12 @@ export default async function eventsRoutes(
         take: 30,
       });
 
-      return reply.send(events);
+      return reply.send(
+        events.map((event) => ({
+          ...event,
+          createdAt: event.ts,
+        }))
+      );
     } catch (err) {
       request.log.error(err, "/events error");
       return reply.status(500).send({ error: "Internal server error" });

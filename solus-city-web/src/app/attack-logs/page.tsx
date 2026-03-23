@@ -12,8 +12,12 @@ import { BATTLE_RESULT_KEY, BattleResult } from "@/lib/battle";
 
 type Filter = "all" | "incoming" | "outgoing";
 
-function timeAgo(ts: string): string {
-  const diffMs = Date.now() - new Date(ts).getTime();
+function timeAgo(ts?: string | null): string {
+  if (!ts) return "recently";
+  const time = new Date(ts).getTime();
+  if (!Number.isFinite(time)) return "recently";
+  const diffMs = Date.now() - time;
+  if (!Number.isFinite(diffMs) || diffMs < 0) return "just now";
   const mins = Math.floor(diffMs / 60000);
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;

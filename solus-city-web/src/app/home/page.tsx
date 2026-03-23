@@ -18,22 +18,71 @@ type EventEntry = {
   id: string;
   type: string;
   message: string;
-  createdAt: string;
+  createdAt?: string;
+  ts?: string;
 };
 
-function eventDotColor(type: string): string {
-  const t = type.toLowerCase();
-  if (t.includes("level_up")) return "#9945FF";
-  if (t.includes("attack_win") || t === "win") return "#66bb6a";
-  if (t.includes("attack_loss") || t.includes("hospital") || t === "loss") return "#ef5350";
-  if (t.includes("crime")) return "#fdd835";
-  if (t.includes("gym")) return "#ff9800";
-  if (t.includes("shop") || t.includes("buy") || t.includes("purchase")) return "#42a5f5";
-  return "#555";
+function fallbackEventColor(type: string): string {
+  const source = type.trim().toLowerCase() || "event";
+  let hash = 0;
+
+  for (let i = 0; i < source.length; i += 1) {
+    hash = (hash * 31 + source.charCodeAt(i)) % 360;
+  }
+
+  return `hsl(${hash} 58% 58%)`;
 }
 
-function timeAgo(ts: string): string {
-  const diffMs = Date.now() - new Date(ts).getTime();
+function eventDotColor(type: string, message?: string): string {
+  const t = type.toLowerCase();
+  const m = (message ?? "").toLowerCase();
+
+  const eventColors: Array<[string[], string]> = [
+    [["attack_loss", "attacked", "hospitalized", "defeat", "loss"], "#d84e4e"],
+    [["attack_win", "attacked_npc", "victory", "win"], "#4caf62"],
+    [["hospital_release"], "#4f8fd8"],
+    [["crime_fail", "crime_bust"], "#d7843f"],
+    [["crime_success", "crime_complete", "crime"], "#c4a044"],
+    [["gym", "train"], "#5c86d6"],
+    [["mission_claim", "mission_complete", "mission"], "#44b39a"],
+    [["black_market_purchase"], "#7662c8"],
+    [["bought_equipment", "shop", "purchase", "buy"], "#4d96d1"],
+    [["vault_deposit", "syndicate_vault_deposit"], "#43b07d"],
+    [["vault_withdraw", "syndicate_vault_withdraw"], "#cb9a4f"],
+    [["level_up", "xp"], "#8560c5"],
+    [["prestige"], "#a88245"],
+    [["syndicate_role_change"], "#7588b5"],
+    [["syndicate_created", "syndicate_joined"], "#5ba764"],
+    [["syndicate_left", "syndicate_disbanded", "syndicate_kick"], "#c26b6b"],
+    [["war_action", "war_score", "war"], "#8b7054"],
+    [["territory_contribution", "territory"], "#6f945f"],
+    [["season_reward", "season_finalize", "season"], "#b49055"],
+    [["championship", "champion"], "#a4834c"],
+    [["revenge", "revenge_resolved"], "#8d63d2"],
+  ];
+
+  if (t === "hospital") {
+    if (m.includes("discharged") || m.includes("restored") || m.includes("leave the hospital")) {
+      return "#4f8fd8";
+    }
+    return "#d97b4d";
+  }
+
+  for (const [patterns, color] of eventColors) {
+    if (patterns.some((pattern) => t.includes(pattern))) {
+      return color;
+    }
+  }
+
+  return fallbackEventColor(t);
+}
+
+function timeAgo(ts?: string | null): string {
+  if (!ts) return "recently";
+  const time = new Date(ts).getTime();
+  if (!Number.isFinite(time)) return "recently";
+  const diffMs = Date.now() - time;
+  if (!Number.isFinite(diffMs) || diffMs < 0) return "just now";
   const mins = Math.floor(diffMs / 60000);
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;
@@ -332,10 +381,10 @@ export default function HomePage() {
               <div key={event.id} className="flex items-center gap-2.5">
                 <span
                   className="flex-shrink-0 w-2 h-2 rounded-full"
-                  style={{ backgroundColor: eventDotColor(event.type) }}
+                  style={{ backgroundColor: eventDotColor(event.type, event.message) }}
                 />
                 <p className="flex-1 text-[11px] text-[#aaa]">{event.message}</p>
-                <p className="flex-shrink-0 text-[10px] text-[#555]">{timeAgo(event.createdAt)}</p>
+                <p className="flex-shrink-0 text-[10px] text-[#555]">{timeAgo(event.createdAt ?? event.ts)}</p>
               </div>
             ))}
           </div>

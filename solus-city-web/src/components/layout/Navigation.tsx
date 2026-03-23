@@ -342,39 +342,41 @@ export function Navigation() {
             </Link>
           );
         })}
-        <button
-          onClick={() => setMoreOpen((v) => !v)}
-          type="button"
-          className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full"
-        >
-          <MoreHorizontal size={18} className={moreOpen || moreActiveMobile ? "text-[#9945FF]" : "text-[#555]"} />
-          <span className={`text-[9px] font-bold tracking-[2px] uppercase ${moreOpen || moreActiveMobile ? "text-[#9945FF]" : "text-[#555]"}`}>
-            MORE
-          </span>
-        </button>
-      </nav>
+        <div ref={moreRef} className="relative flex-1 h-full">
+          <button
+            onClick={() => setMoreOpen((v) => !v)}
+            type="button"
+            className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full w-full"
+          >
+            <MoreHorizontal size={18} className={moreOpen || moreActiveMobile ? "text-[#9945FF]" : "text-[#555]"} />
+            <span className={`text-[9px] font-bold tracking-[2px] uppercase ${moreOpen || moreActiveMobile ? "text-[#9945FF]" : "text-[#555]"}`}>
+              MORE
+            </span>
+          </button>
 
-      {/* ── Mobile: More panel — overflow primary tabs + secondary tabs ── */}
-      {moreOpen && (
-        <div className="lg:hidden fixed left-0 right-0 bottom-14 bg-[#0d0d0d] border-t border-[rgba(153,69,255,0.2)] z-50 grid grid-cols-2">
-          {mobileMoreTabs.map((tab) => {
-            const active = isActive(tab.href, path);
-            return (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                onClick={() => setMoreOpen(false)}
-                className={`flex items-center gap-2 px-4 py-3 text-[11px] font-bold tracking-[2px] uppercase border-b border-r border-[#161616] transition-colors ${
-                  active ? "bg-[#1a0a2e] text-[#9945FF]" : "text-[#555] hover:text-[#888]"
-                }`}
-              >
-                <Icon name={tab.icon} />
-                {tab.label}
-              </Link>
-            );
-          })}
+          {/* ── Mobile: More panel — overflow primary tabs + secondary tabs ── */}
+          {moreOpen && (
+            <div className="lg:hidden fixed left-0 right-0 bottom-14 bg-[#0d0d0d] border-t border-[rgba(153,69,255,0.2)] z-50 grid grid-cols-2">
+              {mobileMoreTabs.map((tab) => {
+                const active = isActive(tab.href, path);
+                return (
+                  <Link
+                    key={tab.href}
+                    href={tab.href}
+                    onClick={() => setMoreOpen(false)}
+                    className={`flex items-center gap-2 px-4 py-3 text-[11px] font-bold tracking-[2px] uppercase border-b border-r border-[#161616] transition-colors ${
+                      active ? "bg-[#1a0a2e] text-[#9945FF]" : "text-[#555] hover:text-[#888]"
+                    }`}
+                  >
+                    <Icon name={tab.icon} />
+                    {tab.label}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
+      </nav>
     </>
   );
 }
