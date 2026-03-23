@@ -4,6 +4,7 @@ Thumbs.db
 .claude/
 .vscode/
 .idea/
+base44/
 
 # Logs
 *.log

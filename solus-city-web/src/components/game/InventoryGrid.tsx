@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { api } from "@/lib/api/client";
 import { InventoryResponse, InventoryRow } from "@/lib/gameApi";
 import { RarityBadge } from "./RarityBadge";
@@ -17,25 +18,32 @@ function ItemCard({
   };
 
   return (
-    <div className="rounded-md border border-white/10 bg-black/20 p-3 flex flex-col gap-2">
+    <div className="sc-panel p-4 flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <p className="text-[12px] font-bold text-[#eee]">{row.item.name}</p>
-          <p className="text-[10px] text-[#888]">x{row.qty} {row.item.slot ? `• ${row.item.slot}` : ""}</p>
+          <p className="text-[16px] font-black text-[#f3f4fa]">{row.item.name}</p>
+          <p className="mt-1 text-[11px] text-[#6f7386]">
+            x{row.qty} {row.item.slot ? `· ${row.item.slot}` : ""} {row.equipped ? "· equipped" : ""}
+          </p>
         </div>
         <RarityBadge rarity={row.item.rarity} />
       </div>
-      <p className="text-[10px] text-[#666]">{row.item.description}</p>
-      <div className="flex gap-2 flex-wrap">
-        {row.item.slot && !row.equipped && (
-          <button onClick={() => run("/inventory/equip")} className="px-2 py-1 rounded border border-white/10 text-[10px] text-[#42a5f5]">Equip</button>
-        )}
-        {row.equipped && (
-          <button onClick={() => run("/inventory/unequip")} className="px-2 py-1 rounded border border-white/10 text-[10px] text-[#ff9800]">Unequip</button>
-        )}
-        {(row.item.consumable || row.item.effectType) && (
-          <button onClick={() => run("/inventory/use")} className="px-2 py-1 rounded border border-white/10 text-[10px] text-[#66bb6a]">Use</button>
-        )}
+      <p className="text-[12px] text-[#7d8196]">{row.item.description}</p>
+      <div className="flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-[0.12em]">
+        {row.item.effectType ? <span className="sc-chip sc-chip-green">{row.item.effectType.replaceAll("_", " ")}</span> : null}
+        {row.item.slot ? <span className="sc-chip">{row.item.slot}</span> : null}
+        {row.expiresAt ? <span className="sc-chip sc-chip-orange">Timed</span> : null}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {row.item.slot && !row.equipped ? (
+          <button onClick={() => run("/inventory/equip")} className="sc-button sc-button-primary px-3 py-2">Equip</button>
+        ) : null}
+        {row.equipped ? (
+          <button onClick={() => run("/inventory/unequip")} className="sc-button sc-button-orange px-3 py-2">Unequip</button>
+        ) : null}
+        {row.item.consumable || row.item.effectType ? (
+          <button onClick={() => run("/inventory/use")} className="sc-button sc-button-green px-3 py-2">Use</button>
+        ) : null}
       </div>
     </div>
   );
@@ -57,22 +65,58 @@ export function InventoryGrid({
     { title: "General", rows: inventory.general },
   ];
 
+  const [active, setActive] = useState<string>("Equipped");
+  const activeGroup = useMemo(() => groups.find((group) => group.title === active) ?? groups[0], [active, groups]);
+  const activeLoadout = inventory.equipped.slice(0, 3);
+
   return (
     <div className="flex flex-col gap-4">
-      {groups.map((group) => (
-        <div key={group.title} className="flex flex-col gap-2">
-          <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">{group.title}</p>
-          {group.rows.length === 0 ? (
-            <div className="rounded-md border border-white/10 bg-black/20 p-3 text-[11px] text-[#666]">Nothing here yet.</div>
+      <div className="sc-panel p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="sc-kicker">Active Loadout</p>
+            <p className="mt-2 text-[22px] font-black text-[#f4f5fb]">Operational Gear</p>
+          </div>
+          <p className="text-[12px] font-black tracking-[0.18em] text-[#9f64ff] uppercase">{inventory.equipped.length}/3</p>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {activeLoadout.length === 0 ? (
+            <span className="sc-chip">No gear equipped</span>
           ) : (
-            <div className="grid gap-2 md:grid-cols-2">
-              {group.rows.map((row) => (
-                <ItemCard key={row.inventoryItemId} row={row} onRefresh={onRefresh} />
-              ))}
-            </div>
+            activeLoadout.map((row) => (
+              <div key={row.inventoryItemId} className="rounded-xl border border-[rgba(153,69,255,0.2)] bg-[rgba(153,69,255,0.08)] px-3 py-2">
+                <p className="text-[12px] font-black text-[#f2f3fa]">{row.item.name}</p>
+                <p className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#6f7386]">{row.item.slot ?? "utility"}</p>
+              </div>
+            ))
           )}
         </div>
-      ))}
+      </div>
+
+      <div className="flex flex-wrap gap-2 border-b border-white/8 pb-3">
+        {groups.map((group) => (
+          <button
+            key={group.title}
+            type="button"
+            onClick={() => setActive(group.title)}
+            className={`rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] ${
+              active === group.title ? "bg-[rgba(153,69,255,0.14)] text-[#9f64ff]" : "text-[#5f6377]"
+            }`}
+          >
+            {group.title} ({group.rows.length})
+          </button>
+        ))}
+      </div>
+
+      {activeGroup.rows.length === 0 ? (
+        <div className="sc-panel p-4 text-[12px] text-[#6b7086]">Nothing here yet.</div>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {activeGroup.rows.map((row) => (
+            <ItemCard key={row.inventoryItemId} row={row} onRefresh={onRefresh} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

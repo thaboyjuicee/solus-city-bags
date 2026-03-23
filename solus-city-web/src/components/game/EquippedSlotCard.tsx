@@ -12,12 +12,12 @@ export function EquippedSlotCard({
   rarity?: string | null;
 }) {
   return (
-    <div className="rounded-md border border-white/10 bg-black/20 p-3 flex flex-col gap-2">
+    <div className="sc-panel p-4 flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[10px] font-black tracking-[2px] text-[#555] uppercase">{slot}</p>
+        <p className="sc-label">{slot}</p>
         <RarityBadge rarity={rarity} />
       </div>
-      <p className="text-[12px] font-bold text-[#eee]">{name ?? "Empty"}</p>
+      <p className="text-[16px] font-black text-[#f4f5fb]">{name ?? "Empty"}</p>
     </div>
   );
 }

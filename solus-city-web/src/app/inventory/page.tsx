@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api/client";
 import { InventoryGrid } from "@/components/game/InventoryGrid";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -13,38 +13,19 @@ export default function InventoryPage() {
   const slsBalance = useSLSBalance();
 
   const fetchInventory = useCallback(async () => {
-    const [inventoryRes, meRes] = await Promise.all([
-      api.get<InventoryResponse>("/inventory"),
-      api.get<MeResponse>("/me"),
-    ]);
+    const [inventoryRes, meRes] = await Promise.all([api.get<InventoryResponse>("/inventory"), api.get<MeResponse>("/me")]);
     setInventory(inventoryRes.data);
     setMe(meRes.data);
   }, []);
 
-  useEffect(() => {
-    fetchInventory();
-  }, [fetchInventory]);
+  useEffect(() => { fetchInventory(); }, [fetchInventory]);
 
-  if (!inventory) return <div className="flex min-h-dvh items-center justify-center"><LoadingSpinner size={32} /></div>;
+  const totalItems = useMemo(() => {
+    if (!inventory) return 0;
+    return [...inventory.equipped, ...inventory.consumables, ...inventory.utilities, ...inventory.contraband, ...inventory.protection, ...inventory.general].reduce((sum, row) => sum + row.qty, 0);
+  }, [inventory]);
 
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-1.5">
-        <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
-          <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">CASH</p>
-          <p className="text-sm font-black text-[#66bb6a]">${me ? Math.floor(me.cash).toLocaleString() : "-"}</p>
-        </div>
-        <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
-          <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">$SLS</p>
-          <p className="text-sm font-black text-[#9945FF]">{slsBalance !== null ? slsBalance.toFixed(2) : "-"}</p>
-        </div>
-      </div>
-      <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-        <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Inventory</p>
-        <p className="text-[12px] text-[#888] mt-1">Manage equip, unequip, and consumable usage.</p>
-        <p className="text-[10px] text-[#666] mt-2">Units stay passive. Slotted equipment now affects combat only when equipped.</p>
-      </div>
-      <InventoryGrid inventory={inventory} onRefresh={fetchInventory} />
-    </div>
-  );
+  if (!inventory) return <div className="flex min-h-[60vh] items-center justify-center"><LoadingSpinner size={32} /></div>;
+
+  return <div className="space-y-4"><div className="flex items-start justify-between gap-4"><div><p className="sc-page-title">Inventory</p><p className="sc-subtitle mt-2">Your gear and consumables</p></div><div className="text-right"><p className="sc-kicker">Equipped</p><p className="mt-2 text-[24px] font-black text-[#9f64ff]">{inventory.equipped.length}/3</p></div></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><div className="sc-stat"><p className="sc-label">Wallet</p><p className="mt-3 text-[24px] font-black text-[#36d47f]">${Math.floor(me?.cash ?? 0).toLocaleString()}</p></div><div className="sc-stat"><p className="sc-label">SLS</p><p className="mt-3 text-[24px] font-black text-[#9f64ff]">{slsBalance !== null ? slsBalance.toFixed(2) : "-"}</p></div><div className="sc-stat"><p className="sc-label">Items</p><p className="mt-3 text-[24px] font-black text-[#f4f5fb]">{totalItems}</p></div><div className="sc-stat"><p className="sc-label">Protection</p><p className="mt-3 text-[24px] font-black text-[#ff9d32]">{inventory.protection.length}</p></div></div><div className="sc-panel p-4 text-[12px] text-[#7a7f95]">Units stay passive. Slotted equipment affects combat only when equipped.</div><InventoryGrid inventory={inventory} onRefresh={fetchInventory} /></div>;
 }
