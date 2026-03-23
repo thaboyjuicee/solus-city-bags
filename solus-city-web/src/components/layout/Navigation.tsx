@@ -17,147 +17,102 @@ import {
   LogOut,
   MoreHorizontal,
   ScrollText,
-  Shield,
   ShoppingBag,
   Sparkles,
   Store,
-  Swords,
   Trophy,
   UserRound,
   Users,
   Wallet,
+  Shield,
   Map,
+  Swords,
 } from "lucide-react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { api, PLAYER_STATE_REFRESH_EVENT } from "@/lib/api/client";
 import { TOKEN_KEY } from "@/lib/config";
 import { useSLSBalance } from "@/hooks/useSLSBalance";
-import { MeResponse } from "@/lib/gameApi";
+
+// ─── Tab definitions ────────────────────────────────────────────────────────
 
 const ICONS = {
   home: Home,
-  crimes: Crosshair,
-  battle: Swords,
-  gym: Dumbbell,
-  shop: Store,
-  market: ShoppingBag,
+  crosshair: Crosshair,
+  swords: Swords,
+  dumbbell: Dumbbell,
+  store: Store,
+  blackMarket: ShoppingBag,
+  leaderboard: Trophy,
+  attackLogs: ScrollText,
   profile: UserRound,
-  board: Trophy,
-  logs: ScrollText,
-  inventory: Box,
-  missions: ListTodo,
-  seasons: CalendarDays,
-  syndicate: Users,
+  syndicates: Users,
   wars: Shield,
   territories: Map,
-  titles: Crown,
+  missions: ListTodo,
+  inventory: Box,
+  seasons: CalendarDays,
   prestige: Sparkles,
+  championships: Crown,
 } as const;
 
 type IconKey = keyof typeof ICONS;
 
-type NavItem = {
+type NavTab = {
   href: string;
   label: string;
   icon: IconKey;
 };
 
-const MAIN_NAV: NavItem[] = [
-  { href: "/home", label: "Home", icon: "home" },
-  { href: "/crimes", label: "Crimes", icon: "crimes" },
-  { href: "/targets", label: "Battle", icon: "battle" },
-  { href: "/gym", label: "Gym", icon: "gym" },
-  { href: "/shop", label: "Shop", icon: "shop" },
-  { href: "/black-market", label: "Market", icon: "market" },
-  { href: "/profile", label: "Profile", icon: "profile" },
-  { href: "/leaderboard", label: "Board", icon: "board" },
-  { href: "/attack-logs", label: "Logs", icon: "logs" },
+const PRIMARY_TABS: NavTab[] = [
+  { href: "/home",         label: "Home",         icon: "home" },
+  { href: "/crimes",       label: "Crimes",       icon: "crosshair" },
+  { href: "/targets",      label: "Battle",       icon: "swords" },
+  { href: "/gym",          label: "Gym",          icon: "dumbbell" },
+  { href: "/shop",         label: "Shop",         icon: "store" },
+  { href: "/black-market", label: "Black Market", icon: "blackMarket" },
+  { href: "/profile",      label: "Profile",      icon: "profile" },
+  { href: "/leaderboard",  label: "Leaderboard",  icon: "leaderboard" },
+  { href: "/attack-logs",  label: "Attack Logs",  icon: "attackLogs" },
 ];
 
-const SECONDARY_NAV: NavItem[] = [
-  { href: "/inventory", label: "Inventory", icon: "inventory" },
-  { href: "/missions", label: "Missions", icon: "missions" },
-  { href: "/seasons", label: "Seasons", icon: "seasons" },
-  { href: "/syndicates", label: "Syndicate", icon: "syndicate" },
-  { href: "/wars", label: "Wars", icon: "wars" },
-  { href: "/territories", label: "Territories", icon: "territories" },
-  { href: "/championships", label: "Titles", icon: "titles" },
-  { href: "/prestige", label: "Prestige", icon: "prestige" },
+const MORE_TABS: NavTab[] = [
+  { href: "/inventory",     label: "Inventory",     icon: "inventory" },
+  { href: "/seasons",       label: "Seasons",       icon: "seasons" },
+  { href: "/championships", label: "Championships", icon: "championships" },
+  { href: "/missions",      label: "Missions",      icon: "missions" },
+  { href: "/syndicates",    label: "Syndicates",    icon: "syndicates" },
+  { href: "/wars",          label: "Wars",          icon: "wars" },
 ];
 
-function Icon({ name, size = 15 }: { name: IconKey; size?: number }) {
-  const Component = ICONS[name];
-  return <Component size={size} />;
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function Icon({ name }: { name: IconKey }) {
+  const C = ICONS[name];
+  return <C size={18} />;
 }
 
 function isActive(href: string, path: string) {
   return path === href || path.startsWith(`${href}/`);
 }
 
-function formatCompact(value: number | null | undefined) {
-  if (value === null || value === undefined || Number.isNaN(value)) return "-";
-  if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(value) >= 1_000) return `${Math.round(value / 100) / 10}K`;
-  return `${Math.floor(value)}`;
+function formatSls(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(2)}K`;
+  return n.toFixed(2);
 }
 
-function formatSls(value: number | null) {
-  if (value === null) return "-";
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
-  if (value >= 1_000) return `${(value / 1_000).toFixed(2)}K`;
-  return value.toFixed(2);
+// ─── SLS balance badge ───────────────────────────────────────────────────────
+
+function SLSBadge() {
+  const balance = useSLSBalance();
+  if (balance === null) return null;
+  return (
+    <span className="flex-shrink-0 px-2.5 py-1 rounded-sm bg-[#1a0a2e] border border-[rgba(153,69,255,0.3)] text-[#9945FF] text-[11px] font-bold tracking-[1px] whitespace-nowrap">
+      {formatSls(balance)} $SLS
+    </span>
+  );
 }
 
-function formatTier(tier?: string | null) {
-  return tier ? tier.replaceAll("_", " ") : "low";
-}
-
-function AnimatedNumber({
-  value,
-  formatter,
-  className,
-}: {
-  value: number;
-  formatter: (value: number) => string;
-  className?: string;
-}) {
-  const [display, setDisplay] = useState(value);
-  const previousRef = useRef(value);
-
-  useEffect(() => {
-    const from = previousRef.current;
-    const to = value;
-
-    if (!Number.isFinite(from) || !Number.isFinite(to) || from === to) {
-      previousRef.current = to;
-      setDisplay(to);
-      return;
-    }
-
-    const duration = 450;
-    let frame = 0;
-    let start: number | null = null;
-
-    const step = (timestamp: number) => {
-      if (start === null) start = timestamp;
-      const progress = Math.min(1, (timestamp - start) / duration);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const next = from + (to - from) * eased;
-      setDisplay(next);
-
-      if (progress < 1) {
-        frame = window.requestAnimationFrame(step);
-      } else {
-        previousRef.current = to;
-      }
-    };
-
-    frame = window.requestAnimationFrame(step);
-    return () => window.cancelAnimationFrame(frame);
-  }, [value]);
-
-  return <span className={className}>{formatter(display)}</span>;
-}
+// ─── Wallet dropdown ─────────────────────────────────────────────────────────
 
 function WalletDropdown() {
   const { publicKey, disconnect } = useWallet();
@@ -167,427 +122,259 @@ function WalletDropdown() {
 
   useEffect(() => {
     if (!open) return;
-    const onClick = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false);
       }
-    };
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
   }, [open]);
 
-  const address = publicKey?.toBase58() ?? "";
-  const shortAddress = address ? `${address.slice(0, 4)}...${address.slice(-4)}` : "Wallet";
+  const address = publicKey?.toString() ?? "";
+  const short = address ? `${address.slice(0, 4)}...${address.slice(-4)}` : "Wallet";
+
+  function copyAddress() {
+    if (address) navigator.clipboard.writeText(address);
+    setOpen(false);
+  }
+
+  function doLogout() {
+    localStorage.removeItem(TOKEN_KEY);
+    disconnect();
+    router.push("/login");
+  }
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative flex-shrink-0">
       <button
+        onClick={() => setOpen((v) => !v)}
         type="button"
-        onClick={() => setOpen((value) => !value)}
-        className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] font-black tracking-[0.16em] text-[#8f92a6] uppercase"
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm border text-[11px] font-bold tracking-[1px] whitespace-nowrap transition-colors ${
+          open
+            ? "bg-[#1a0a2e] border-[rgba(153,69,255,0.5)] text-[#9945FF]"
+            : "bg-transparent border-[rgba(153,69,255,0.2)] text-[#555] hover:border-[rgba(153,69,255,0.4)] hover:text-[#9945FF]"
+        }`}
       >
-        <Wallet size={12} />
-        <span>{shortAddress}</span>
-        <ChevronDown size={10} className={open ? "rotate-180" : ""} />
+        <Wallet size={13} />
+        <span>{short}</span>
+        <ChevronDown size={11} className={`transition-transform duration-150 ${open ? "rotate-180" : ""}`} />
       </button>
-      {open ? (
-        <div className="absolute right-0 top-full z-[80] mt-2 min-w-[170px] rounded-xl border border-white/10 bg-[#111218] p-2 shadow-[0_18px_45px_rgba(0,0,0,0.45)]">
+
+      {open && (
+        <div className="absolute right-0 top-full mt-1 w-44 bg-[#0d0d0d] border border-[rgba(153,69,255,0.2)] z-[60] overflow-hidden">
           <button
+            onClick={copyAddress}
             type="button"
-            onClick={() => {
-              if (address) navigator.clipboard.writeText(address);
-              setOpen(false);
-            }}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[10px] font-black tracking-[0.16em] text-[#c7c8d4] uppercase hover:bg-white/5"
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[10px] font-bold tracking-[1px] uppercase text-[#555] hover:text-[#ccc] hover:bg-white/5 transition-colors text-left"
           >
-            <Copy size={12} />
+            <Copy size={13} />
             Copy Address
           </button>
+          <div className="border-t border-[#1a1a1a]" />
           <button
+            onClick={doLogout}
             type="button"
-            onClick={() => {
-              localStorage.removeItem(TOKEN_KEY);
-              disconnect();
-              router.push("/login");
-            }}
-            className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[10px] font-black tracking-[0.16em] text-[#ff8d8d] uppercase hover:bg-white/5"
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[10px] font-bold tracking-[1px] uppercase text-[#555] hover:text-[#ccc] hover:bg-white/5 transition-colors text-left"
           >
-            <LogOut size={12} />
+            <Wallet size={13} />
+            Change Wallet
+          </button>
+          <div className="border-t border-[#1a1a1a]" />
+          <button
+            onClick={doLogout}
+            type="button"
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[10px] font-bold tracking-[1px] uppercase text-red-500/60 hover:text-red-400 hover:bg-white/5 transition-colors text-left"
+          >
+            <LogOut size={13} />
             Log Out
           </button>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
 
-function DesktopStatBar({
-  label,
-  value,
-  max,
-  color,
-}: {
-  label: string;
-  value: number;
-  max: number;
-  color: string;
-}) {
-  const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
-  return (
-    <div className="flex items-center gap-2 min-w-[114px]">
-      <span className="text-[9px] font-black tracking-[0.18em] text-[#6c7084] uppercase">{label}</span>
-      <div className="h-[3px] w-16 overflow-hidden rounded-full bg-white/5">
-        <div
-          className="h-full rounded-full transition-[width,background-color,box-shadow] duration-700 ease-out"
-          style={{ width: `${pct}%`, backgroundColor: color, boxShadow: `0 0 10px ${color}` }}
-        />
-      </div>
-      <AnimatedNumber
-        value={value}
-        formatter={(current) => `${Math.round(current)}`}
-        className="text-[9px] font-bold text-[#8f92a6] tabular-nums"
-      />
-    </div>
-  );
-}
-
-function SidebarStatus({ me }: { me: MeResponse | null }) {
-  const bars = [
-    { label: "HP", value: me?.health ?? 0, max: me?.maxHealth ?? 100, color: "#ff5d5d" },
-    { label: "EN", value: me?.energy ?? 0, max: me?.maxEnergy ?? 100, color: "#36d47f" },
-    { label: "NV", value: me?.nerve ?? 0, max: me?.maxNerve ?? 100, color: "#4f8cff" },
-  ];
-
-  return (
-    <div className="border-t border-white/8 px-4 py-3">
-      <p className="text-[9px] font-black tracking-[0.2em] text-[#4d5061] uppercase">Status</p>
-      <div className="mt-3 space-y-2">
-        {bars.map((bar) => {
-          const pct = bar.max > 0 ? Math.min(100, Math.round((bar.value / bar.max) * 100)) : 0;
-          return (
-            <div key={bar.label} className="flex items-center gap-2">
-              <span className="w-4 text-[9px] font-black text-[#b8bbca]">{bar.label}</span>
-              <div className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/5">
-                <div
-                  className="h-full rounded-full transition-[width,background-color,box-shadow] duration-700 ease-out"
-                  style={{ width: `${pct}%`, backgroundColor: bar.color, boxShadow: `0 0 10px ${bar.color}` }}
-                />
-              </div>
-              <AnimatedNumber
-                value={bar.value}
-                formatter={(current) => `${Math.round(current)}`}
-                className="w-6 text-right text-[9px] text-[#5d6075] tabular-nums"
-              />
-            </div>
-          );
-        })}
-      </div>
-      <div className="mt-3 flex items-center justify-between text-[9px] font-black">
-        <span className="text-[#f7bf35]">LV {me?.level ?? "-"}</span>
-        <AnimatedNumber
-          value={Number(me?.cash ?? 0)}
-          formatter={(current) => `$${formatCompact(current)}`}
-          className="text-[#36d47f] tabular-nums"
-        />
-        <AnimatedNumber
-          value={Number(me?.heat ?? 0)}
-          formatter={(current) => `${Math.round(current)}`}
-          className="text-[#ff8e3c] tabular-nums"
-        />
-      </div>
-    </div>
-  );
-}
+// ─── Main Navigation ─────────────────────────────────────────────────────────
 
 export function Navigation() {
   const pathname = usePathname();
-  const slsBalance = useSLSBalance();
-  const [me, setMe] = useState<MeResponse | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
-  const [hudPulse, setHudPulse] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
-  const previousMeRef = useRef<MeResponse | null>(null);
-  const pulseTimeoutRef = useRef<number | null>(null);
   const path = useMemo(() => (pathname === "/" ? "/home" : pathname ?? "/home"), [pathname]);
 
+  // Close More on route change
   useEffect(() => {
-    if (pathname === "/login") return;
+    setMoreOpen(false);
+  }, [path]);
 
-    let cancelled = false;
-
-    const load = async () => {
-      try {
-        const response = await api.get<MeResponse>("/me");
-        if (!cancelled) {
-          const nextMe = response.data;
-          const previous = previousMeRef.current;
-          const hasMeaningfulChange =
-            !!previous &&
-            [
-              [previous.health, nextMe.health],
-              [previous.energy, nextMe.energy],
-              [previous.nerve, nextMe.nerve],
-              [previous.happiness, nextMe.happiness],
-              [previous.cash, nextMe.cash],
-              [previous.heat, nextMe.heat],
-              [previous.xp, nextMe.xp],
-              [previous.level, nextMe.level],
-            ].some(([before, after]) => Number(before ?? 0) !== Number(after ?? 0));
-
-          setMe(nextMe);
-          previousMeRef.current = nextMe;
-
-          if (hasMeaningfulChange) {
-            setHudPulse(true);
-            if (pulseTimeoutRef.current) window.clearTimeout(pulseTimeoutRef.current);
-            pulseTimeoutRef.current = window.setTimeout(() => setHudPulse(false), 650);
-          }
-        }
-      } catch {
-        if (!cancelled) setMe(null);
-      }
-    };
-
-    load();
-    const onRefresh = () => void load();
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") {
-        void load();
-      }
-    };
-
-    window.addEventListener(PLAYER_STATE_REFRESH_EVENT, onRefresh);
-    window.addEventListener("focus", onRefresh);
-    document.addEventListener("visibilitychange", onVisibility);
-    const interval = window.setInterval(load, 10000);
-    return () => {
-      cancelled = true;
-      window.removeEventListener(PLAYER_STATE_REFRESH_EVENT, onRefresh);
-      window.removeEventListener("focus", onRefresh);
-      document.removeEventListener("visibilitychange", onVisibility);
-      if (pulseTimeoutRef.current) window.clearTimeout(pulseTimeoutRef.current);
-      window.clearInterval(interval);
-    };
-  }, [pathname]);
-
+  // Close More on outside click (desktop)
   useEffect(() => {
     if (!moreOpen) return;
-    const onClick = (event: MouseEvent) => {
-      if (moreRef.current && !moreRef.current.contains(event.target as Node)) {
+    function onClickOutside(e: MouseEvent) {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
         setMoreOpen(false);
       }
-    };
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
   }, [moreOpen]);
 
-  if (pathname === "/login") {
-    return null;
-  }
+  if (pathname === "/login") return null;
 
-  const mobileTabs = [
-    { href: "/home", label: "Home", icon: "home" as IconKey },
-    { href: "/crimes", label: "Crimes", icon: "crimes" as IconKey },
-    { href: "/targets", label: "Battle", icon: "battle" as IconKey },
-    { href: "/profile", label: "Profile", icon: "profile" as IconKey },
-  ];
-
-  const mobileSlsLabel = slsBalance === null ? "- SLS" : `${formatSls(slsBalance)} SLS`;
+  // Desktop: More is active when on any More tab
+  const moreActive = MORE_TABS.some((tab) => isActive(tab.href, path));
+  // Mobile: More is active when on any tab not in the bottom bar (primary tabs 4+ or any More tab)
+  const moreActiveMobile = [...PRIMARY_TABS.slice(4), ...MORE_TABS].some((tab) => isActive(tab.href, path));
+  // Mobile More panel combines overflow primary tabs and secondary tabs
+  const mobileMoreTabs = [...PRIMARY_TABS.slice(4), ...MORE_TABS];
 
   return (
     <>
-      <aside className="fixed inset-y-3 left-3 z-50 hidden w-[172px] overflow-hidden rounded-[20px] border border-white/8 bg-[#0b0c11]/95 shadow-[0_20px_45px_rgba(0,0,0,0.45)] backdrop-blur-xl lg:flex lg:flex-col">
-        <div className="border-b border-white/8 px-4 py-4">
-          <div className="flex items-center gap-3">
-            <Image src="/assets/images/app_icon.png" alt="Solus City" width={28} height={28} className="rounded-lg" />
-            <div>
-              <p className="text-[15px] font-black tracking-[0.05em] text-[#f4f5fb]">SOLUS CITY</p>
-              <p className="text-[9px] font-black tracking-[0.18em] text-[#5f6172] uppercase">V2 · Season 4</p>
-            </div>
-          </div>
-        </div>
+      {/* ── Desktop nav (lg+) ── */}
+      <nav className="hidden lg:block fixed top-0 left-0 right-0 h-14 bg-black/25 backdrop-blur-sm border-b border-white/10 z-50">
+        <div className="h-full px-3 flex items-center justify-between gap-2">
 
-        <div className="border-b border-white/8 px-4 py-3">
-          <p className="text-[14px] font-black text-[#f3f4fa]">{me?.name ?? "GhostOperator"}</p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            <span className="sc-chip sc-chip-purple">LV {me?.level ?? "--"}</span>
-            <span className="sc-chip sc-chip-orange">{formatTier(me?.wantedTier)}</span>
-            {me?.syndicate?.name ? <span className="sc-chip">{me.syndicate.name}</span> : null}
-          </div>
-        </div>
+          {/* Logo */}
+          <Link
+            href="/home"
+            className="flex items-center gap-2 text-[#eee] font-black tracking-[3px] text-sm flex-shrink-0"
+          >
+            <Image src="/assets/images/app_icon.png" alt="Solus City" width={32} height={32} className="rounded-md" />
+            <span className="hidden xl:inline">SOLUS CITY</span>
+          </Link>
 
-        <div className="flex-1 overflow-y-auto px-3 py-3">
-          <div className="space-y-1">
-            {MAIN_NAV.map((item) => {
-              const active = isActive(item.href, path);
+          {/* Primary tabs + More */}
+          <div className="flex items-center h-full min-w-0">
+            {PRIMARY_TABS.map((tab) => {
+              const active = isActive(tab.href, path);
               return (
                 <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[11px] font-black tracking-[0.18em] uppercase transition-colors ${
-                    active
-                      ? "bg-[rgba(153,69,255,0.14)] text-[#9f64ff]"
-                      : "text-[#64687b] hover:bg-white/4 hover:text-[#c2c5d4]"
+                  key={tab.href}
+                  href={tab.href}
+                  className={`flex items-center gap-1.5 px-2.5 h-full text-[11px] font-bold tracking-[2px] uppercase transition-colors whitespace-nowrap ${
+                    active ? "bg-[#1a0a2e] text-[#9945FF]" : "text-[#555] hover:text-[#888]"
                   }`}
                 >
-                  <Icon name={item.icon} />
-                  <span>{item.label}</span>
+                  <Icon name={tab.icon} />
+                  <span className="hidden xl:inline">{tab.label}</span>
                 </Link>
               );
             })}
-          </div>
 
-          <div className="mt-5">
-            <p className="px-3 text-[9px] font-black tracking-[0.24em] text-[#434759] uppercase">More</p>
-            <div className="mt-2 space-y-1">
-              {SECONDARY_NAV.map((item) => {
-                const active = isActive(item.href, path);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[11px] font-black tracking-[0.18em] uppercase transition-colors ${
-                      active
-                        ? "bg-[rgba(153,69,255,0.14)] text-[#9f64ff]"
-                        : "text-[#64687b] hover:bg-white/4 hover:text-[#c2c5d4]"
-                    }`}
-                  >
-                    <Icon name={item.icon} />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
+            {/* More dropdown */}
+            <div ref={moreRef} className="relative h-full flex items-center">
+              <button
+                onClick={() => setMoreOpen((v) => !v)}
+                type="button"
+                className={`h-full px-2.5 inline-flex items-center gap-1.5 text-[11px] font-bold tracking-[2px] uppercase transition-colors ${
+                  moreOpen || moreActive ? "text-[#9945FF]" : "text-[#555] hover:text-[#888]"
+                }`}
+              >
+                <MoreHorizontal size={16} />
+                <span>MORE</span>
+                <ChevronDown
+                  size={11}
+                  className={`transition-transform duration-150 ${moreOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {moreOpen && (
+                <div className="absolute top-full left-0 bg-[#0d0d0d] border border-[rgba(153,69,255,0.15)] border-t-[rgba(153,69,255,0.3)] z-[60] min-w-[200px]">
+                  {MORE_TABS.map((tab) => {
+                    const active = isActive(tab.href, path);
+                    return (
+                      <Link
+                        key={tab.href}
+                        href={tab.href}
+                        onClick={() => setMoreOpen(false)}
+                        className={`flex items-center gap-2.5 px-4 py-2.5 text-[11px] font-bold tracking-[2px] uppercase border-b border-[#161616] transition-colors whitespace-nowrap last:border-b-0 ${
+                          active ? "bg-[#1a0a2e] text-[#9945FF]" : "text-[#555] hover:text-[#888] hover:bg-white/[0.02]"
+                        }`}
+                      >
+                        <Icon name={tab.icon} />
+                        {tab.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
-        </div>
 
-        <div className="px-4 pb-2">
-          <WalletDropdown />
-        </div>
-        <SidebarStatus me={me} />
-      </aside>
-
-      <header
-        className={`fixed left-3 right-3 top-3 z-40 hidden h-[50px] rounded-[18px] border bg-[#0b0c11]/88 px-5 backdrop-blur-xl transition-[box-shadow,border-color,transform] duration-500 lg:left-[190px] lg:flex lg:items-center lg:justify-between ${
-          hudPulse
-            ? "border-[rgba(159,100,255,0.28)] shadow-[0_20px_55px_rgba(153,69,255,0.18)] -translate-y-[1px]"
-            : "border-white/8 shadow-[0_16px_45px_rgba(0,0,0,0.35)]"
-        }`}
-      >
-        <div className="flex items-center gap-6">
-          <div>
-            <p className="text-[12px] font-black text-[#f4f5fb]">{me?.name ?? "GhostOperator"}</p>
-            <p className="text-[9px] font-black tracking-[0.18em] text-[#7f8195] uppercase">LV {me?.level ?? "--"}</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <DesktopStatBar label="HP" value={me?.health ?? 0} max={me?.maxHealth ?? 100} color="#ff5d5d" />
-            <DesktopStatBar label="EN" value={me?.energy ?? 0} max={me?.maxEnergy ?? 100} color="#36d47f" />
-            <DesktopStatBar label="NV" value={me?.nerve ?? 0} max={me?.maxNerve ?? 100} color="#4f8cff" />
-            <DesktopStatBar label="HP" value={me?.happiness ?? 0} max={me?.maxHappiness ?? 100} color="#f7bf35" />
-          </div>
-        </div>
-        <div className="flex items-center gap-4 text-[10px] font-black tracking-[0.12em] uppercase">
-          <span className="text-[#ff9d32]">
-            <AnimatedNumber value={Number(me?.heat ?? 0)} formatter={(current) => `${Math.round(current)}`} className="tabular-nums" /> {formatTier(me?.wantedTier)}
-          </span>
-          <AnimatedNumber
-            value={Number(me?.cash ?? 0)}
-            formatter={(current) => `$${formatCompact(current)}`}
-            className="text-[#36d47f] tabular-nums"
-          />
-          <AnimatedNumber
-            value={Number(slsBalance ?? 0)}
-            formatter={(current) => `${formatSls(current)} SLS`}
-            className="text-[#f7bf35] tabular-nums"
-          />
-        </div>
-      </header>
-
-      <div
-        className={`fixed inset-x-0 top-0 z-40 border-b bg-[#0b0c11]/92 px-3 py-3 backdrop-blur-xl transition-[box-shadow,border-color] duration-500 lg:hidden ${
-          hudPulse
-            ? "border-[rgba(159,100,255,0.24)] shadow-[0_14px_38px_rgba(153,69,255,0.14)]"
-            : "border-white/8 shadow-[0_10px_35px_rgba(0,0,0,0.35)]"
-        }`}
-      >
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-          <div className="justify-self-start">
+          {/* Right: SLS badge + wallet */}
+          <div className="flex-shrink-0 flex items-center gap-2">
+            <SLSBadge />
             <WalletDropdown />
           </div>
-          <Link href="/home" className="justify-self-center text-[14px] font-black tracking-[0.05em] text-[#f4f5fb]">
-            SOLUS CITY
-          </Link>
-          <div className="justify-self-end">
-            <span className="sc-chip sc-chip-purple whitespace-nowrap">{mobileSlsLabel}</span>
-          </div>
         </div>
-        <div className="mt-3 grid grid-cols-4 gap-2">
-          <DesktopStatBar label="HP" value={me?.health ?? 0} max={me?.maxHealth ?? 100} color="#ff5d5d" />
-          <DesktopStatBar label="EN" value={me?.energy ?? 0} max={me?.maxEnergy ?? 100} color="#36d47f" />
-          <DesktopStatBar label="NV" value={me?.nerve ?? 0} max={me?.maxNerve ?? 100} color="#4f8cff" />
-          <DesktopStatBar label="HP" value={me?.happiness ?? 0} max={me?.maxHappiness ?? 100} color="#f7bf35" />
-        </div>
-      </div>
+      </nav>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/8 bg-[#0b0c11]/95 px-2 py-2 shadow-[0_-12px_35px_rgba(0,0,0,0.35)] backdrop-blur-xl lg:hidden">
-        <div className="flex items-center justify-between gap-1">
-          {mobileTabs.map((tab) => {
+      {/* ── Mobile: top bar ── */}
+      <nav className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-black/25 backdrop-blur-sm border-b border-white/10 z-50 grid grid-cols-[1fr_auto_1fr] items-center px-3">
+        <div className="justify-self-start">
+          <WalletDropdown />
+        </div>
+        <Link href="/home" className="justify-self-center text-[#eee] font-black tracking-[3px] text-sm">
+          SOLUS CITY
+        </Link>
+        <div className="justify-self-end">
+          <SLSBadge />
+        </div>
+      </nav>
+
+      {/* ── Mobile: bottom tab bar (first 4 primary tabs + More) ── */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-14 bg-black/25 backdrop-blur-sm border-t border-white/10 z-50 flex justify-around items-center">
+        {PRIMARY_TABS.slice(0, 4).map((tab) => {
+          const active = isActive(tab.href, path);
+          return (
+            <Link
+              key={tab.href}
+              href={tab.href}
+              className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full"
+            >
+              <span className={active ? "text-[#9945FF]" : "text-[#555]"}>
+                <Icon name={tab.icon} />
+              </span>
+              <span className={`text-[9px] font-bold tracking-[2px] uppercase ${active ? "text-[#9945FF]" : "text-[#555]"}`}>
+                {tab.label}
+              </span>
+            </Link>
+          );
+        })}
+        <button
+          onClick={() => setMoreOpen((v) => !v)}
+          type="button"
+          className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full"
+        >
+          <MoreHorizontal size={18} className={moreOpen || moreActiveMobile ? "text-[#9945FF]" : "text-[#555]"} />
+          <span className={`text-[9px] font-bold tracking-[2px] uppercase ${moreOpen || moreActiveMobile ? "text-[#9945FF]" : "text-[#555]"}`}>
+            MORE
+          </span>
+        </button>
+      </nav>
+
+      {/* ── Mobile: More panel — overflow primary tabs + secondary tabs ── */}
+      {moreOpen && (
+        <div className="lg:hidden fixed left-0 right-0 bottom-14 bg-[#0d0d0d] border-t border-[rgba(153,69,255,0.2)] z-50 grid grid-cols-2">
+          {mobileMoreTabs.map((tab) => {
             const active = isActive(tab.href, path);
             return (
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={`flex flex-1 flex-col items-center gap-1 rounded-xl px-2 py-2 text-[9px] font-black tracking-[0.18em] uppercase ${
-                  active ? "bg-[rgba(153,69,255,0.14)] text-[#9f64ff]" : "text-[#5f6377]"
+                onClick={() => setMoreOpen(false)}
+                className={`flex items-center gap-2 px-4 py-3 text-[11px] font-bold tracking-[2px] uppercase border-b border-r border-[#161616] transition-colors ${
+                  active ? "bg-[#1a0a2e] text-[#9945FF]" : "text-[#555] hover:text-[#888]"
                 }`}
               >
                 <Icon name={tab.icon} />
-                <span>{tab.label}</span>
+                {tab.label}
               </Link>
             );
           })}
-
-          <div ref={moreRef} className="relative flex-1">
-            <button
-              type="button"
-              onClick={() => setMoreOpen((value) => !value)}
-              className={`flex w-full flex-col items-center gap-1 rounded-xl px-2 py-2 text-[9px] font-black tracking-[0.18em] uppercase ${
-                moreOpen ? "bg-[rgba(153,69,255,0.14)] text-[#9f64ff]" : "text-[#5f6377]"
-              }`}
-            >
-              <MoreHorizontal size={15} />
-              <span>More</span>
-            </button>
-
-            {moreOpen ? (
-              <div className="absolute bottom-[calc(100%+12px)] right-0 w-[220px] rounded-[18px] border border-white/10 bg-[#111218]/97 p-2 shadow-[0_20px_45px_rgba(0,0,0,0.55)]">
-                <div className="grid grid-cols-2 gap-1">
-                  {[MAIN_NAV[3], MAIN_NAV[4], MAIN_NAV[5], MAIN_NAV[7], MAIN_NAV[8], ...SECONDARY_NAV].map((item) => {
-                    const active = isActive(item.href, path);
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMoreOpen(false)}
-                        className={`flex items-center gap-2 rounded-xl px-3 py-3 text-[10px] font-black tracking-[0.12em] uppercase ${
-                          active ? "bg-[rgba(153,69,255,0.14)] text-[#9f64ff]" : "text-[#72768b]"
-                        }`}
-                      >
-                        <Icon name={item.icon} size={14} />
-                        <span>{item.label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-                <div className="mt-2 border-t border-white/8 pt-2">
-                  <WalletDropdown />
-                </div>
-              </div>
-            ) : null}
-          </div>
         </div>
-      </nav>
+      )}
     </>
   );
 }
-

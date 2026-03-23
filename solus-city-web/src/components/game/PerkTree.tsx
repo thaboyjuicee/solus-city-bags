@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import { api } from "@/lib/api/client";
@@ -47,11 +47,11 @@ export function PerkTree({
       {/* Header */}
       <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex items-center justify-between">
         <div>
-          <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">Skill Tree</p>
+          <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Skill Tree</p>
           <p className="text-sm text-[#aaa] mt-0.5">Unlock passive bonuses that shape your build.</p>
         </div>
         <div className="text-right">
-          <p className="text-[9px] font-bold text-[#aab0a3] tracking-[2px] uppercase">Points</p>
+          <p className="text-[9px] font-bold text-[#555] tracking-[2px] uppercase">Points</p>
           <p className="text-2xl font-black text-[#fdd835]">{data.availablePoints}</p>
         </div>
       </div>
@@ -101,7 +101,7 @@ export function PerkTree({
                     <div className="flex items-start justify-between gap-2">
                       <p
                         className={`text-sm font-bold leading-tight ${
-                          isUnlocked ? "text-white" : canUnlock ? "text-white" : "text-[#aab0a3]"
+                          isUnlocked ? "text-white" : canUnlock ? "text-white" : "text-[#555]"
                         }`}
                       >
                         {perk.name}
@@ -154,4 +154,3 @@ export function PerkTree({
     </div>
   );
 }
-

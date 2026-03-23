@@ -16,20 +16,20 @@ export function ContributionList({
   items: ContributionItem[];
 }) {
   return (
-    <div className="sc-panel p-4 flex flex-col gap-3">
-      <p className="sc-kicker">{title}</p>
+    <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-2">
+      <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">{title}</p>
       {items.length === 0 ? (
         <p className="text-[12px] text-[#777]">No contributions yet.</p>
       ) : (
         items.map((item) => (
-          <div key={item.id} className="rounded-xl border border-white/8 bg-[#0c0d13] px-4 py-3 flex items-center justify-between gap-3">
+          <div key={item.id} className="rounded-md border border-white/10 bg-black/20 p-3 flex items-center justify-between gap-3">
             <div>
-              <p className="text-[13px] font-black text-[#f3f4fa]">{item.userName}</p>
-              <p className="mt-1 text-[10px] font-black tracking-[0.12em] text-[#73778b] uppercase">
+              <p className="text-[12px] font-bold text-[#eee]">{item.userName}</p>
+              <p className="text-[10px] text-[#777]">
                 {(item.syndicateName ? `${item.syndicateName} • ` : "") + item.actionType.replaceAll("_", " ")}
               </p>
             </div>
-            <p className="text-[14px] font-black text-[#36d47f]">+{item.influenceDelta ?? item.points ?? 0}</p>
+            <p className="text-[12px] font-black text-[#66bb6a]">+{item.influenceDelta ?? item.points ?? 0}</p>
           </div>
         ))
       )}

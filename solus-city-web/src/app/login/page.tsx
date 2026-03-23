@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -119,7 +119,7 @@ export default function LoginPage() {
           height={180}
           className="bg-transparent object-contain"
         />
-        <h1 className="text-4xl font-black tracking-[0.28em] text-[#f2f4ec] uppercase">
+        <h1 className="text-4xl font-black tracking-[0.28em] text-[#eee] uppercase">
           Solus City
         </h1>
         <p className="text-text-secondary text-xs tracking-[3px] uppercase text-[#777]">
@@ -186,4 +186,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

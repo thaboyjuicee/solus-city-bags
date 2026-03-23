@@ -1,4 +1,4 @@
-interface StatCardProps {
+﻿interface StatCardProps {
   label: string;
   value: string | number;
   valueClassName?: string;
@@ -15,7 +15,7 @@ export function StatCard({
 }: StatCardProps) {
   return (
     <div className={`bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center ${className ?? ""}`}>
-      <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">{label}</p>
+      <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">{label}</p>
       <p
         className={`text-sm font-bold ${valueClassName ?? ""}`}
         style={{ color: color ?? "#eee" }}
@@ -25,4 +25,3 @@ export function StatCard({
     </div>
   );
 }
-

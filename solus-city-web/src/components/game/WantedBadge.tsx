@@ -1,4 +1,4 @@
-const WANTED_STYLES: Record<string, { label: string; bg: string; text: string }> = {
+﻿const WANTED_STYLES: Record<string, { label: string; bg: string; text: string }> = {
   low: { label: "LOW", bg: "bg-[#66bb6a20]", text: "text-[#66bb6a]" },
   watched: { label: "WATCHED", bg: "bg-[#fdd83520]", text: "text-[#fdd835]" },
   wanted: { label: "WANTED", bg: "bg-[#ff980020]", text: "text-[#ff9800]" },
@@ -10,9 +10,8 @@ export function WantedBadge({ tier }: { tier: string }) {
   const style = WANTED_STYLES[tier] ?? WANTED_STYLES.low;
   return (
     <div className={`rounded-md border border-white/10 px-3 py-3 ${style.bg}`}>
-      <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">WANTED</p>
+      <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">WANTED</p>
       <p className={`text-sm font-black ${style.text}`}>{style.label}</p>
     </div>
   );
 }
-
