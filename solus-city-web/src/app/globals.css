@@ -1,4 +1,4 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -19,20 +19,9 @@
 }
 
 body {
-<<<<<<< HEAD
-  background-color: #0a0a0a;
-  color: #f2f4ec;
-  font-family: "Inter", system-ui, sans-serif;
-  font-size: 15px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-=======
   background-color: var(--sc-bg);
   color: var(--sc-text);
   font-family: "Space Grotesk", "Sora", Inter, system-ui, sans-serif;
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
   min-height: 100dvh;
 }
 

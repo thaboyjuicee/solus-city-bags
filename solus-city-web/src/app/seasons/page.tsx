@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api/client";
@@ -32,50 +32,7 @@ export default function SeasonsPage() {
     { label: "Syndicate", entry: rewardPreview.projected.syndicate, color: "#9f64ff" },
   ], [rewardPreview]);
 
-<<<<<<< HEAD
-  return (
-    <div className="flex flex-col gap-4">
-      <SeasonRankCard season={current} />
-
-      {rewardPreview && (
-        <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-          <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">Reward Preview</p>
-          <div className="grid gap-2 md:grid-cols-3">
-            <div className="rounded-md border border-white/10 bg-black/20 p-3">
-              <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3]">OVERALL</p>
-              <p className="text-[14px] font-black text-[#66bb6a]">{rewardPreview.projected.overall?.label ?? "-"}</p>
-              <p className="text-[10px] text-[#777] mt-1">{rewardPreview.projected.overall?.rankLabel ?? "No tier"}</p>
-            </div>
-            <div className="rounded-md border border-white/10 bg-black/20 p-3">
-              <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3]">PVP</p>
-              <p className="text-[14px] font-black text-[#42a5f5]">{rewardPreview.projected.pvp?.label ?? "-"}</p>
-              <p className="text-[10px] text-[#777] mt-1">{rewardPreview.projected.pvp?.rankLabel ?? "No tier"}</p>
-            </div>
-            <div className="rounded-md border border-white/10 bg-black/20 p-3">
-              <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3]">CRIME</p>
-              <p className="text-[14px] font-black text-[#ff8a65]">{rewardPreview.projected.crime?.label ?? "-"}</p>
-              <p className="text-[10px] text-[#777] mt-1">{rewardPreview.projected.crime?.rankLabel ?? "No tier"}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-        <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">Season History</p>
-        {history.map((entry) => (
-          <SeasonHistoryCard key={entry.season.id} entry={entry} />
-        ))}
-      </div>
-
-      <HallOfFameList entries={hallOfFame} />
-    </div>
-  );
-}
-
-
-=======
   if (!current && history.length === 0) return <div className="flex min-h-[60vh] items-center justify-center"><LoadingSpinner size={32} /></div>;
 
   return <div className="space-y-4"><div><p className="sc-page-title">Seasons</p><p className="sc-subtitle mt-2">Season 4 · Blood Money</p></div><div className="flex flex-wrap gap-2 border-b border-white/8 pb-3">{([ ["current", "Current Season"], ["history", "History"], ["rewards", "Reward Tiers"] ] as const).map(([value, label]) => <button key={value} type="button" onClick={() => setTab(value)} className={`rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] ${tab === value ? "bg-[rgba(153,69,255,0.14)] text-[#9f64ff]" : "text-[#5f6377]"}`}>{label}</button>)}</div>{tab === "current" ? <div className="space-y-4"><SeasonRankCard season={current} /><div className="grid gap-3 md:grid-cols-4">{rewardCards.map((card) => <div key={card.label} className="sc-stat"><p className="sc-label">{card.label}</p><p className="mt-3 text-[22px] font-black" style={{ color: card.color }}>{card.entry?.label ?? "-"}</p><p className="mt-2 text-[10px] font-black uppercase tracking-[0.14em] text-[#707488]">{card.entry?.rankLabel ?? "No tier"}</p></div>)}</div></div> : null}{tab === "history" ? <div className="space-y-4">{history.map((entry) => <SeasonHistoryCard key={entry.season.id} entry={entry} />)}<HallOfFameList entries={hallOfFame} /></div> : null}{tab === "rewards" && rewardPreview ? <div className="space-y-4">{Object.entries(rewardPreview.rewardTiers).map(([category, tiers]) => <div key={category} className="sc-panel p-4"><p className="sc-kicker">{category.replaceAll("_", " ")}</p><div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{tiers.map((tier) => <div key={tier.key} className="sc-stat"><p className="sc-label">{tier.label}</p><p className="mt-3 text-[20px] font-black text-[#f7bf35]">{tier.rankLabel}</p><p className="mt-2 text-[12px] text-[#7a7f95]">${Math.floor(tier.cash).toLocaleString()} · {tier.rp} RP · {tier.prestigePoints} PP</p></div>)}</div></div>)}</div> : null}</div>;
 }
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39

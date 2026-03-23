@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api/client";
@@ -77,56 +77,6 @@ export default function WarsPage() {
   };
 
   return (
-<<<<<<< HEAD
-    <div className="flex flex-col gap-4">
-      <div className="flex gap-2 overflow-x-auto">
-        {wars.map((war) => (
-          <button
-            key={war.id}
-            type="button"
-            onClick={() => setSelectedWarId(war.id)}
-            className={`rounded-md border px-3 py-2 text-[10px] font-black tracking-[2px] uppercase ${selectedWarId === war.id ? "border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF]" : "border-white/10 bg-black/20 text-[#d0d5ca]"}`}
-          >
-            {war.attackerSyndicate?.name ?? "Attacker"} vs {war.defenderSyndicate?.name ?? "Defender"}
-          </button>
-        ))}
-      </div>
-
-      {selectedWar && (
-        <WarScoreboard
-          war={selectedWar}
-          canManageActions={!!me}
-          busyAction={busyAction}
-          onJoin={async () => {
-            await api.post(`/wars/${selectedWar.id}/join`);
-            await loadWars();
-          }}
-          onAction={async (actionType) => {
-            setBusyAction(actionType);
-            try {
-              await api.post(`/wars/${selectedWar.id}/action`, { actionType });
-              await loadWars();
-              const refreshed = await api.get<WarScoreboardResponse>(`/wars/${selectedWar.id}/scoreboard`);
-              setScoreboard(refreshed.data);
-            } finally {
-              setBusyAction(null);
-            }
-          }}
-        />
-      )}
-
-      {scoreboard && (
-        <>
-          <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-            <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">Action Breakdown</p>
-            <div className="grid gap-2 md:grid-cols-2">
-              {Object.entries(scoreboard.actionBreakdown).map(([actionType, points]) => (
-                <div key={actionType} className="rounded-md border border-white/10 bg-black/20 p-3 flex items-center justify-between gap-3">
-                  <p className="text-[12px] font-bold text-[#f2f4ec]">{actionType.replaceAll("_", " ")}</p>
-                  <p className="text-[14px] font-black text-[#66bb6a]">{points}</p>
-                </div>
-              ))}
-=======
     <div className="space-y-6 pb-12">
       <section className="sc-panel-strong overflow-hidden p-6 md:p-7">
         <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
@@ -155,7 +105,6 @@ export default function WarsPage() {
                 <div className="sc-value">2</div>
                 <div className="mt-2 text-xs text-white/45">Supply runs and node control remain the Wave 3 safe set.</div>
               </div>
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
             </div>
           </div>
           <div className="sc-panel p-5">

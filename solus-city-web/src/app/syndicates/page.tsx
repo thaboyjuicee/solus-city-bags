@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api/client";
@@ -167,13 +167,8 @@ function TabButton({
         disabled
           ? "border-white/5 text-[#333] cursor-not-allowed"
           : active
-<<<<<<< HEAD
-          ? "border-[#9945FF] text-[#9945FF]"
-          : "border-transparent text-[#aab0a3] hover:text-[#d0d5ca]"
-=======
           ? "border-[rgba(153,69,255,0.4)] bg-[#1a0a2e] text-[#d9a7ff]"
           : "border-white/10 bg-black/20 text-[#777] hover:text-[#ddd]"
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
       }`}
     >
       {children}
@@ -623,13 +618,8 @@ export default function SyndicatesPage() {
               <LoadingSpinner size={28} />
             </div>
           ) : !detail ? (
-<<<<<<< HEAD
-            <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-white/10 bg-black/20 p-10 text-center">
-              <p className="text-[14px] font-black text-[#f2f4ec]">You haven&apos;t joined a syndicate yet.</p>
-=======
             <div className="sc-panel-strong flex flex-col items-center justify-center gap-4 p-10 text-center">
               <p className="text-[14px] font-black text-[#eee]">You haven&apos;t joined a syndicate yet.</p>
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
               <p className="text-[12px] text-[#666] max-w-xs">Find an existing syndicate or create your own below.</p>
               <button
                 type="button"
@@ -645,15 +635,9 @@ export default function SyndicatesPage() {
               <div className="sc-panel-strong p-5 flex flex-col gap-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex flex-col gap-1">
-<<<<<<< HEAD
-                    <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">Syndicate HQ</p>
-                    <p className="text-[20px] font-black text-[#f2f4ec] mt-1">{detail.name}</p>
-                    <p className="text-[12px] text-[#d0d5ca] mt-0.5">{detail.description}</p>
-=======
                     <p className="sc-kicker">Syndicate HQ</p>
                     <p className="mt-1 text-[28px] font-black text-[#eee]">{detail.name}</p>
                     <p className="mt-1 max-w-2xl text-[13px] leading-6 text-[#888]">{detail.description}</p>
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
                     <button
@@ -710,16 +694,6 @@ export default function SyndicatesPage() {
               {/* ── HQ sub-tab ─────────────────────────────────────────────── */}
               {subTab === "hq" && (
                 <>
-<<<<<<< HEAD
-                  <div className="grid gap-2 md:grid-cols-3">
-                    <div className="rounded-md border border-white/10 bg-black/20 p-3">
-                      <p className="text-[9px] font-black tracking-[2px] text-[#aab0a3] uppercase">Season</p>
-                      <p className="text-[16px] font-black text-[#66bb6a] mt-1">{detail.seasonPoints}</p>
-                    </div>
-                    <div className="rounded-md border border-white/10 bg-black/20 p-3">
-                      <p className="text-[9px] font-black tracking-[2px] text-[#aab0a3] uppercase">War Rating</p>
-                      <p className="text-[16px] font-black text-[#ff8a65] mt-1">{detail.warRating}</p>
-=======
                   <div className="grid gap-3 md:grid-cols-3">
                     <div className="sc-stat">
                       <p className="sc-label">Season</p>
@@ -728,7 +702,6 @@ export default function SyndicatesPage() {
                     <div className="sc-stat">
                       <p className="sc-label">War Rating</p>
                       <p className="text-[20px] font-black text-[#ff8a65] mt-1">{detail.warRating}</p>
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
                     </div>
                   </div>
 
@@ -989,31 +962,18 @@ export default function SyndicatesPage() {
           )}
 
           {!mySyndicateId && (
-<<<<<<< HEAD
-            <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-              <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">Create Syndicate</p>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="rounded-md border border-white/10 bg-black/20 px-3 py-2 text-[12px] text-[#f2f4ec] outline-none"
-=======
             <div className="sc-panel-strong p-5 flex flex-col gap-4">
               <p className="sc-kicker">Create Syndicate</p>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="rounded-[20px] border border-white/10 bg-black/20 px-3 py-2 text-[12px] text-[#eee] outline-none"
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
                 placeholder="Syndicate name"
               />
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-<<<<<<< HEAD
-                className="min-h-24 rounded-md border border-white/10 bg-black/20 px-3 py-2 text-[12px] text-[#f2f4ec] outline-none"
-=======
                 className="min-h-24 rounded-[20px] border border-white/10 bg-black/20 px-3 py-2 text-[12px] text-[#eee] outline-none"
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
                 placeholder="Description"
               />
               <button
@@ -1045,11 +1005,7 @@ export default function SyndicatesPage() {
 
           <div className="sc-panel-strong p-5 flex flex-col gap-4">
             <div className="flex items-center justify-between gap-3">
-<<<<<<< HEAD
-              <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">Available Syndicates</p>
-=======
               <p className="sc-kicker">Available Syndicates</p>
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
               <button
                 type="button"
                 onClick={() => { setBrowseFetched(false); loadBrowse(); }}

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
@@ -74,47 +74,21 @@ function classifyListing(listing: Listing) {
 
 function SLSOverview({ cash, slsBalance, slsPrice, slsSpent, heat }: { cash: number; slsBalance: number | null; slsPrice: number | null; slsSpent: number; heat: number }) {
   return (
-<<<<<<< HEAD
-    <div className="grid grid-cols-4 gap-1.5">
-      <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
-        <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">CASH</p>
-        <p className="text-sm font-black text-[#66bb6a]">${Math.floor(cash).toLocaleString()}</p>
-      </div>
-      <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
-        <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">$SLS</p>
-        <p className="text-sm font-black text-[#9945FF]">{slsBalance !== null ? slsBalance.toFixed(2) : "-"}</p>
-      </div>
-      <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
-        <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">PRICE</p>
-        <p className="text-sm font-black text-[#f2f4ec]">{formatPrice(slsPrice)}</p>
-      </div>
-      <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
-        <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">SPENT</p>
-        <p className="text-sm font-black text-[#fdd835]">{slsSpent.toFixed(2)}</p>
-      </div>
-=======
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
       <div className="sc-stat"><p className="sc-label mb-1">Wallet cash</p><p className="text-xl font-black text-[#7ef0c5]">${Math.floor(cash).toLocaleString()}</p></div>
       <div className="sc-stat"><p className="sc-label mb-1">$SLS balance</p><p className="text-xl font-black text-[#d9a7ff]">{slsBalance !== null ? slsBalance.toFixed(2) : "-"}</p></div>
       <div className="sc-stat"><p className="sc-label mb-1">Spot price</p><p className="text-xl font-black text-white">{formatPrice(slsPrice)}</p></div>
       <div className="sc-stat"><p className="sc-label mb-1">$SLS spent</p><p className="text-xl font-black text-[#ffd36b]">{slsSpent.toFixed(2)}</p></div>
       <div className="sc-stat"><p className="sc-label mb-1">Heat</p><p className="text-xl font-black text-[#ff9d6b]">{heat}</p></div>
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
     </div>
   );
 }
 
 function ConnectPrompt({ label }: { label: string }) {
   return (
-<<<<<<< HEAD
-    <div className="flex flex-col items-center justify-center gap-3 py-12">
-      <Wallet size={28} className="text-[#aab0a3]" />
-      <p className="text-[#aab0a3] text-[11px] font-bold tracking-[2px]">{label}</p>
-=======
     <div className="sc-panel flex flex-col items-center justify-center gap-3 py-12">
       <Wallet size={28} className="text-white/35" />
       <p className="text-[11px] font-bold tracking-[0.24em] text-white/50">{label}</p>
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
     </div>
   );
 }
@@ -168,48 +142,6 @@ function SendSLSPanel({ onSendComplete }: { onSendComplete: (entry: SlsTransacti
   if (!connected || !publicKey || !signTransaction) return <ConnectPrompt label="CONNECT WALLET TO SEND" />;
 
   return (
-<<<<<<< HEAD
-    <div className="flex flex-col gap-3">
-      <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
-        <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">YOUR $SLS</p>
-        <p className="text-sm font-black text-[#9945FF]">{slsBalance !== null ? slsBalance.toFixed(2) : "-"}</p>
-      </div>
-
-      <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3">
-        <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-2">RECIPIENT WALLET</p>
-        <input
-          type="text"
-          placeholder="Solana wallet address"
-          value={recipient}
-          onChange={(e) => setRecipient(e.target.value)}
-          className="w-full bg-black/20 border border-white/10 rounded-md px-3 py-2 text-sm font-black text-[#f2f4ec] outline-none placeholder:text-[#333]"
-        />
-      </div>
-
-      <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3">
-        <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-2">AMOUNT ($SLS)</p>
-        <input
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder="0.00"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          className="w-full bg-black/20 border border-white/10 rounded-md px-3 py-2 text-sm font-black text-[#f2f4ec] outline-none"
-        />
-      </div>
-
-      {error && <p className="text-[10px] font-bold text-[#ef5350]">{error}</p>}
-      {phase === "done" && <p className="text-[10px] font-bold text-[#66bb6a]">Transfer confirmed on-chain.</p>}
-
-      <button
-        onClick={send}
-        disabled={phase === "sending"}
-        className="w-full py-2.5 rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF] text-[11px] font-bold tracking-[2px] disabled:opacity-40"
-      >
-        {phase === "sending" ? "SIGNING..." : "SEND $SLS"}
-      </button>
-=======
     <div className="space-y-4">
       <div className="sc-panel p-4"><p className="sc-label mb-2">Your $SLS</p><p className="text-lg font-black text-[#d9a7ff]">{slsBalance !== null ? slsBalance.toFixed(2) : "-"}</p></div>
       <div className="sc-panel p-4"><p className="sc-label mb-2">Recipient wallet</p><input type="text" placeholder="Solana wallet address" value={recipient} onChange={(e) => setRecipient(e.target.value)} className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm font-semibold text-white outline-none placeholder:text-white/25" /></div>
@@ -217,7 +149,6 @@ function SendSLSPanel({ onSendComplete }: { onSendComplete: (entry: SlsTransacti
       {error ? <p className="text-xs font-semibold text-red-300">{error}</p> : null}
       {phase === "done" ? <p className="text-xs font-semibold text-[#7ef0c5]">Transfer confirmed on-chain.</p> : null}
       <button onClick={send} disabled={phase === "sending"} className="sc-button sc-button-primary w-full justify-center">{phase === "sending" ? "Signing..." : "Send $SLS"}</button>
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
     </div>
   );
 }
@@ -278,51 +209,6 @@ function GetSLSPanel() {
   if (!connected || !publicKey || !signTransaction) return <ConnectPrompt label="CONNECT WALLET TO SWAP" />;
 
   return (
-<<<<<<< HEAD
-    <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-1.5">
-        <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
-          <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">YOUR SOL</p>
-          <p className="text-sm font-black text-[#f2f4ec]">{solBalance !== null ? solBalance.toFixed(4) : "-"}</p>
-        </div>
-        <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
-          <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">YOUR $SLS</p>
-          <p className="text-sm font-black text-[#9945FF]">{slsBalance !== null ? slsBalance.toFixed(2) : "-"}</p>
-        </div>
-      </div>
-
-      <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3">
-        <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-2">SOL TO SWAP</p>
-        <input
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder="0.00"
-          value={solInput}
-          onChange={(e) => setSolInput(e.target.value)}
-          className="w-full bg-black/20 border border-white/10 rounded-md px-3 py-2 text-sm font-black text-[#f2f4ec] outline-none"
-        />
-      </div>
-
-      {slsOut !== null && (
-        <div className="bg-[#0a0a1a] border border-[rgba(153,69,255,0.3)] rounded-md p-3">
-          <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">ESTIMATED OUT</p>
-          <p className="text-sm font-black text-[#9945FF]">{slsOut.toFixed(2)} $SLS</p>
-        </div>
-      )}
-
-      {error && <p className="text-[10px] font-bold text-[#ef5350]">{error}</p>}
-
-      {phase === "quoted" ? (
-        <button onClick={confirmSwap} className="w-full py-2.5 rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF] text-[11px] font-bold tracking-[2px]">
-          CONFIRM SWAP
-        </button>
-      ) : (
-        <button onClick={getQuote} disabled={phase === "quoting" || phase === "signing"} className="w-full py-2.5 rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF] text-[11px] font-bold tracking-[2px] disabled:opacity-40">
-          {phase === "quoting" ? "QUOTING..." : phase === "done" ? "SWAPPED" : "GET QUOTE"}
-        </button>
-      )}
-=======
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
         <div className="sc-panel p-4"><p className="sc-label mb-2">Your SOL</p><p className="text-lg font-black text-white">{solBalance !== null ? solBalance.toFixed(4) : "-"}</p></div>
@@ -332,7 +218,6 @@ function GetSLSPanel() {
       {slsOut !== null ? <div className="sc-panel-strong p-4"><p className="sc-label mb-2">Estimated out</p><p className="text-lg font-black text-[#d9a7ff]">{slsOut.toFixed(2)} $SLS</p></div> : null}
       {error ? <p className="text-xs font-semibold text-red-300">{error}</p> : null}
       {phase === "quoted" ? <button onClick={confirmSwap} className="sc-button sc-button-primary w-full justify-center">Confirm swap</button> : <button onClick={getQuote} disabled={phase === "quoting" || phase === "signing"} className="sc-button sc-button-primary w-full justify-center">{phase === "quoting" ? "Quoting..." : phase === "done" ? "Swapped" : "Get quote"}</button>}
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
     </div>
   );
 }
@@ -383,51 +268,6 @@ function SellSLSPanel({ onSold }: { onSold: () => void }) {
   if (!connected || !publicKey || !signTransaction) return <ConnectPrompt label="CONNECT WALLET TO SELL" />;
 
   return (
-<<<<<<< HEAD
-    <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-1.5">
-        <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
-          <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">YOUR $SLS</p>
-          <p className="text-sm font-black text-[#9945FF]">{slsBalance !== null ? slsBalance.toFixed(2) : "-"}</p>
-        </div>
-        <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3 text-center">
-          <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">RATE</p>
-          <p className="text-sm font-black text-[#f2f4ec]">50 $SLS / 1 CASH</p>
-        </div>
-      </div>
-
-      <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-md p-3">
-        <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-2">SELL $SLS</p>
-        <input
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder="0.00"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          className="w-full bg-black/20 border border-white/10 rounded-md px-3 py-2 text-sm font-black text-[#f2f4ec] outline-none"
-        />
-      </div>
-
-      {quote && (
-        <div className="bg-[#0a0a1a] border border-[rgba(153,69,255,0.3)] rounded-md p-3">
-          <p className="text-[9px] font-bold tracking-[2px] text-[#aab0a3] mb-1">YOU RECEIVE</p>
-          <p className="text-sm font-black text-[#66bb6a]">{quote.cashToReceive.toFixed(2)} CASH</p>
-        </div>
-      )}
-
-      {error && <p className="text-[10px] font-bold text-[#ef5350]">{error}</p>}
-
-      {phase === "quoted" ? (
-        <button onClick={confirmSell} className="w-full py-2.5 rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF] text-[11px] font-bold tracking-[2px]">
-          CONFIRM SELL
-        </button>
-      ) : (
-        <button onClick={getQuote} disabled={phase === "quoting" || phase === "signing"} className="w-full py-2.5 rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF] text-[11px] font-bold tracking-[2px] disabled:opacity-40">
-          {phase === "quoting" ? "QUOTING..." : phase === "done" ? "SOLD" : "SELL FOR CASH"}
-        </button>
-      )}
-=======
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
         <div className="sc-panel p-4"><p className="sc-label mb-2">Your $SLS</p><p className="text-lg font-black text-[#d9a7ff]">{slsBalance !== null ? slsBalance.toFixed(2) : "-"}</p></div>
@@ -437,7 +277,6 @@ function SellSLSPanel({ onSold }: { onSold: () => void }) {
       {quote ? <div className="sc-panel-strong p-4"><p className="sc-label mb-2">You receive</p><p className="text-lg font-black text-[#7ef0c5]">{quote.cashToReceive.toFixed(2)} cash</p></div> : null}
       {error ? <p className="text-xs font-semibold text-red-300">{error}</p> : null}
       {phase === "quoted" ? <button onClick={confirmSell} className="sc-button sc-button-primary w-full justify-center">Confirm sell</button> : <button onClick={getQuote} disabled={phase === "quoting" || phase === "signing"} className="sc-button sc-button-primary w-full justify-center">{phase === "quoting" ? "Quoting..." : phase === "done" ? "Sold" : "Sell for cash"}</button>}
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
     </div>
   );
 }
@@ -526,13 +365,8 @@ function HospitalPanel({ profile, onRefresh }: { profile: MeResponse; onRefresh:
     <div className="space-y-4">
       <div className="sc-panel p-4">
         <div className="flex items-center justify-between">
-<<<<<<< HEAD
-          <p className="text-[10px] font-black tracking-[2px] text-[#f2f4ec]">HOSPITAL STATUS</p>
-          <span className={`text-[10px] font-bold ${profile.inHospital ? "text-[#ef5350]" : "text-[#66bb6a]"}`}>
-=======
           <p className="sc-label">Hospital status</p>
           <span className={`text-xs font-bold tracking-[0.18em] ${profile.inHospital ? "text-[#ff8d8d]" : "text-[#7ef0c5]"}`}>
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
             {profile.inHospital ? "HOSPITALIZED" : "CLEAR"}
           </span>
         </div>
@@ -560,14 +394,7 @@ function HistoryPanel({ localEntries }: { localEntries: SlsTransactionItem[] }) 
 
   if (loading) return <div className="flex justify-center py-12"><LoadingSpinner size={24} /></div>;
   const all = [...localEntries, ...transactions];
-<<<<<<< HEAD
-
-  if (all.length === 0) {
-    return <p className="text-[11px] text-[#aab0a3] text-center py-8">No transaction history yet.</p>;
-  }
-=======
   if (!all.length) return <div className="sc-panel p-6 text-sm text-white/55">No transaction history yet.</div>;
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
 
   return (
     <div className="space-y-3">
@@ -580,21 +407,9 @@ function HistoryPanel({ localEntries }: { localEntries: SlsTransactionItem[] }) 
               <p className="truncate text-sm font-semibold text-white">{tx.description}</p>
               <p className="text-xs text-white/35">{formatDate(tx.createdAt)}</p>
             </div>
-<<<<<<< HEAD
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-bold text-[#f2f4ec] truncate">{tx.description}</p>
-              <p className="text-[9px] text-[#aab0a3]">{formatDate(tx.createdAt)}</p>
-            </div>
-            <div className="text-right shrink-0">
-              <p className={`text-[11px] font-black ${tx.amount < 0 ? "text-[#ef5350]" : "text-[#fdd835]"}`}>
-                {tx.amount < 0 ? "-" : "+"}{Math.abs(tx.amount).toFixed(2)} $SLS
-              </p>
-              <p className="text-[9px] text-[#d0d5ca]">{tx.usdValue.toFixed(2)}</p>
-=======
             <div className="text-right">
               <p className={`text-sm font-black ${tx.amount < 0 ? "text-[#ff8d8d]" : "text-[#ffd36b]"}`}>{tx.amount < 0 ? "-" : "+"}{Math.abs(tx.amount).toFixed(2)} $SLS</p>
               <p className="text-xs text-white/35">{tx.usdValue.toFixed(2)}</p>
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
             </div>
           </div>
         );
@@ -673,15 +488,6 @@ export default function BlackMarketPage() {
 
   const activeOperation = tab === "listings" ? null : OPERATION_COPY[tab];
 
-<<<<<<< HEAD
-      <div className="h-28 rounded-lg overflow-hidden border border-white/10 bg-black/20 backdrop-blur-sm flex items-end relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1a0a2e] via-[#0a0a1a] to-black" />
-        <div className="relative z-10 px-3 pb-3 flex items-end gap-2">
-          <ShoppingBag size={18} className="text-[#9945FF] mb-0.5" />
-          <div>
-            <p className="text-[10px] font-black text-[#9945FF] tracking-[3px] uppercase">Black Market</p>
-            <p className="text-[11px] font-semibold text-[#d0d5ca]">$SLS utility — swap, sell, send, and more</p>
-=======
   if (loading) return <div className="flex min-h-dvh items-center justify-center"><LoadingSpinner size={32} /></div>;
   if (!profile) return <div className="flex min-h-dvh items-center justify-center text-red-300">{error ?? "Failed to load profile."}</div>;
 
@@ -710,26 +516,13 @@ export default function BlackMarketPage() {
               <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4"><div className="sc-label">Ends</div><div className="mt-2 text-lg font-semibold text-white">{formatDate(rotation?.endsAt)}</div></div>
             </div>
             {buyMessage ? <div className="mt-4 rounded-[20px] border border-[#7ef0c5]/20 bg-[#7ef0c5]/10 px-4 py-3 text-sm text-[#d8fff1]">{buyMessage}</div> : null}
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
           </div>
         </div>
       </section>
 
       <section className="flex flex-wrap gap-2">
         {tabs.map(({ id, label, icon: Icon }) => (
-<<<<<<< HEAD
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`px-1 py-2 border text-[9px] font-black tracking-[1px] uppercase flex flex-col items-center gap-1 ${
-              tab === id
-                ? "bg-[#1a0a2e] border-[rgba(153,69,255,0.3)] text-[#9945FF]"
-                : "bg-black/20 border-white/10 text-[#aab0a3]"
-            }`}
-          >
-=======
           <button key={id} onClick={() => setTab(id)} className={tab === id ? "sc-button sc-button-primary" : "sc-button"}>
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
             <Icon size={14} />
             {label}
           </button>
@@ -755,9 +548,4 @@ export default function BlackMarketPage() {
       ) : null}
     </div>
   );
-<<<<<<< HEAD
 }
-
-=======
-}
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api/client";
@@ -68,29 +68,6 @@ export default function ChampionshipsPage() {
   const roundKeys = useMemo(() => Object.keys(rounds).map(Number).sort((a, b) => a - b), [rounds]);
 
   return (
-<<<<<<< HEAD
-    <div className="flex flex-col gap-4">
-      {current && (
-        <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">Current Championship</p>
-            <p className="text-[18px] font-black text-[#f2f4ec]">{current.season.name}</p>
-          </div>
-          <p className="text-[11px] font-black tracking-[2px] text-[#fdd835] uppercase">{current.status}</p>
-        </div>
-      )}
-
-      {qualifiers && qualifiers.length > 0 && (
-        <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
-          <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">Qualifiers</p>
-          {qualifiers.map((entry) => (
-            <div key={entry.syndicate.id} className="rounded-md border border-white/10 bg-black/20 p-3 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[12px] font-bold text-[#f2f4ec]">#{entry.seed} {entry.syndicate.name}</p>
-                <p className="text-[10px] text-[#777]">Qualifier score {entry.qualifyingPoints}</p>
-              </div>
-              <p className="text-[9px] uppercase tracking-[2px] text-[#66bb6a]">Qualified</p>
-=======
     <div className="space-y-6 pb-12">
       <section className="sc-panel-strong overflow-hidden p-6 md:p-7">
         <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
@@ -98,7 +75,6 @@ export default function ChampionshipsPage() {
             <div className="flex flex-wrap items-center gap-2">
               <span className="sc-kicker">SYNDICATE CHAMPIONSHIP</span>
               <span className="sc-chip sc-chip-purple">{String(current?.status ?? "planned").replaceAll("_", " ")}</span>
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
             </div>
             <div>
               <h1 className="sc-page-title">The prestige bracket above street war</h1>

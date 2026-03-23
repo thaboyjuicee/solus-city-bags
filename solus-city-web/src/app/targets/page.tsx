@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -38,57 +38,8 @@ export default function TargetsPage() {
   const npcTargets = useMemo(() => targets.filter((entry) => entry.type === "npc"), [targets]);
   const playerTargets = useMemo(() => targets.filter((entry) => entry.type === "player"), [targets]);
 
-<<<<<<< HEAD
-  return (
-    <div className="flex flex-col gap-3">
-      <StatusBars profile={profile} />
-      <div className="h-28 rounded-lg overflow-hidden border border-white/10 bg-black/20 backdrop-blur-sm flex items-end relative">
-        <Image src="/assets/images/arena_banner.png" alt="Battle banner" fill className="object-cover opacity-50" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-        <div className="relative z-10 px-3 pb-3">
-          <p className="text-[10px] font-black text-[#f2f4ec] tracking-[3px] uppercase">Targets</p>
-          <p className="text-[11px] font-semibold text-text-dim">Bands stay visible, but anti-whale penalties now hide weak targets- value.</p>
-        </div>
-      </div>
-      <div className="flex flex-col gap-2">
-        {targets.map((target) => {
-          const state = attackState[target.id];
-          return (
-            <div key={`${target.type}:${target.id}`} className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3 flex flex-col gap-2">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <p className="text-[14px] font-bold text-[#f2f4ec]">{target.displayName}</p>
-                  <p className="text-[10px] text-[#aab0a3]">LV {target.level} - {target.rp} RP</p>
-                </div>
-                <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${target.type === "npc" ? "bg-[#14F19520] text-[#14F195]" : "bg-[#9945FF20] text-[#9945FF]"}`}>
-                  {target.type.toUpperCase()}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${bandClass(target.winChanceBand)}`}>WIN - {target.winChanceBand.toUpperCase()}</span>
-                <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${bandClass(target.lootBand)}`}>LOOT - {target.lootBand.toUpperCase()}</span>
-                <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-[2px] ${bandClass(target.heatBand)}`}>HEAT - {target.heatBand.toUpperCase()}</span>
-              </div>
-              {target.recentlyFarmedPenalty && <p className="text-[10px] text-[#ff9800] font-bold">Repeat-target penalty likely active.</p>}
-              {target.mismatchPenaltyApplied && <p className="text-[10px] text-[#ef5350] font-bold">Very weak target. Rewards likely dampened.</p>}
-              <button onClick={() => attack(target)} disabled={!!state?.attacking || profile.inHospital} className="w-full py-2.5 rounded border border-[#7f1919] bg-black/20 text-[#ef5350] text-[11px] font-bold tracking-[2px] flex items-center justify-center gap-1.5 disabled:opacity-40">
-                {state?.attacking ? <LoadingSpinner size={16} color="#ef5350" /> : <><Swords size={14} /> ATTACK</>}
-              </button>
-              {state?.error && <p className="text-[10px] font-bold text-[#ef5350]">{state.error}</p>}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-
-
-=======
   if (loading) return <div className="flex min-h-[60vh] items-center justify-center"><LoadingSpinner size={32} /></div>;
   if (pageError || !profile) return <div className="sc-panel-danger p-5 text-[13px] text-[#ff9d9d]">{pageError ?? "Profile missing"}</div>;
 
   return <div className="space-y-5"><div><p className="sc-page-title">Battle Targets</p><p className="sc-subtitle mt-2">Scan · scout · strike</p></div><div className="flex flex-wrap gap-3"><span className="sc-chip sc-chip-purple">AP: {profile.ap}</span><span className="sc-chip">DP: {profile.dp}</span></div>{[{ title: "Street Targets", subtitle: "NPC enemies · lower risk", items: npcTargets }, { title: "Player Targets", subtitle: "PVP combat · higher risk · higher reward", items: playerTargets }].map((group) => <section key={group.title} className="space-y-3"><div><p className="text-[24px] font-black text-[#f4f5fb]">{group.title}</p><p className="sc-subtitle mt-1">{group.subtitle}</p></div><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{group.items.map((target) => { const state = attackState[target.id]; return <div key={`${target.type}:${target.id}`} className="sc-panel p-4"><div className="flex items-start justify-between gap-3"><div><div className="flex flex-wrap gap-2"><span className={`sc-chip ${target.type === "npc" ? "" : "sc-chip-purple"}`}>{target.type}</span>{target.syndicateBadge ? <span className="sc-chip sc-chip-orange">{target.syndicateBadge}</span> : null}</div><p className="mt-4 text-[28px] font-black text-[#f4f5fb]">{target.displayName}</p><p className="mt-1 text-[11px] text-[#6d7186]">LV {target.level} · {target.rp.toLocaleString()} RP</p></div>{target.shieldActive ? <span className="sc-chip sc-chip-purple">Shield</span> : null}</div><p className="mt-3 text-[12px] text-[#7b8094]">{target.flavor ?? "Street intel pending."}</p><div className="mt-4 grid grid-cols-3 gap-3"><BandBox label="Win" value={target.winChanceBand} /><BandBox label="Loot" value={target.lootBand} /><BandBox label="Heat" value={target.heatBand} /></div>{target.recentlyFarmedPenalty ? <div className="mt-4 rounded-xl border border-[rgba(255,157,50,0.24)] bg-[rgba(255,157,50,0.08)] px-4 py-3 text-[12px] text-[#ffbf72]">Repeat-target penalty active.</div> : null}{target.inHospital ? <div className="mt-4 rounded-xl border border-[rgba(255,93,93,0.18)] bg-[rgba(27,13,15,0.9)] px-4 py-3 text-[12px] text-[#ff9d9d]">Target hospitalized.</div> : null}{target.mismatchPenaltyApplied ? <div className="mt-4 rounded-xl border border-[rgba(255,93,93,0.18)] bg-[rgba(27,13,15,0.9)] px-4 py-3 text-[12px] text-[#ff9d9d]">Rewards will be dampened against this target.</div> : null}<button onClick={() => attack(target)} disabled={!!state?.attacking || profile.inHospital || target.inHospital || target.shieldActive} className={`sc-button mt-4 w-full ${target.shieldActive || target.inHospital ? "text-[#555]" : "sc-button-orange"}`}>{state?.attacking ? "ATTACKING..." : <><Swords size={14} /> ATTACK</>}</button>{state?.error ? <p className="mt-3 text-[11px] font-bold text-[#ff8d8d]">{state.error}</p> : null}</div>; })}</div></section>)}</div>;
 }
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39

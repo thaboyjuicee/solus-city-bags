@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import Image from "next/image";
@@ -94,24 +94,18 @@ function isActive(href: string, path: string) {
   return path === href || path.startsWith(`${href}/`);
 }
 
-<<<<<<< HEAD
-function formatSls(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(2)}K`;
-  return n.toFixed(2);
-=======
 function formatCompact(value: number | null | undefined) {
   if (value === null || value === undefined || Number.isNaN(value)) return "-";
   if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
   if (Math.abs(value) >= 1_000) return `${Math.round(value / 100) / 10}K`;
   return `${Math.floor(value)}`;
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
 }
 
 function formatSls(value: number | null) {
   if (value === null) return "-";
-  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
-  return value.toFixed(0);
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(2)}K`;
+  return value.toFixed(2);
 }
 
 function formatTier(tier?: string | null) {
@@ -189,16 +183,8 @@ function WalletDropdown() {
     <div ref={ref} className="relative">
       <button
         type="button"
-<<<<<<< HEAD
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm border text-[11px] font-bold tracking-[1px] whitespace-nowrap transition-colors ${
-          open
-            ? "bg-[#1a0a2e] border-[rgba(153,69,255,0.5)] text-[#9945FF]"
-            : "bg-transparent border-[rgba(153,69,255,0.2)] text-[#aab0a3] hover:border-[rgba(153,69,255,0.4)] hover:text-[#9945FF]"
-        }`}
-=======
         onClick={() => setOpen((value) => !value)}
         className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] font-black tracking-[0.16em] text-[#8f92a6] uppercase"
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
       >
         <Wallet size={12} />
         <span>{shortAddress}</span>
@@ -208,31 +194,23 @@ function WalletDropdown() {
         <div className="absolute right-0 top-full z-[80] mt-2 min-w-[170px] rounded-xl border border-white/10 bg-[#111218] p-2 shadow-[0_18px_45px_rgba(0,0,0,0.45)]">
           <button
             type="button"
-<<<<<<< HEAD
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[10px] font-bold tracking-[1px] uppercase text-[#aab0a3] hover:text-[#dde1d6] hover:bg-white/5 transition-colors text-left"
-=======
             onClick={() => {
               if (address) navigator.clipboard.writeText(address);
               setOpen(false);
             }}
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[10px] font-black tracking-[0.16em] text-[#c7c8d4] uppercase hover:bg-white/5"
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
           >
             <Copy size={12} />
             Copy Address
           </button>
           <button
             type="button"
-<<<<<<< HEAD
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[10px] font-bold tracking-[1px] uppercase text-[#aab0a3] hover:text-[#dde1d6] hover:bg-white/5 transition-colors text-left"
-=======
             onClick={() => {
               localStorage.removeItem(TOKEN_KEY);
               disconnect();
               router.push("/login");
             }}
             className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[10px] font-black tracking-[0.16em] text-[#ff8d8d] uppercase hover:bg-white/5"
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
           >
             <LogOut size={12} />
             Log Out
@@ -414,6 +392,8 @@ export function Navigation() {
     { href: "/profile", label: "Profile", icon: "profile" as IconKey },
   ];
 
+  const mobileSlsLabel = slsBalance === null ? "- SLS" : `${formatSls(slsBalance)} SLS`;
+
   return (
     <>
       <aside className="fixed inset-y-3 left-3 z-50 hidden w-[172px] overflow-hidden rounded-[20px] border border-white/8 bg-[#0b0c11]/95 shadow-[0_20px_45px_rgba(0,0,0,0.45)] backdrop-blur-xl lg:flex lg:flex-col">
@@ -427,16 +407,6 @@ export function Navigation() {
           </div>
         </div>
 
-<<<<<<< HEAD
-          {/* Logo */}
-          <Link
-            href="/home"
-            className="flex items-center gap-2 text-[#f2f4ec] font-black tracking-[3px] text-sm flex-shrink-0"
-          >
-            <Image src="/assets/images/app_icon.png" alt="Solus City" width={32} height={32} className="rounded-md" />
-            <span className="hidden xl:inline">SOLUS CITY</span>
-          </Link>
-=======
         <div className="border-b border-white/8 px-4 py-3">
           <p className="text-[14px] font-black text-[#f3f4fa]">{me?.name ?? "GhostOperator"}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -445,7 +415,6 @@ export function Navigation() {
             {me?.syndicate?.name ? <span className="sc-chip">{me.syndicate.name}</span> : null}
           </div>
         </div>
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
 
         <div className="flex-1 overflow-y-auto px-3 py-3">
           <div className="space-y-1">
@@ -453,19 +422,12 @@ export function Navigation() {
               const active = isActive(item.href, path);
               return (
                 <Link
-<<<<<<< HEAD
-                  key={tab.href}
-                  href={tab.href}
-                  className={`flex items-center gap-1.5 px-2.5 h-full text-[11px] font-bold tracking-[2px] uppercase transition-colors whitespace-nowrap ${
-                    active ? "bg-[#1a0a2e] text-[#9945FF]" : "text-[#aab0a3] hover:text-[#d0d5ca]"
-=======
                   key={item.href}
                   href={item.href}
                   className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[11px] font-black tracking-[0.18em] uppercase transition-colors ${
                     active
                       ? "bg-[rgba(153,69,255,0.14)] text-[#9f64ff]"
                       : "text-[#64687b] hover:bg-white/4 hover:text-[#c2c5d4]"
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
                   }`}
                 >
                   <Icon name={item.icon} />
@@ -475,45 +437,6 @@ export function Navigation() {
             })}
           </div>
 
-<<<<<<< HEAD
-            {/* More dropdown */}
-            <div ref={moreRef} className="relative h-full flex items-center">
-              <button
-                onClick={() => setMoreOpen((v) => !v)}
-                type="button"
-                className={`h-full px-2.5 inline-flex items-center gap-1.5 text-[11px] font-bold tracking-[2px] uppercase transition-colors ${
-                  moreOpen || moreActive ? "text-[#9945FF]" : "text-[#aab0a3] hover:text-[#d0d5ca]"
-                }`}
-              >
-                <MoreHorizontal size={16} />
-                <span>MORE</span>
-                <ChevronDown
-                  size={11}
-                  className={`transition-transform duration-150 ${moreOpen ? "rotate-180" : ""}`}
-                />
-              </button>
-
-              {moreOpen && (
-                <div className="absolute top-full left-0 bg-[#0d0d0d] border border-[rgba(153,69,255,0.15)] border-t-[rgba(153,69,255,0.3)] z-[60] min-w-[200px]">
-                  {MORE_TABS.map((tab) => {
-                    const active = isActive(tab.href, path);
-                    return (
-                      <Link
-                        key={tab.href}
-                        href={tab.href}
-                        onClick={() => setMoreOpen(false)}
-                        className={`flex items-center gap-2.5 px-4 py-2.5 text-[11px] font-bold tracking-[2px] uppercase border-b border-[#161616] transition-colors whitespace-nowrap last:border-b-0 ${
-                          active ? "bg-[#1a0a2e] text-[#9945FF]" : "text-[#aab0a3] hover:text-[#d0d5ca] hover:bg-white/[0.02]"
-                        }`}
-                      >
-                        <Icon name={tab.icon} />
-                        {tab.label}
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-=======
           <div className="mt-5">
             <p className="px-3 text-[9px] font-black tracking-[0.24em] text-[#434759] uppercase">More</p>
             <div className="mt-2 space-y-1">
@@ -534,53 +457,10 @@ export function Navigation() {
                   </Link>
                 );
               })}
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
             </div>
           </div>
         </div>
 
-<<<<<<< HEAD
-      {/* ── Mobile: top bar ── */}
-      <nav className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-black/25 backdrop-blur-sm border-b border-white/10 z-50 grid grid-cols-[1fr_auto_1fr] items-center px-3">
-        <div className="justify-self-start">
-          <WalletDropdown />
-        </div>
-        <Link href="/home" className="justify-self-center text-[#f2f4ec] font-black tracking-[3px] text-sm">
-          SOLUS CITY
-        </Link>
-        <div className="justify-self-end">
-          <SLSBadge />
-        </div>
-      </nav>
-
-      {/* ── Mobile: bottom tab bar (first 4 primary tabs + More) ── */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-14 bg-black/25 backdrop-blur-sm border-t border-white/10 z-50 flex justify-around items-center">
-        {PRIMARY_TABS.slice(0, 4).map((tab) => {
-          const active = isActive(tab.href, path);
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full"
-            >
-              <span className={active ? "text-[#9945FF]" : "text-[#aab0a3]"}>
-                <Icon name={tab.icon} />
-              </span>
-              <span className={`text-[9px] font-bold tracking-[2px] uppercase ${active ? "text-[#9945FF]" : "text-[#aab0a3]"}`}>
-                {tab.label}
-              </span>
-            </Link>
-          );
-        })}
-        <button
-          onClick={() => setMoreOpen((v) => !v)}
-          type="button"
-          className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full"
-        >
-          <MoreHorizontal size={18} className={moreOpen || moreActiveMobile ? "text-[#9945FF]" : "text-[#aab0a3]"} />
-          <span className={`text-[9px] font-bold tracking-[2px] uppercase ${moreOpen || moreActiveMobile ? "text-[#9945FF]" : "text-[#aab0a3]"}`}>
-            MORE
-=======
         <div className="px-4 pb-2">
           <WalletDropdown />
         </div>
@@ -609,7 +489,6 @@ export function Navigation() {
         <div className="flex items-center gap-4 text-[10px] font-black tracking-[0.12em] uppercase">
           <span className="text-[#ff9d32]">
             <AnimatedNumber value={Number(me?.heat ?? 0)} formatter={(current) => `${Math.round(current)}`} className="tabular-nums" /> {formatTier(me?.wantedTier)}
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
           </span>
           <AnimatedNumber
             value={Number(me?.cash ?? 0)}
@@ -631,23 +510,15 @@ export function Navigation() {
             : "border-white/8 shadow-[0_10px_35px_rgba(0,0,0,0.35)]"
         }`}
       >
-        <div className="flex items-center justify-between gap-3">
-          <Link href="/home" className="flex items-center gap-2">
-            <Image src="/assets/images/app_icon.png" alt="Solus City" width={28} height={28} className="rounded-lg" />
-            <span className="text-[14px] font-black tracking-[0.05em] text-[#f4f5fb]">SOLUS CITY</span>
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+          <div className="justify-self-start">
+            <WalletDropdown />
+          </div>
+          <Link href="/home" className="justify-self-center text-[14px] font-black tracking-[0.05em] text-[#f4f5fb]">
+            SOLUS CITY
           </Link>
-          <div className="flex items-center gap-3 text-[10px] font-black uppercase">
-            <AnimatedNumber
-              value={Number(me?.cash ?? 0)}
-              formatter={(current) => `$${formatCompact(current)}`}
-              className="text-[#36d47f] tabular-nums"
-            />
-            <AnimatedNumber
-              value={Number(me?.heat ?? 0)}
-              formatter={(current) => `${Math.round(current)}`}
-              className="text-[#ff8e3c] tabular-nums"
-            />
-            <span className="sc-chip sc-chip-purple">LV {me?.level ?? "--"}</span>
+          <div className="justify-self-end">
+            <span className="sc-chip sc-chip-purple whitespace-nowrap">{mobileSlsLabel}</span>
           </div>
         </div>
         <div className="mt-3 grid grid-cols-4 gap-2">
@@ -666,14 +537,8 @@ export function Navigation() {
               <Link
                 key={tab.href}
                 href={tab.href}
-<<<<<<< HEAD
-                onClick={() => setMoreOpen(false)}
-                className={`flex items-center gap-2 px-4 py-3 text-[11px] font-bold tracking-[2px] uppercase border-b border-r border-[#161616] transition-colors ${
-                  active ? "bg-[#1a0a2e] text-[#9945FF]" : "text-[#aab0a3] hover:text-[#d0d5ca]"
-=======
                 className={`flex flex-1 flex-col items-center gap-1 rounded-xl px-2 py-2 text-[9px] font-black tracking-[0.18em] uppercase ${
                   active ? "bg-[rgba(153,69,255,0.14)] text-[#9f64ff]" : "text-[#5f6377]"
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
                 }`}
               >
                 <Icon name={tab.icon} />

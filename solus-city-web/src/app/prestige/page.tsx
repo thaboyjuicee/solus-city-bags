@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api/client";
@@ -65,35 +65,6 @@ export default function PrestigePage() {
   };
 
   return (
-<<<<<<< HEAD
-    <div className="flex flex-col gap-4">
-      <PrestigePreviewCard
-        preview={preview}
-        busy={busy}
-        onExecute={async () => {
-          setBusy(true);
-          setResult(null);
-          try {
-            await api.post("/prestige/execute", { confirm: true });
-            setResult("Prestige executed successfully.");
-            await load();
-          } catch (err: unknown) {
-            setResult((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Prestige failed.");
-          } finally {
-            setBusy(false);
-          }
-        }}
-      />
-      {result && <div className="rounded-lg border border-white/10 bg-black/20 p-4 text-[12px] text-[#f2f4ec]">{result}</div>}
-      <div className="rounded-lg border border-white/10 bg-black/20 p-4 text-[12px] text-[#d0d5ca]">
-        Prestige is a transparent reset loop. Review the reset scope above carefully before committing.
-      </div>
-    </div>
-  );
-}
-
-
-=======
     <div className="space-y-6 pb-12">
       <section className="sc-panel-strong overflow-hidden p-6 md:p-7">
         <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
@@ -227,4 +198,3 @@ export default function PrestigePage() {
     </div>
   );
 }
->>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
