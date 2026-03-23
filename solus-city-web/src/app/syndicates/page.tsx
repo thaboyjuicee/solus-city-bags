@@ -163,12 +163,17 @@ function TabButton({
     <button
       type="button"
       onClick={disabled ? undefined : onClick}
-      className={`px-4 py-2 text-[10px] font-black tracking-[2px] uppercase border-b-2 transition-colors ${
+      className={`rounded-full border px-4 py-2 text-[10px] font-black tracking-[2px] uppercase transition-colors ${
         disabled
-          ? "border-transparent text-[#333] cursor-not-allowed"
+          ? "border-white/5 text-[#333] cursor-not-allowed"
           : active
+<<<<<<< HEAD
           ? "border-[#9945FF] text-[#9945FF]"
           : "border-transparent text-[#aab0a3] hover:text-[#d0d5ca]"
+=======
+          ? "border-[rgba(153,69,255,0.4)] bg-[#1a0a2e] text-[#d9a7ff]"
+          : "border-white/10 bg-black/20 text-[#777] hover:text-[#ddd]"
+>>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
       }`}
     >
       {children}
@@ -547,7 +552,7 @@ export default function SyndicatesPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="space-y-6 pb-12">
       {/* Leave modal */}
       {leaveModal && (
         <LeaveModalOverlay
@@ -560,8 +565,48 @@ export default function SyndicatesPage() {
         />
       )}
 
+      <section className="sc-panel-strong overflow-hidden p-6 md:p-7">
+        <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="sc-kicker">SYNDICATE HQ</span>
+              {detail?.name ? <span className="sc-chip sc-chip-purple">{detail.name}</span> : null}
+              {myRole ? <span className="sc-chip sc-chip-green">{formatRole(myRole)}</span> : null}
+            </div>
+            <div>
+              <h1 className="sc-page-title">Faction command, vault pressure, and crew identity</h1>
+              <p className="sc-subtitle max-w-3xl">
+                This view keeps the management depth you already had, but frames it like a real syndicate command room instead of a flat utility screen.
+              </p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="sc-stat">
+                <div className="sc-label">Season points</div>
+                <div className="sc-value">{detail?.seasonPoints ?? 0}</div>
+              </div>
+              <div className="sc-stat">
+                <div className="sc-label">War rating</div>
+                <div className="sc-value">{detail?.warRating ?? 0}</div>
+              </div>
+              <div className="sc-stat">
+                <div className="sc-label">Members</div>
+                <div className="sc-value">{detail?.members?.length ?? 0}</div>
+              </div>
+            </div>
+          </div>
+          <div className="sc-panel p-5">
+            <div className="sc-kicker">COMMAND MODE</div>
+            <div className="mt-3 text-2xl font-black text-white">{detail?.name ?? "No syndicate selected"}</div>
+            <div className="mt-3 space-y-3 text-sm leading-6 text-white/60">
+              <p>Vault, roster, wars, territories, and championship posture all stay in this screen.</p>
+              <p>Role changes, deposits, withdrawals, and history are still wired to the existing backend flows.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Top-level tab bar */}
-      <div className="flex gap-1 border-b border-white/10">
+      <div className="flex flex-wrap gap-2">
         <TabButton active={mainTab === "mine"} onClick={() => setMainTab("mine")}>
           Your Syndicate
         </TabButton>
@@ -578,8 +623,13 @@ export default function SyndicatesPage() {
               <LoadingSpinner size={28} />
             </div>
           ) : !detail ? (
+<<<<<<< HEAD
             <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-white/10 bg-black/20 p-10 text-center">
               <p className="text-[14px] font-black text-[#f2f4ec]">You haven&apos;t joined a syndicate yet.</p>
+=======
+            <div className="sc-panel-strong flex flex-col items-center justify-center gap-4 p-10 text-center">
+              <p className="text-[14px] font-black text-[#eee]">You haven&apos;t joined a syndicate yet.</p>
+>>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
               <p className="text-[12px] text-[#666] max-w-xs">Find an existing syndicate or create your own below.</p>
               <button
                 type="button"
@@ -592,12 +642,18 @@ export default function SyndicatesPage() {
           ) : (
             <>
               {/* HQ header */}
-              <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
+              <div className="sc-panel-strong p-5 flex flex-col gap-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex flex-col gap-1">
+<<<<<<< HEAD
                     <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">Syndicate HQ</p>
                     <p className="text-[20px] font-black text-[#f2f4ec] mt-1">{detail.name}</p>
                     <p className="text-[12px] text-[#d0d5ca] mt-0.5">{detail.description}</p>
+=======
+                    <p className="sc-kicker">Syndicate HQ</p>
+                    <p className="mt-1 text-[28px] font-black text-[#eee]">{detail.name}</p>
+                    <p className="mt-1 max-w-2xl text-[13px] leading-6 text-[#888]">{detail.description}</p>
+>>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
                     <button
@@ -634,7 +690,7 @@ export default function SyndicatesPage() {
                 </div>
 
                 {/* Sub-tab bar */}
-                <div className="flex gap-1 border-b border-white/10 -mx-4 px-4 flex-wrap">
+                <div className="flex flex-wrap gap-2 pt-2">
                   <TabButton active={subTab === "hq"} onClick={() => setSubTab("hq")}>HQ</TabButton>
                   <TabButton active={subTab === "roster"} onClick={() => setSubTab("roster")}>Roster</TabButton>
                   {canManageRoles && (
@@ -654,6 +710,7 @@ export default function SyndicatesPage() {
               {/* ── HQ sub-tab ─────────────────────────────────────────────── */}
               {subTab === "hq" && (
                 <>
+<<<<<<< HEAD
                   <div className="grid gap-2 md:grid-cols-3">
                     <div className="rounded-md border border-white/10 bg-black/20 p-3">
                       <p className="text-[9px] font-black tracking-[2px] text-[#aab0a3] uppercase">Season</p>
@@ -662,6 +719,16 @@ export default function SyndicatesPage() {
                     <div className="rounded-md border border-white/10 bg-black/20 p-3">
                       <p className="text-[9px] font-black tracking-[2px] text-[#aab0a3] uppercase">War Rating</p>
                       <p className="text-[16px] font-black text-[#ff8a65] mt-1">{detail.warRating}</p>
+=======
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div className="sc-stat">
+                      <p className="sc-label">Season</p>
+                      <p className="text-[20px] font-black text-[#7ef0c5] mt-1">{detail.seasonPoints}</p>
+                    </div>
+                    <div className="sc-stat">
+                      <p className="sc-label">War Rating</p>
+                      <p className="text-[20px] font-black text-[#ff8a65] mt-1">{detail.warRating}</p>
+>>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
                     </div>
                   </div>
 
@@ -914,26 +981,39 @@ export default function SyndicatesPage() {
 
       {/* ── BROWSE TAB ───────────────────────────────────────────────────────── */}
       {mainTab === "browse" && (
-        <div className="flex flex-col gap-4">
+        <div className="space-y-5">
           {applyToast && (
-            <div className="rounded-md border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] px-4 py-2 text-[11px] font-bold text-[#9945FF]">
+            <div className="rounded-[22px] border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] px-4 py-3 text-[11px] font-bold text-[#9945FF]">
               {applyToast}
             </div>
           )}
 
           {!mySyndicateId && (
+<<<<<<< HEAD
             <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
               <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">Create Syndicate</p>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="rounded-md border border-white/10 bg-black/20 px-3 py-2 text-[12px] text-[#f2f4ec] outline-none"
+=======
+            <div className="sc-panel-strong p-5 flex flex-col gap-4">
+              <p className="sc-kicker">Create Syndicate</p>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="rounded-[20px] border border-white/10 bg-black/20 px-3 py-2 text-[12px] text-[#eee] outline-none"
+>>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
                 placeholder="Syndicate name"
               />
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+<<<<<<< HEAD
                 className="min-h-24 rounded-md border border-white/10 bg-black/20 px-3 py-2 text-[12px] text-[#f2f4ec] outline-none"
+=======
+                className="min-h-24 rounded-[20px] border border-white/10 bg-black/20 px-3 py-2 text-[12px] text-[#eee] outline-none"
+>>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
                 placeholder="Description"
               />
               <button
@@ -963,9 +1043,13 @@ export default function SyndicatesPage() {
             </div>
           )}
 
-          <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
+          <div className="sc-panel-strong p-5 flex flex-col gap-4">
             <div className="flex items-center justify-between gap-3">
+<<<<<<< HEAD
               <p className="text-[10px] font-black tracking-[3px] text-[#aab0a3] uppercase">Available Syndicates</p>
+=======
+              <p className="sc-kicker">Available Syndicates</p>
+>>>>>>> 7dccf61e7c80995907d8b90e223f68e5f9950b39
               <button
                 type="button"
                 onClick={() => { setBrowseFetched(false); loadBrowse(); }}
@@ -990,7 +1074,7 @@ export default function SyndicatesPage() {
                 return (
                   <div
                     key={syndicate.id}
-                    className={`rounded-md border p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between ${isOwn ? "border-[rgba(153,69,255,0.3)] bg-[#1a0a2e]" : "border-white/10 bg-black/20"}`}
+                    className={`rounded-[26px] border p-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between ${isOwn ? "border-[rgba(153,69,255,0.3)] bg-[#1a0a2e]" : "border-white/10 bg-black/20"}`}
                   >
                     <div className="flex flex-col gap-1.5 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
