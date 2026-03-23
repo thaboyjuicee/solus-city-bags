@@ -29,7 +29,7 @@ import {
   Map,
 } from "lucide-react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { api } from "@/lib/api/client";
+import { api, PLAYER_STATE_REFRESH_EVENT } from "@/lib/api/client";
 import { TOKEN_KEY } from "@/lib/config";
 import { useSLSBalance } from "@/hooks/useSLSBalance";
 import { MeResponse } from "@/lib/gameApi";
@@ -111,6 +111,53 @@ function formatTier(tier?: string | null) {
   return tier ? tier.replaceAll("_", " ") : "low";
 }
 
+function AnimatedNumber({
+  value,
+  formatter,
+  className,
+}: {
+  value: number;
+  formatter: (value: number) => string;
+  className?: string;
+}) {
+  const [display, setDisplay] = useState(value);
+  const previousRef = useRef(value);
+
+  useEffect(() => {
+    const from = previousRef.current;
+    const to = value;
+
+    if (!Number.isFinite(from) || !Number.isFinite(to) || from === to) {
+      previousRef.current = to;
+      setDisplay(to);
+      return;
+    }
+
+    const duration = 450;
+    let frame = 0;
+    let start: number | null = null;
+
+    const step = (timestamp: number) => {
+      if (start === null) start = timestamp;
+      const progress = Math.min(1, (timestamp - start) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const next = from + (to - from) * eased;
+      setDisplay(next);
+
+      if (progress < 1) {
+        frame = window.requestAnimationFrame(step);
+      } else {
+        previousRef.current = to;
+      }
+    };
+
+    frame = window.requestAnimationFrame(step);
+    return () => window.cancelAnimationFrame(frame);
+  }, [value]);
+
+  return <span className={className}>{formatter(display)}</span>;
+}
+
 function WalletDropdown() {
   const { publicKey, disconnect } = useWallet();
   const router = useRouter();
@@ -189,9 +236,16 @@ function DesktopStatBar({
     <div className="flex items-center gap-2 min-w-[114px]">
       <span className="text-[9px] font-black tracking-[0.18em] text-[#6c7084] uppercase">{label}</span>
       <div className="h-[3px] w-16 overflow-hidden rounded-full bg-white/5">
-        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+        <div
+          className="h-full rounded-full transition-[width,background-color,box-shadow] duration-700 ease-out"
+          style={{ width: `${pct}%`, backgroundColor: color, boxShadow: `0 0 10px ${color}` }}
+        />
       </div>
-      <span className="text-[9px] font-bold text-[#8f92a6]">{value}</span>
+      <AnimatedNumber
+        value={value}
+        formatter={(current) => `${Math.round(current)}`}
+        className="text-[9px] font-bold text-[#8f92a6] tabular-nums"
+      />
     </div>
   );
 }
@@ -213,17 +267,32 @@ function SidebarStatus({ me }: { me: MeResponse | null }) {
             <div key={bar.label} className="flex items-center gap-2">
               <span className="w-4 text-[9px] font-black text-[#b8bbca]">{bar.label}</span>
               <div className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/5">
-                <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: bar.color }} />
+                <div
+                  className="h-full rounded-full transition-[width,background-color,box-shadow] duration-700 ease-out"
+                  style={{ width: `${pct}%`, backgroundColor: bar.color, boxShadow: `0 0 10px ${bar.color}` }}
+                />
               </div>
-              <span className="w-6 text-right text-[9px] text-[#5d6075]">{bar.value}</span>
+              <AnimatedNumber
+                value={bar.value}
+                formatter={(current) => `${Math.round(current)}`}
+                className="w-6 text-right text-[9px] text-[#5d6075] tabular-nums"
+              />
             </div>
           );
         })}
       </div>
       <div className="mt-3 flex items-center justify-between text-[9px] font-black">
         <span className="text-[#f7bf35]">LV {me?.level ?? "-"}</span>
-        <span className="text-[#36d47f]">${formatCompact(me?.cash)}</span>
-        <span className="text-[#ff8e3c]">{me?.heat ?? 0}</span>
+        <AnimatedNumber
+          value={Number(me?.cash ?? 0)}
+          formatter={(current) => `$${formatCompact(current)}`}
+          className="text-[#36d47f] tabular-nums"
+        />
+        <AnimatedNumber
+          value={Number(me?.heat ?? 0)}
+          formatter={(current) => `${Math.round(current)}`}
+          className="text-[#ff8e3c] tabular-nums"
+        />
       </div>
     </div>
   );
@@ -234,7 +303,10 @@ export function Navigation() {
   const slsBalance = useSLSBalance();
   const [me, setMe] = useState<MeResponse | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [hudPulse, setHudPulse] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
+  const previousMeRef = useRef<MeResponse | null>(null);
+  const pulseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const path = useMemo(() => (pathname === "/" ? "/home" : pathname ?? "/home"), [pathname]);
 
   useEffect(() => {
@@ -245,16 +317,54 @@ export function Navigation() {
     const load = async () => {
       try {
         const response = await api.get<MeResponse>("/me");
-        if (!cancelled) setMe(response.data);
+        if (!cancelled) {
+          const nextMe = response.data;
+          const previous = previousMeRef.current;
+          const hasMeaningfulChange =
+            !!previous &&
+            [
+              "health",
+              "energy",
+              "nerve",
+              "happiness",
+              "cash",
+              "heat",
+              "xp",
+              "level",
+            ].some((key) => Number((previous as Record<string, unknown>)[key] ?? 0) !== Number((nextMe as Record<string, unknown>)[key] ?? 0));
+
+          setMe(nextMe);
+          previousMeRef.current = nextMe;
+
+          if (hasMeaningfulChange) {
+            setHudPulse(true);
+            if (pulseTimeoutRef.current) window.clearTimeout(pulseTimeoutRef.current);
+            pulseTimeoutRef.current = window.setTimeout(() => setHudPulse(false), 650);
+          }
+        }
       } catch {
         if (!cancelled) setMe(null);
       }
     };
 
     load();
-    const interval = window.setInterval(load, 30000);
+    const onRefresh = () => void load();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void load();
+      }
+    };
+
+    window.addEventListener(PLAYER_STATE_REFRESH_EVENT, onRefresh);
+    window.addEventListener("focus", onRefresh);
+    document.addEventListener("visibilitychange", onVisibility);
+    const interval = window.setInterval(load, 10000);
     return () => {
       cancelled = true;
+      window.removeEventListener(PLAYER_STATE_REFRESH_EVENT, onRefresh);
+      window.removeEventListener("focus", onRefresh);
+      document.removeEventListener("visibilitychange", onVisibility);
+      if (pulseTimeoutRef.current) window.clearTimeout(pulseTimeoutRef.current);
       window.clearInterval(interval);
     };
   }, [pathname]);
@@ -354,7 +464,13 @@ export function Navigation() {
         <SidebarStatus me={me} />
       </aside>
 
-      <header className="fixed left-3 right-3 top-3 z-40 hidden h-[50px] rounded-[18px] border border-white/8 bg-[#0b0c11]/88 px-5 shadow-[0_16px_45px_rgba(0,0,0,0.35)] backdrop-blur-xl lg:left-[190px] lg:flex lg:items-center lg:justify-between">
+      <header
+        className={`fixed left-3 right-3 top-3 z-40 hidden h-[50px] rounded-[18px] border bg-[#0b0c11]/88 px-5 backdrop-blur-xl transition-[box-shadow,border-color,transform] duration-500 lg:left-[190px] lg:flex lg:items-center lg:justify-between ${
+          hudPulse
+            ? "border-[rgba(159,100,255,0.28)] shadow-[0_20px_55px_rgba(153,69,255,0.18)] -translate-y-[1px]"
+            : "border-white/8 shadow-[0_16px_45px_rgba(0,0,0,0.35)]"
+        }`}
+      >
         <div className="flex items-center gap-6">
           <div>
             <p className="text-[12px] font-black text-[#f4f5fb]">{me?.name ?? "GhostOperator"}</p>
@@ -368,21 +484,45 @@ export function Navigation() {
           </div>
         </div>
         <div className="flex items-center gap-4 text-[10px] font-black tracking-[0.12em] uppercase">
-          <span className="text-[#ff9d32]">{me?.heat ?? 0} {formatTier(me?.wantedTier)}</span>
-          <span className="text-[#36d47f]">${formatCompact(me?.cash)}</span>
-          <span className="text-[#f7bf35]">{formatSls(slsBalance)} SLS</span>
+          <span className="text-[#ff9d32]">
+            <AnimatedNumber value={Number(me?.heat ?? 0)} formatter={(current) => `${Math.round(current)}`} className="tabular-nums" /> {formatTier(me?.wantedTier)}
+          </span>
+          <AnimatedNumber
+            value={Number(me?.cash ?? 0)}
+            formatter={(current) => `$${formatCompact(current)}`}
+            className="text-[#36d47f] tabular-nums"
+          />
+          <AnimatedNumber
+            value={Number(slsBalance ?? 0)}
+            formatter={(current) => `${formatSls(current)} SLS`}
+            className="text-[#f7bf35] tabular-nums"
+          />
         </div>
       </header>
 
-      <div className="fixed inset-x-0 top-0 z-40 border-b border-white/8 bg-[#0b0c11]/92 px-3 py-3 shadow-[0_10px_35px_rgba(0,0,0,0.35)] backdrop-blur-xl lg:hidden">
+      <div
+        className={`fixed inset-x-0 top-0 z-40 border-b bg-[#0b0c11]/92 px-3 py-3 backdrop-blur-xl transition-[box-shadow,border-color] duration-500 lg:hidden ${
+          hudPulse
+            ? "border-[rgba(159,100,255,0.24)] shadow-[0_14px_38px_rgba(153,69,255,0.14)]"
+            : "border-white/8 shadow-[0_10px_35px_rgba(0,0,0,0.35)]"
+        }`}
+      >
         <div className="flex items-center justify-between gap-3">
           <Link href="/home" className="flex items-center gap-2">
             <Image src="/assets/images/app_icon.png" alt="Solus City" width={28} height={28} className="rounded-lg" />
             <span className="text-[14px] font-black tracking-[0.05em] text-[#f4f5fb]">SOLUS CITY</span>
           </Link>
           <div className="flex items-center gap-3 text-[10px] font-black uppercase">
-            <span className="text-[#36d47f]">${formatCompact(me?.cash)}</span>
-            <span className="text-[#ff8e3c]">{me?.heat ?? 0}</span>
+            <AnimatedNumber
+              value={Number(me?.cash ?? 0)}
+              formatter={(current) => `$${formatCompact(current)}`}
+              className="text-[#36d47f] tabular-nums"
+            />
+            <AnimatedNumber
+              value={Number(me?.heat ?? 0)}
+              formatter={(current) => `${Math.round(current)}`}
+              className="text-[#ff8e3c] tabular-nums"
+            />
             <span className="sc-chip sc-chip-purple">LV {me?.level ?? "--"}</span>
           </div>
         </div>

@@ -8,7 +8,14 @@ import { MeResponse } from "@/lib/gameApi";
 
 type ShopCategory = "all" | "weapon" | "armor" | "consumable" | "utility";
 type ShopItem = { id: string; category: string; subCategory?: string | null; name: string; price: number; levelRequirement: number; rarity?: string | null; slot?: string | null; description?: string | null; consumable?: boolean; effectType?: string | null; effectValue?: number | null; owned: number; locked: boolean; };
-function normalizeCategory(item: ShopItem): ShopCategory { const value = (item.category || item.slot || "utility").toLowerCase(); if (value.includes("weapon")) return "weapon"; if (value.includes("armor")) return "armor"; if (value.includes("consumable")) return "consumable"; if (value.includes("utility")) return "utility"; return "utility"; }
+function normalizeCategory(item: ShopItem): ShopCategory {
+  const primary = String(item.subCategory || item.slot || item.category || "utility").toLowerCase();
+  if (primary.includes("weapon")) return "weapon";
+  if (primary.includes("armor")) return "armor";
+  if (primary.includes("consumable") || item.category.toLowerCase().includes("consumable")) return "consumable";
+  if (primary.includes("mobility") || primary.includes("intel") || primary.includes("utility")) return "utility";
+  return "utility";
+}
 
 export default function ShopPage() {
   const [category, setCategory] = useState<ShopCategory>("all");
