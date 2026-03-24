@@ -243,6 +243,7 @@ export default async function meRoutes(
 
       return reply.send(
         serializeMeDashboard({
+          id: userId,
           wallet: user?.wallet ?? "",
           profile: { ...updatedProfile, availablePerkPoints },
           combat,

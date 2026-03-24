@@ -2,6 +2,7 @@
 import { isInHospital, nextEnergyAt, nextHappinessAt, nextNerveAt } from "../game";
 
 type SerializeMeInput = {
+  id: string;
   wallet: string;
   profile: Profile;
   combat: { totalStats: { ap: number; dp: number } };
@@ -58,6 +59,7 @@ export function serializeMeDashboard(input: SerializeMeInput) {
       : null;
 
   return {
+    id: input.id,
     wallet: input.wallet,
     name: profile.name,
     cash: profile.cash,

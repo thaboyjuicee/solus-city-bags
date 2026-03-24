@@ -162,6 +162,7 @@ export interface ChampionshipSummary {
 }
 
 export interface MeResponse {
+  id: string;
   wallet: string;
   name: string;
   cash: number;
