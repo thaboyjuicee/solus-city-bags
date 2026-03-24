@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Pencil, Check, X } from "lucide-react";
 import { api } from "@/lib/api/client";
+import { TOKEN_KEY } from "@/lib/config";
 import { EquippedSlotCard } from "@/components/game/EquippedSlotCard";
 import { HallOfFameList } from "@/components/game/HallOfFameList";
 import { PerkTree } from "@/components/game/PerkTree";
@@ -31,6 +32,10 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [nameEdit, setNameEdit] = useState<string | null>(null);
   const [nameBusy, setNameBusy] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -246,6 +251,81 @@ export default function ProfilePage() {
       )}
 
       <HallOfFameList entries={hallOfFame} />
+
+      <div className="rounded-lg border border-[#6d4c41] bg-[#140c0b] p-4 flex flex-col gap-3">
+        <div>
+          <p className="text-[10px] font-black tracking-[3px] text-[#ff8a65] uppercase">Danger Zone</p>
+          <p className="mt-1 text-[11px] text-[#b7a39e]">
+            Deleting your account permanently removes your profile, inventory, missions, perks, logs, and session access.
+          </p>
+          <p className="mt-1 text-[11px] text-[#8f7d78]">
+            If you are the only member of a syndicate, that syndicate is disbanded. If you lead a syndicate with other members, leadership transfers to the top contributor.
+          </p>
+        </div>
+
+        {deleteOpen ? (
+          <div className="flex flex-col gap-3 rounded-md border border-[#6d4c41] bg-black/20 p-3">
+            <p className="text-[10px] font-bold tracking-[2px] text-[#ff8a65] uppercase">
+              Type DELETE to confirm
+            </p>
+            <input
+              value={deleteConfirm}
+              onChange={(e) => setDeleteConfirm(e.target.value)}
+              className="rounded border border-white/10 bg-black/20 px-2 py-2 text-[12px] font-bold text-[#eee] outline-none"
+              placeholder="DELETE"
+            />
+            {deleteError ? <p className="text-[10px] font-bold text-[#ef5350]">{deleteError}</p> : null}
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={async () => {
+                  setDeleteBusy(true);
+                  setDeleteError(null);
+                  try {
+                    await api.delete("/me", { data: { confirmation: deleteConfirm.trim() } });
+                    localStorage.removeItem(TOKEN_KEY);
+                    window.location.href = "/login";
+                  } catch (err: unknown) {
+                    setDeleteError(
+                      (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
+                        "Failed to delete account."
+                    );
+                  } finally {
+                    setDeleteBusy(false);
+                  }
+                }}
+                disabled={deleteBusy || deleteConfirm.trim() !== "DELETE"}
+                className="rounded-md border border-[#6d4c41] bg-[#231412] px-3 py-2 text-[10px] font-black tracking-[2px] text-[#ef5350] disabled:opacity-40"
+              >
+                {deleteBusy ? "DELETING..." : "DELETE ACCOUNT"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteOpen(false);
+                  setDeleteConfirm("");
+                  setDeleteError(null);
+                }}
+                disabled={deleteBusy}
+                className="rounded-md border border-white/10 bg-black/20 px-3 py-2 text-[10px] font-black tracking-[2px] text-[#777] disabled:opacity-40"
+              >
+                CANCEL
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setDeleteOpen(true);
+              setDeleteError(null);
+            }}
+            className="self-start rounded-md border border-[#6d4c41] bg-[#231412] px-3 py-2 text-[10px] font-black tracking-[2px] text-[#ff8a65]"
+          >
+            DELETE ACCOUNT
+          </button>
+        )}
+      </div>
 
       <PerkTree data={{ ...perks, availablePoints: me.availablePerkPoints }} onUpdated={fetchData} />
     </div>

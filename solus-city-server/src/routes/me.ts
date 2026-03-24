@@ -26,6 +26,7 @@ import { buildPrestigePreviewFromProfile } from "../lib/seasons/prestige";
 import { getProjectedRewardTier } from "../lib/seasons/rewards";
 import { getSeasonHistoryForUser } from "../lib/seasons/history";
 import { getCurrentChampionship } from "../lib/syndicates/championships";
+import { deleteAccount } from "../lib/player/accountDeletion";
 
 const updateProfileBody = z.object({
   name: z
@@ -33,6 +34,10 @@ const updateProfileBody = z.object({
     .trim()
     .min(3, "Name must be at least 3 characters")
     .max(20, "Name cannot be longer than 20 characters"),
+});
+
+const deleteAccountBody = z.object({
+  confirmation: z.literal("DELETE"),
 });
 
 export default async function meRoutes(
@@ -327,6 +332,22 @@ export default async function meRoutes(
     } catch (err) {
       request.log.error(err, "/me patch error");
       return reply.status(500).send({ error: "Internal server error" });
+    }
+  });
+
+  fastify.delete("/me", { preHandler: requireAuth }, async (request, reply) => {
+    const { userId } = request.user;
+    const parsed = deleteAccountBody.safeParse(request.body ?? {});
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'Type "DELETE" to confirm account deletion' });
+    }
+
+    try {
+      await deleteAccount(prisma, userId);
+      return reply.send({ success: true });
+    } catch (err) {
+      request.log.error(err, "/me delete error");
+      return reply.status(500).send({ error: err instanceof Error ? err.message : "Internal server error" });
     }
   });
 }
