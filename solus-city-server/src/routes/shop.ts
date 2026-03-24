@@ -66,14 +66,11 @@ export default async function shopRoutes(
             userId,
             itemId: item.id,
             qty: 1,
+            expiresAt: null,
+            sourceType: "shop_preview",
             equipped: shouldAutoEquip,
-            item: {
-              category: item.category,
-              atk: item.atk,
-              def: item.def,
-              speed: item.speed,
-              dex: item.dex,
-            },
+            durability: item.slot ? 100 : null,
+            item,
           });
         }
 
