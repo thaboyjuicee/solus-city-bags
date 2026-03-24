@@ -200,7 +200,8 @@ function WalletDropdown() {
 export function Navigation() {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
-  const moreRef = useRef<HTMLDivElement>(null);
+  const desktopMoreRef = useRef<HTMLDivElement>(null);
+  const mobileMoreRef = useRef<HTMLDivElement>(null);
   const path = useMemo(() => (pathname === "/" ? "/home" : pathname ?? "/home"), [pathname]);
 
   // Close More on route change
@@ -212,7 +213,10 @@ export function Navigation() {
   useEffect(() => {
     if (!moreOpen) return;
     function onClickOutside(e: MouseEvent) {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const insideDesktop = desktopMoreRef.current?.contains(target) ?? false;
+      const insideMobile = mobileMoreRef.current?.contains(target) ?? false;
+      if (!insideDesktop && !insideMobile) {
         setMoreOpen(false);
       }
     }
@@ -263,7 +267,7 @@ export function Navigation() {
             })}
 
             {/* More dropdown */}
-            <div ref={moreRef} className="relative h-full flex items-center">
+            <div ref={desktopMoreRef} className="relative h-full flex items-center">
               <button
                 onClick={() => setMoreOpen((v) => !v)}
                 type="button"
@@ -342,7 +346,7 @@ export function Navigation() {
             </Link>
           );
         })}
-        <div ref={moreRef} className="relative flex-1 h-full">
+        <div ref={mobileMoreRef} className="relative flex-1 h-full">
           <button
             onClick={() => setMoreOpen((v) => !v)}
             type="button"

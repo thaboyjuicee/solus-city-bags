@@ -1,13 +1,13 @@
 ﻿"use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ScrollText } from "lucide-react";
 import { api } from "@/lib/api/client";
 import { AttackLogEntry } from "@/lib/gameApi";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { RevengeAlert } from "@/components/game/RevengeAlert";
+import { PageBanner } from "@/components/game/PageBanner";
 import { BATTLE_RESULT_KEY, BattleResult } from "@/lib/battle";
 
 type Filter = "all" | "incoming" | "outgoing";
@@ -78,17 +78,15 @@ export default function AttackLogsPage() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="h-28 rounded-lg overflow-hidden border border-white/10 bg-black/20 backdrop-blur-sm flex items-end relative">
-        <Image src="/assets/images/arena_banner.png" alt="Attack logs banner" fill className="object-cover opacity-50" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-        <div className="relative z-10 px-3 pb-3 flex items-end gap-2">
-          <ScrollText size={18} className="text-[#fdd835] mb-0.5" />
-          <div>
-            <p className="text-[10px] font-black text-[#fdd835] tracking-[3px] uppercase">Attack Logs</p>
-            <p className="text-[11px] font-semibold text-[#888]">Your combat history and revenge opportunities</p>
-          </div>
-        </div>
-      </div>
+      <PageBanner
+        imageSrc="/assets/images/arena_banner.png"
+        imageAlt="Attack logs banner"
+        title="Attack Logs"
+        subtitle="Your combat history and revenge opportunities"
+        icon={<ScrollText className="h-5 w-5 text-[#fdd835]" />}
+        titleClassName="text-[#fdd835]"
+        subtitleClassName="text-[#888]"
+      />
 
       <div className="grid grid-cols-3 gap-1">
         {FILTERS.map(({ id, label }) => (

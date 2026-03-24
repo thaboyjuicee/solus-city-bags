@@ -9,6 +9,7 @@ import {
   BattleResult,
   formatHospitalMessage,
 } from "@/lib/battle";
+import { PageBanner } from "@/components/game/PageBanner";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 // ---------------------------------------------------------------------------
@@ -184,18 +185,15 @@ export default function BattleResultPage() {
       <div className="flex flex-col gap-3">
 
         {/* Hero */}
-        <div className="h-28 rounded-lg overflow-hidden border border-white/10 bg-black/20 backdrop-blur-sm flex items-end relative">
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-          <div className="relative z-10 px-3 pb-3">
-            <p className="text-[10px] font-black text-[#eee] tracking-[3px] uppercase mb-1">
-              {heroTitle}
-            </p>
-            <p className="text-[11px] font-semibold text-text-dim">
-              {result.opponent?.name} (
-              {result.opponent?.type?.toUpperCase()})
-            </p>
-          </div>
-        </div>
+        <PageBanner
+          imageSrc="/assets/images/arena_banner.png"
+          imageAlt="Battle report banner"
+          title={heroTitle}
+          subtitle={`${result.opponent?.name} (${result.opponent?.type?.toUpperCase()})`}
+          icon={<OutcomeIcon className={`h-5 w-5 ${outcomeColor}`} />}
+          titleClassName={outcomeColor}
+          subtitleClassName="text-text-dim"
+        />
 
         {/* Outcome headline */}
         <div className="flex flex-col items-center py-4 gap-3">

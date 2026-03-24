@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { api } from "@/lib/api/client";
 import { HeatMeter } from "@/components/game/HeatMeter";
 import { WantedBadge } from "@/components/game/WantedBadge";
@@ -174,18 +175,35 @@ export default function HomePage() {
       />
 
       {/* Hero: identity */}
-      <section className="rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(153,69,255,0.18),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(66,165,245,0.14),transparent_32%),rgba(0,0,0,0.28)] p-5 md:p-6">
-        <div className="flex flex-wrap items-center gap-2 mb-3">
-          <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-black tracking-[2px] text-[#888] uppercase">
-            Solus City Operator Hub
-          </span>
-          {me.currentSyndicateRole ? <SyndicateRoleBadge role={me.currentSyndicateRole} /> : null}
-        </div>
-        <p className="text-[30px] font-black leading-none text-[#eee] md:text-[36px]">{me.name ?? "Unnamed Operator"}</p>
-        <p className="mt-2 text-[12px] text-[#9a9a9a] max-w-2xl">
-          Keep your wallet liquid, your vault protected, your heat controlled, and your syndicate pressure rising.
-        </p>
-      </section>
+      <section className="relative min-h-[180px] overflow-hidden rounded-2xl border border-white/10 p-5 md:min-h-[220px] md:p-6">
+  <Image
+    src="/assets/images/home_skyline.png"
+    alt="Solus City skyline"
+    fill
+    className="object-cover opacity-65"
+  />
+  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.18),rgba(0,0,0,0.42)),linear-gradient(90deg,rgba(0,0,0,0.72),rgba(0,0,0,0.28),rgba(0,0,0,0.6))]" />
+  <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-36 md:block lg:w-44">
+    <Image
+      src="/assets/images/home_character.png"
+      alt=""
+      fill
+      className="object-contain object-right-bottom opacity-55"
+    />
+  </div>
+  <div className="relative z-10">
+    <div className="mb-3 flex flex-wrap items-center gap-2">
+      <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-black tracking-[2px] text-[#888] uppercase">
+        Solus City Operator Hub
+      </span>
+      {me.currentSyndicateRole ? <SyndicateRoleBadge role={me.currentSyndicateRole} /> : null}
+    </div>
+    <p className="text-[30px] font-black leading-none text-[#eee] md:text-[36px]">{me.name ?? "Unnamed Operator"}</p>
+    <p className="mt-2 max-w-2xl text-[12px] text-[#b0b0b0]">
+      Keep your wallet liquid, your vault protected, your heat controlled, and your syndicate pressure rising.
+    </p>
+  </div>
+</section>
 
       {/* Top row: key stats */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
@@ -267,6 +285,12 @@ export default function HomePage() {
             <div className="rounded-md border border-white/10 bg-black/20 p-2 text-center text-[#42a5f5]">DP {me.dp}</div>
             <div className="rounded-md border border-white/10 bg-black/20 p-2 text-center text-[#ff9800]">Income {formatCash(me.incomePerHour)}/h</div>
             <div className="rounded-md border border-white/10 bg-black/20 p-2 text-center text-[#9945FF]">Perks {me.unlockedPerkSummary.total}</div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-[10px] sm:grid-cols-4">
+            <div className="rounded-md border border-white/10 bg-black/20 p-2 text-center text-[#ff8a65]">STR {me.strength}</div>
+            <div className="rounded-md border border-white/10 bg-black/20 p-2 text-center text-[#ab47bc]">SPD {me.speed}</div>
+            <div className="rounded-md border border-white/10 bg-black/20 p-2 text-center text-[#42a5f5]">DEF {me.defense}</div>
+            <div className="rounded-md border border-white/10 bg-black/20 p-2 text-center text-[#fdd835]">DEX {me.dexterity}</div>
           </div>
           <div className="grid grid-cols-1 gap-2 text-[10px] sm:grid-cols-3">
             <div className="rounded-md border border-white/10 bg-black/20 p-2">
@@ -396,3 +420,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+

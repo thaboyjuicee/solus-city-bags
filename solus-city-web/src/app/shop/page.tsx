@@ -1,12 +1,13 @@
 ﻿"use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
-import { Store } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { ArrowRight, CircleDollarSign, Clock3, Crosshair, Package, ShieldCheck, ShoppingCart, Store, Swords, Trophy } from "lucide-react";
 import { api } from "@/lib/api/client";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { PageBanner } from "@/components/game/PageBanner";
 import { RarityBadge } from "@/components/game/RarityBadge";
-import { BlackMarketListing, BlackMarketRotation } from "@/lib/gameApi";
+import { StatusBars } from "@/components/ui/StatusBars";
+import { BlackMarketListing, BlackMarketRotation, MeResponse } from "@/lib/gameApi";
 
 type ShopTab = "shop" | "listings";
 type ShopCategory = "all" | "crew" | "weapon" | "armor" | "utility" | "consumable";
@@ -16,6 +17,10 @@ type ShopItem = {
   category: string;
   subCategory?: string | null;
   name: string;
+  atk: number;
+  def: number;
+  speed: number;
+  dex: number;
   price: number;
   levelRequirement: number;
   rarity?: string | null;
@@ -26,6 +31,12 @@ type ShopItem = {
   effectValue?: number | null;
   owned: number;
   locked: boolean;
+  powerPreview?: {
+    apNow: number;
+    apAfterOne: number;
+    dpNow: number;
+    dpAfterOne: number;
+  };
 };
 
 const SHOP_CATEGORY_ORDER: Exclude<ShopCategory, "all">[] = ["crew", "weapon", "armor", "utility", "consumable"];
@@ -48,6 +59,42 @@ function normalizeCategory(item: ShopItem): Exclude<ShopCategory, "all"> {
   if (subCategory === "weapon" || slot === "weapon") return "weapon";
   if (subCategory === "armor" || slot === "armor") return "armor";
   return "utility";
+}
+
+function getItemIcon(category: Exclude<ShopCategory, "all">) {
+  switch (category) {
+    case "crew":
+      return <ShieldCheck className="h-4 w-4 flex-shrink-0 text-[#eee]" />;
+    case "weapon":
+      return <Swords className="h-4 w-4 flex-shrink-0 text-[#eee]" />;
+    case "armor":
+      return <ShieldCheck className="h-4 w-4 flex-shrink-0 text-[#eee]" />;
+    case "utility":
+      return <Package className="h-4 w-4 flex-shrink-0 text-[#eee]" />;
+    case "consumable":
+      return <Trophy className="h-4 w-4 flex-shrink-0 text-[#eee]" />;
+  }
+}
+
+function StatChip({
+  value,
+  color,
+  label,
+  icon,
+}: {
+  value: number;
+  color: string;
+  label: string;
+  icon: ReactNode;
+}) {
+  return (
+    <span className="flex items-center gap-1 text-[12px] font-bold" style={{ color }}>
+      {icon}
+      <span>
+        {label} +{value}
+      </span>
+    </span>
+  );
 }
 
 function formatTimeLeft(seconds: number) {
@@ -154,9 +201,11 @@ function ListingsPanel({
 }
 
 export default function ShopPage() {
+  const [me, setMe] = useState<MeResponse | null>(null);
   const [tab, setTab] = useState<ShopTab>("shop");
   const [shopCategory, setShopCategory] = useState<ShopCategory>("all");
   const [items, setItems] = useState<ShopItem[]>([]);
+  const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [rotation, setRotation] = useState<BlackMarketRotation | null>(null);
   const [listings, setListings] = useState<BlackMarketListing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -170,8 +219,19 @@ export default function ShopPage() {
 
   const fetchShop = useCallback(async () => {
     try {
-      const res = await api.get<{ all: ShopItem[] }>("/shop/items");
-      setItems(res.data.all);
+      const [shopRes, meRes] = await Promise.all([
+        api.get<{ all: ShopItem[] }>("/shop/items"),
+        api.get<MeResponse>("/me"),
+      ]);
+      setItems(shopRes.data.all);
+      setMe(meRes.data);
+      setQuantities((prev) => {
+        const next = { ...prev };
+        shopRes.data.all.forEach((item) => {
+          if (!next[item.id]) next[item.id] = "1";
+        });
+        return next;
+      });
     } catch {
       // non-critical
     } finally {
@@ -209,14 +269,19 @@ export default function ShopPage() {
   }, [items, shopCategory]);
 
   const buy = async (item: ShopItem) => {
+    const qty = parseInt(quantities[item.id] ?? "1", 10);
+    if (Number.isNaN(qty) || qty < 1 || qty > 100) {
+      setShopBuyError("Quantity must be between 1 and 100.");
+      return;
+    }
     setShopBuyingId(item.id);
     setShopBuyError(null);
     try {
-      await api.post("/shop/buy", { itemId: item.id, qty: 1 });
+      await api.post("/shop/buy", { itemId: item.id, qty });
       await fetchShop();
       successCounter.current += 1;
       const key = successCounter.current;
-      setShopSuccess({ msg: `Purchased ${item.name}!`, itemId: item.id, key });
+      setShopSuccess({ msg: `Purchased ${qty}x ${item.name}!`, itemId: item.id, key });
       setTimeout(() => setShopSuccess((s) => (s?.key === key ? null : s)), 2500);
     } catch (err) {
       setShopBuyError(
@@ -250,17 +315,17 @@ export default function ShopPage() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="h-28 rounded-lg overflow-hidden border border-white/10 bg-black/20 backdrop-blur-sm flex items-end relative">
-        <Image src="/assets/images/shop_banner.png" alt="Shop banner" fill className="object-cover opacity-50" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-        <div className="relative z-10 px-3 pb-3 flex items-end gap-2">
-          <Store size={18} className="text-[#66bb6a] mb-0.5" />
-          <div>
-            <p className="text-[10px] font-black text-[#66bb6a] tracking-[3px] uppercase">Shop</p>
-            <p className="text-[11px] font-semibold text-[#888]">Gear, consumables, and black market listings</p>
-          </div>
-        </div>
-      </div>
+      {me ? <StatusBars profile={me} /> : null}
+
+      <PageBanner
+        imageSrc="/assets/images/shop_banner.png"
+        imageAlt="Shop banner"
+        title="Shop"
+        subtitle="Gear, consumables, and black market listings"
+        icon={<Store className="h-5 w-5 text-[#66bb6a]" />}
+        titleClassName="text-[#66bb6a]"
+        subtitleClassName="text-[#888]"
+      />
 
       <div className="grid grid-cols-2 gap-1">
         {(["shop", "listings"] as ShopTab[]).map((id) => (
@@ -305,32 +370,109 @@ export default function ShopPage() {
                 {shopCategory === "all" && (
                   <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">{SHOP_CATEGORY_LABELS[group.category]}</p>
                 )}
-                <div className="grid gap-2 md:grid-cols-2">
+                <div className="flex flex-col gap-2">
                   {group.items.map((item) => {
                     const busy = shopBuyingId === item.id;
                     const justBought = shopSuccess?.itemId === item.id;
                     const itemCategory = normalizeCategory(item);
+                    const qty = Math.max(1, parseInt(quantities[item.id] ?? "1", 10) || 1);
+                    const insufficientCash = !item.locked && (me?.cash ?? 0) < item.price * qty;
+                    const showPreview =
+                      !!item.powerPreview &&
+                      (item.powerPreview.apAfterOne !== item.powerPreview.apNow ||
+                        item.powerPreview.dpAfterOne !== item.powerPreview.dpNow);
                     return (
-                      <div key={item.id} className="rounded-lg border border-white/10 bg-black/20 p-3 flex flex-col gap-2">
-                        <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
-                          <div className="min-w-0">
-                            <p className="break-words text-[13px] font-bold text-[#eee]">{item.name}</p>
-                            <p className="break-words text-[10px] text-[#777]">LV {item.levelRequirement} • {SHOP_CATEGORY_LABELS[itemCategory]} • Owned {item.owned}</p>
+                      <div
+                        key={item.id}
+                        className={`rounded-lg border border-white/10 bg-black/20 p-3.5 flex flex-col gap-2 ${
+                          item.locked ? "opacity-45" : ""
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex min-w-0 items-center gap-2">
+                            {getItemIcon(itemCategory)}
+                            <span className="truncate text-[15px] font-bold text-[#eee]">{item.name}</span>
                           </div>
-                          <RarityBadge rarity={item.rarity} />
+                          <span className="flex-shrink-0 rounded bg-[#9945FF20] px-2 py-0.5 text-[9px] font-bold tracking-wide text-[#9945FF]">
+                            {item.owned} OWNED
+                          </span>
                         </div>
-                        <p className="text-[10px] text-[#666]">{item.description}</p>
-                        <div className="flex flex-wrap gap-2 text-[10px] font-bold">
-                          <span className="text-[#66bb6a]">${item.price.toLocaleString()}</span>
-                          {item.slot && itemCategory !== "crew" && <span className="text-[#42a5f5]">Slot {item.slot}</span>}
-                          {item.subCategory && <span className="text-[#9945FF]">{item.subCategory}</span>}
-                          {item.effectType && <span className="text-[#14F195]">{item.effectType.replaceAll("_", " ")}</span>}
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                          {item.atk > 0 && (
+                            <StatChip value={item.atk} color="#ef5350" label="ATK" icon={<Swords className="h-3 w-3" />} />
+                          )}
+                          {item.def > 0 && (
+                            <StatChip value={item.def} color="#1e88e5" label="DEF" icon={<ShieldCheck className="h-3 w-3" />} />
+                          )}
+                          {item.speed > 0 && (
+                            <StatChip value={item.speed} color="#9945FF" label="SPD" icon={<Clock3 className="h-3 w-3" />} />
+                          )}
+                          {item.dex > 0 && (
+                            <StatChip value={item.dex} color="#fdd835" label="DEX" icon={<Crosshair className="h-3 w-3" />} />
+                          )}
+                          <span className="flex items-center gap-1 text-[12px] font-bold text-[#66bb6a]">
+                            <CircleDollarSign className="h-3 w-3" />
+                            ${item.price.toLocaleString()}
+                          </span>
+                          {item.rarity ? <RarityBadge rarity={item.rarity} /> : null}
                         </div>
-                        {itemCategory === "crew" && <p className="text-[10px] text-[#888]">Crew assets are tracked separately from your support gear.</p>}
+                        {showPreview ? (
+                          <div className="flex flex-wrap items-center gap-3 text-[10px] font-bold text-[#777]">
+                            <span>
+                              AP <span className="text-[#ef5350]">{item.powerPreview!.apNow}</span>{" "}
+                              <ArrowRight className="inline-block h-3 w-3 align-middle text-[#777]" />{" "}
+                              <span className="text-[#66bb6a]">{item.powerPreview!.apAfterOne}</span>
+                            </span>
+                            <span>
+                              DP <span className="text-[#42a5f5]">{item.powerPreview!.dpNow}</span>{" "}
+                              <ArrowRight className="inline-block h-3 w-3 align-middle text-[#777]" />{" "}
+                              <span className="text-[#66bb6a]">{item.powerPreview!.dpAfterOne}</span>
+                            </span>
+                          </div>
+                        ) : null}
+                        {item.description ? <p className="text-[10px] text-[#666]">{item.description}</p> : null}
+                        <p className="text-[9px] font-black tracking-[2px] text-[#777]">
+                          LV REQ {item.levelRequirement}
+                          {item.subCategory ? <span className="ml-2 text-[#9945FF]">{item.subCategory.toUpperCase()}</span> : null}
+                          {item.slot && itemCategory !== "crew" ? <span className="ml-2 text-[#42a5f5]">SLOT {item.slot.toUpperCase()}</span> : null}
+                          {item.effectType ? (
+                            <span className="ml-2 text-[#14F195]">{item.effectType.replaceAll("_", " ").toUpperCase()}</span>
+                          ) : null}
+                        </p>
                         {justBought && <FlashMessage key={shopSuccess!.key} message={shopSuccess!.msg} />}
-                        <button disabled={item.locked || busy} onClick={() => buy(item)} className="w-full py-2 rounded border border-white/10 text-[10px] font-black tracking-[2px] text-[#fdd835] disabled:opacity-40">
-                          {busy ? "BUYING..." : item.locked ? "LOCKED" : "BUY"}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min={1}
+                            max={100}
+                            value={quantities[item.id] ?? "1"}
+                            onChange={(event) => setQuantities((prev) => ({ ...prev, [item.id]: event.target.value }))}
+                            disabled={item.locked || busy}
+                            className="w-16 rounded-lg border border-white/10 bg-black/20 px-2 py-2 text-center text-sm font-bold text-[#eee] focus:outline-none disabled:opacity-40"
+                          />
+                          <button
+                            disabled={item.locked || busy}
+                            onClick={() => buy(item)}
+                            className={`flex flex-1 items-center justify-center gap-1 rounded-lg border py-2.5 text-[11px] font-bold tracking-[2px] transition-opacity ${
+                              item.locked
+                                ? "cursor-not-allowed border-white/10 bg-black/20 text-[#777] opacity-40"
+                                : insufficientCash
+                                ? "border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF] opacity-60"
+                                : "border-[rgba(153,69,255,0.3)] bg-[#1a0e2e] text-[#9945FF]"
+                            } ${busy ? "opacity-40" : ""}`}
+                          >
+                            {busy ? (
+                              "BUYING..."
+                            ) : insufficientCash && !item.locked ? (
+                              "LOW CASH"
+                            ) : (
+                              <>
+                                <ShoppingCart className="h-3.5 w-3.5" />
+                                BUY
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     );
                   })}

@@ -1,13 +1,13 @@
 ﻿"use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Swords } from "lucide-react";
+import { RefreshCw, Swords } from "lucide-react";
 import { api } from "@/lib/api/client";
 import { BATTLE_RESULT_KEY, BattleResult, formatHospitalMessage } from "@/lib/battle";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { StatusBars } from "@/components/ui/StatusBars";
+import { PageBanner } from "@/components/game/PageBanner";
 import { MeResponse, TargetPreview } from "@/lib/gameApi";
 
 const BAND_CLASS: Record<string, string> = {
@@ -87,14 +87,24 @@ export default function TargetsPage() {
   return (
     <div className="flex flex-col gap-3">
       <StatusBars profile={profile} />
-      <div className="h-28 rounded-lg overflow-hidden border border-white/10 bg-black/20 backdrop-blur-sm flex items-end relative">
-        <Image src="/assets/images/arena_banner.png" alt="Battle banner" fill className="object-cover opacity-50" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-        <div className="relative z-10 px-3 pb-3">
-          <p className="text-[10px] font-black text-[#eee] tracking-[3px] uppercase">Targets</p>
-          <p className="text-[11px] font-semibold text-text-dim">Bands stay visible, but anti-whale penalties now hide weak targets’ value.</p>
-        </div>
-      </div>
+      <PageBanner
+        imageSrc="/assets/images/arena_banner.png"
+        imageAlt="Battle banner"
+        title="Targets"
+        subtitle="Bands stay visible, but anti-whale penalties now hide weak targets’ value."
+        icon={<Swords className="h-5 w-5 text-[#eee]" />}
+        subtitleClassName="text-text-dim"
+        actions={
+          <button
+            type="button"
+            onClick={() => void fetchData()}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-white/10 bg-black/30 px-3 py-2 text-[10px] font-black tracking-[2px] text-[#888] uppercase hover:text-[#ccc] md:w-auto"
+          >
+            <RefreshCw size={13} />
+            Refresh
+          </button>
+        }
+      />
       <div className="flex flex-col gap-2">
         {targets.map((target) => {
           const state = attackState[target.id];

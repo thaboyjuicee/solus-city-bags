@@ -20,6 +20,7 @@ import { api } from "@/lib/api/client";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { StatusBars } from "@/components/ui/StatusBars";
 import { HospitalOptionsCard } from "@/components/game/HospitalOptionsCard";
+import { PageBanner } from "@/components/game/PageBanner";
 import { SLS_BALANCE_REFRESH_EVENT, useSLSBalance } from "@/hooks/useSLSBalance";
 import { MeResponse } from "@/lib/gameApi";
 
@@ -679,16 +680,17 @@ export default function BlackMarketPage() {
     <div className="flex flex-col gap-3">
       <StatusBars profile={profile} />
 
-      <div className="h-28 rounded-lg overflow-hidden border border-white/10 bg-black/20 backdrop-blur-sm flex items-end relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1a0a2e] via-[#0a0a1a] to-black" />
-        <div className="relative z-10 px-3 pb-3 flex items-end gap-2">
-          <ShoppingBag size={18} className="text-[#9945FF] mb-0.5" />
-          <div>
-            <p className="text-[10px] font-black text-[#9945FF] tracking-[3px] uppercase">Black Market</p>
-            <p className="text-[11px] font-semibold text-[#888]">$SLS utility — swap, sell, send, and more</p>
-          </div>
-        </div>
-      </div>
+      <PageBanner
+        imageSrc="/assets/images/home_skyline.png"
+        imageAlt="Black market banner"
+        title="Black Market"
+        subtitle="$SLS utility — swap, sell, send, and more"
+        icon={<ShoppingBag className="h-5 w-5 text-[#9945FF]" />}
+        titleClassName="text-[#9945FF]"
+        subtitleClassName="text-[#888]"
+        overlayClassName="bg-[linear-gradient(180deg,rgba(26,10,46,0.45),rgba(0,0,0,0.42)),linear-gradient(90deg,rgba(0,0,0,0.78),rgba(26,10,46,0.38),rgba(0,0,0,0.7))]"
+        imageClassName="object-cover opacity-60"
+      />
 
       <SLSOverview cash={profile.cash} slsBalance={slsBalance} slsPrice={slsPrice} slsSpent={profile.slsSpent} />
 

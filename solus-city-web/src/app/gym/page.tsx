@@ -1,10 +1,10 @@
 ﻿"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { api } from "@/lib/api/client";
 import { StatusBars, type ProfileStats } from "@/components/ui/StatusBars";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { PageBanner } from "@/components/game/PageBanner";
 import {
   CircleHelp,
   CircleX,
@@ -219,29 +219,20 @@ export default function GymPage() {
   const notEnoughEnergy = (profile?.energy ?? 0) < GYM_ENERGY_COST;
 
   return (
-    <div className="flex flex-col bg-transparent min-h-dvh">
+    <div className="flex flex-col bg-transparent">
       {profile && <StatusBars profile={profile} />}
 
       <div className="flex flex-col gap-3">
 
         {/* Hero */}
-        <div className="h-28 rounded-lg overflow-hidden border border-white/10 bg-black/20 flex items-end relative backdrop-blur-sm">
-          <Image
-            src="/assets/images/gym_banner.png"
-            alt="Gym banner"
-            fill
-            className="object-cover opacity-50"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-          <div className="relative z-10 px-3 pb-3">
-            <p className="text-[10px] font-black text-[#eee] tracking-[3px] uppercase mb-1">
-              Gym
-            </p>
-            <p className="text-[11px] font-semibold text-text-dim">
-              Spend {GYM_ENERGY_COST} energy to train a combat stat
-            </p>
-          </div>
-        </div>
+        <PageBanner
+          imageSrc="/assets/images/gym_banner.png"
+          imageAlt="Gym banner"
+          title="Gym"
+          subtitle={`Spend ${GYM_ENERGY_COST} energy to train a combat stat`}
+          icon={<Dumbbell className="h-5 w-5 text-[#eee]" />}
+          subtitleClassName="text-text-dim"
+        />
 
         {/* Hospital banner */}
         {profile?.inHospital && (

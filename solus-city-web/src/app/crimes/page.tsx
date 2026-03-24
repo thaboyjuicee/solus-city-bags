@@ -1,10 +1,11 @@
 ﻿"use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Image from "next/image";
 import { api } from "@/lib/api/client";
 import { StatusBars, type ProfileStats } from "@/components/ui/StatusBars";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { PageBanner } from "@/components/game/PageBanner";
+import { Crosshair } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -311,21 +312,14 @@ export default function CrimesPage() {
 
       <div className="flex flex-col gap-3">
         {/* Hero */}
-        <div className="h-28 rounded-lg overflow-hidden border border-white/10 bg-black/20 backdrop-blur-sm flex items-end relative">
-          <Image
-            src="/assets/images/crimes_banner.png"
-            alt="Crimes banner"
-            fill
-            className="object-cover opacity-50"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-          <div className="relative z-10 px-3 pb-3">
-            <p className="text-[20px] font-black text-[#eee] tracking-[4px]">CRIMES</p>
-            <p className="text-[11px] font-semibold text-text-dim">
-              Use nerve to commit crimes for cash and XP
-            </p>
-          </div>
-        </div>
+        <PageBanner
+          imageSrc="/assets/images/crimes_banner.png"
+          imageAlt="Crimes banner"
+          title="Crimes"
+          subtitle="Use nerve to commit crimes for cash and XP"
+          icon={<Crosshair className="h-5 w-5 text-[#eee]" />}
+          subtitleClassName="text-text-dim"
+        />
 
         {/* Crimes list */}
         {crimes.length === 0 ? (
