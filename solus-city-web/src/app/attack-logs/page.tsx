@@ -20,6 +20,7 @@ interface AttackLogEntry {
   damageDealt: number;
   damageTaken: number;
   loot: number;
+  heatChange: number;
   rpChange: number;
   xpGained: number;
   hospitalResult: string;
