@@ -6,9 +6,11 @@ import { HallOfFameList } from "@/components/game/HallOfFameList";
 import { SeasonHistoryCard } from "@/components/game/SeasonHistoryCard";
 import { SeasonRankCard } from "@/components/game/SeasonRankCard";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { HallOfFameEntry, SeasonHistoryEntry, SeasonRewardPreviewResponse, SeasonSummary } from "@/lib/gameApi";
+import { HallOfFameEntry, MeResponse, SeasonHistoryEntry, SeasonRewardPreviewResponse, SeasonSummary } from "@/lib/gameApi";
+import { StatusBars } from "@/components/ui/StatusBars";
 
 export default function SeasonsPage() {
+  const [me, setMe] = useState<MeResponse | null>(null);
   const [current, setCurrent] = useState<SeasonSummary | null>(null);
   const [rewardPreview, setRewardPreview] = useState<SeasonRewardPreviewResponse | null>(null);
   const [history, setHistory] = useState<SeasonHistoryEntry[]>([]);
@@ -16,10 +18,12 @@ export default function SeasonsPage() {
 
   useEffect(() => {
     Promise.all([
+      api.get<MeResponse>("/me"),
       api.get<{ currentSeason: SeasonSummary | null }>("/seasons/current"),
       api.get<{ rewardPreview: SeasonRewardPreviewResponse | null }>("/seasons/current/rewards"),
       api.get<{ history: SeasonHistoryEntry[]; hallOfFameHighlights: HallOfFameEntry[] }>("/seasons/history"),
-    ]).then(([currentRes, rewardsRes, historyRes]) => {
+    ]).then(([meRes, currentRes, rewardsRes, historyRes]) => {
+      setMe(meRes.data);
       setCurrent(currentRes.data.currentSeason);
       setRewardPreview(rewardsRes.data.rewardPreview);
       setHistory(historyRes.data.history ?? []);
@@ -31,6 +35,7 @@ export default function SeasonsPage() {
 
   return (
     <div className="flex flex-col gap-4">
+      {me ? <StatusBars profile={me} /> : null}
       <SeasonRankCard season={current} />
 
       {rewardPreview && (

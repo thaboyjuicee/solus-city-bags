@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { RefreshCw, Trophy } from "lucide-react";
 import { api } from "@/lib/api/client";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { LeaderboardResponse } from "@/lib/gameApi";
+import { LeaderboardResponse, MeResponse } from "@/lib/gameApi";
+import { StatusBars } from "@/components/ui/StatusBars";
 
 type LeaderboardTab = LeaderboardResponse["type"];
 
@@ -116,6 +117,7 @@ function getSecondaryText(type: LeaderboardTab, entry: LeaderboardResponse["entr
 }
 
 export default function LeaderboardPage() {
+  const [me, setMe] = useState<MeResponse | null>(null);
   const [tab, setTab] = useState<LeaderboardTab>("pvp");
   const [data, setData] = useState<LeaderboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -126,8 +128,12 @@ export default function LeaderboardPage() {
     else setLoading(true);
 
     try {
-      const res = await api.get<LeaderboardResponse>(`/leaderboard?type=${nextTab}`);
-      setData(res.data);
+      const [leaderboardRes, meRes] = await Promise.all([
+        api.get<LeaderboardResponse>(`/leaderboard?type=${nextTab}`),
+        api.get<MeResponse>("/me"),
+      ]);
+      setData(leaderboardRes.data);
+      setMe(meRes.data);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -140,6 +146,7 @@ export default function LeaderboardPage() {
 
   return (
     <div className="flex flex-col gap-3">
+      {me ? <StatusBars profile={me} /> : null}
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[3px] text-[#eee]">Leaderboard</p>

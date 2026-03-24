@@ -4,19 +4,23 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import { ChampionshipBracket } from "@/components/game/ChampionshipBracket";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { ChampionshipSummary } from "@/lib/gameApi";
+import { ChampionshipSummary, MeResponse } from "@/lib/gameApi";
+import { StatusBars } from "@/components/ui/StatusBars";
 
 export default function ChampionshipsPage() {
+  const [me, setMe] = useState<MeResponse | null>(null);
   const [current, setCurrent] = useState<ChampionshipSummary | null>(null);
   const [bracket, setBracket] = useState<ChampionshipSummary | null>(null);
   const [qualifiers, setQualifiers] = useState<Array<{ seed: number; qualifyingPoints: number; syndicate: { id: string; name: string } }> | null>(null);
 
   useEffect(() => {
     Promise.all([
+      api.get<MeResponse>("/me"),
       api.get<{ championship: ChampionshipSummary | null }>("/championships/current"),
       api.get<{ bracket: ChampionshipSummary | null }>("/championships/bracket"),
       api.get<{ qualifiers: Array<{ seed: number; qualifyingPoints: number; syndicate: { id: string; name: string } }> }>("/championships/qualifiers"),
-    ]).then(([currentRes, bracketRes, qualifiersRes]) => {
+    ]).then(([meRes, currentRes, bracketRes, qualifiersRes]) => {
+      setMe(meRes.data);
       setCurrent(currentRes.data.championship);
       setBracket(bracketRes.data.bracket);
       setQualifiers(qualifiersRes.data.qualifiers);
@@ -27,6 +31,7 @@ export default function ChampionshipsPage() {
 
   return (
     <div className="flex flex-col gap-4">
+      {me ? <StatusBars profile={me} /> : null}
       {current && (
         <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>

@@ -7,14 +7,10 @@ import { SyndicateVaultCard } from "@/components/game/SyndicateVaultCard";
 import { SyndicateRoleBadge } from "@/components/game/SyndicateRoleBadge";
 import { WarScoreboard } from "@/components/game/WarScoreboard";
 import { ContributionList } from "@/components/game/ContributionList";
+import { MeResponse } from "@/lib/gameApi";
+import { StatusBars } from "@/components/ui/StatusBars";
 
 // ── Types ────────────────────────────────────────────────────────────────────
-
-type MeLite = {
-  id?: string;
-  syndicate?: { id: string } | null;
-  currentSyndicateRole?: string | null;
-};
 
 type SyndicateMember = {
   userId: string;
@@ -314,6 +310,7 @@ export default function SyndicatesPage() {
   const [subTab, setSubTab] = useState<SubTab>("hq");
 
   // My identity
+  const [me, setMe] = useState<MeResponse | null>(null);
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [myRole, setMyRole] = useState<string | null>(null);
   const [mySyndicateId, setMySyndicateId] = useState<string | null>(null);
@@ -374,7 +371,8 @@ export default function SyndicatesPage() {
   const loadMe = useCallback(async () => {
     setDetailLoading(true);
     try {
-      const meRes = await api.get<MeLite>("/me");
+      const meRes = await api.get<MeResponse>("/me");
+      setMe(meRes.data);
       setMyUserId(meRes.data.id ?? null);
       setMyRole(meRes.data.currentSyndicateRole ?? null);
       const sid = meRes.data.syndicate?.id ?? null;
@@ -548,6 +546,7 @@ export default function SyndicatesPage() {
 
   return (
     <div className="flex flex-col gap-4">
+      {me ? <StatusBars profile={me} /> : null}
       {/* Leave modal */}
       {leaveModal && (
         <LeaveModalOverlay
