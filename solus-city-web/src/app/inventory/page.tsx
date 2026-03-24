@@ -61,7 +61,7 @@ export default function InventoryPage() {
       <div className="rounded-lg border border-white/10 bg-black/20 p-4">
         <p className="text-[10px] font-black tracking-[3px] text-[#555] uppercase">Inventory</p>
         <p className="text-[12px] text-[#888] mt-1">Manage equip, unequip, and consumable usage without mixing people and gear together.</p>
-        <p className="text-[10px] text-[#666] mt-2">Crew is shown in its own section. Slotted equipment affects combat only when equipped.</p>
+        <p className="text-[10px] text-[#666] mt-2">Crew is shown in its own section. Slotted equipment affects combat only when equipped. Activatable gadgets can be triggered directly from inventory.</p>
       </div>
       <InventoryGrid inventory={inventory} onRefresh={fetchInventory} />
     </div>

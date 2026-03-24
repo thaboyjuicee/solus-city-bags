@@ -44,6 +44,18 @@ interface CombatBreakdown {
   };
 }
 
+type CombatInventoryRow = {
+  qty: number;
+  equipped?: boolean | null;
+  item: {
+    category: string;
+    atk: number;
+    def: number;
+    speed?: number | null;
+    dex?: number | null;
+  };
+};
+
 /**
  * Compute offline cash income since lastIncomeTs.
  * Caps at INCOME_CAP_HOURS worth of income.
@@ -212,15 +224,62 @@ export async function computeCombatStats(
     prisma.syndicateMember.findUnique({ where: { userId } }),
     getPlayerPerkContext(userId, prisma),
   ]);
-  const buffMultiplier = member ? 1 + SYNDICATE_AP_BUFF : 1;
-  const hospitalPenaltyEffects = getHospitalPenaltyEffects(profile);
+
+  return computeCombatBreakdownFromState({
+    profile,
+    inventory,
+    hasSyndicateBuff: !!member,
+    perkEffects: perkContext.effects,
+  });
+}
+
+export function computeCombatBreakdownFromState({
+  profile,
+  inventory,
+  hasSyndicateBuff,
+  perkEffects,
+}: {
+  profile: Pick<Profile, "strength" | "speed" | "defense" | "dexterity" | "hospitalExitPenaltyType" | "hospitalExitPenaltyUntil"> | null;
+  inventory: CombatInventoryRow[];
+  hasSyndicateBuff: boolean;
+  perkEffects?: {
+    battle_ap_percent?: number;
+    battle_dp_percent?: number;
+  };
+}): CombatBreakdown {
+  const baseStrength = profile?.strength ?? 0;
+  const baseSpeed = profile?.speed ?? 0;
+  const baseDefense = profile?.defense ?? 0;
+  const baseDexterity = profile?.dexterity ?? 0;
+
+  let atkBonus = 0;
+  let defBonus = 0;
+  let speedBonus = 0;
+  let dexBonus = 0;
+
+  for (const inv of inventory) {
+    const appliesToCombat =
+      inv.item.category === "unit" ? inv.qty > 0 : inv.item.category === "equipment" ? !!inv.equipped : false;
+    if (!appliesToCombat) continue;
+
+    const multiplier = inv.item.category === "unit" ? inv.qty : 1;
+    atkBonus += inv.item.atk * multiplier;
+    defBonus += inv.item.def * multiplier;
+    speedBonus += (inv.item.speed ?? 0) * multiplier;
+    dexBonus += (inv.item.dex ?? 0) * multiplier;
+  }
+
+  const buffMultiplier = hasSyndicateBuff ? 1 + SYNDICATE_AP_BUFF : 1;
+  const hospitalPenaltyEffects = profile
+    ? getHospitalPenaltyEffects(profile as Profile)
+    : { combatApMultiplier: 1, combatDpMultiplier: 1 };
 
   const speedApBonus = Math.floor(speedBonus / 2);
   const dexDpBonus = Math.floor(dexBonus / 2);
   const baseAp = BASE_ATK + baseStrength + Math.floor(baseSpeed / 2);
   const baseDp = BASE_DEF + baseDefense + Math.floor(baseDexterity / 2);
-  const apPerkMultiplier = 1 + (perkContext.effects.battle_ap_percent ?? 0);
-  const dpPerkMultiplier = 1 + (perkContext.effects.battle_dp_percent ?? 0);
+  const apPerkMultiplier = 1 + (perkEffects?.battle_ap_percent ?? 0);
+  const dpPerkMultiplier = 1 + (perkEffects?.battle_dp_percent ?? 0);
   const totalAp = Math.max(
     1,
     Math.round(

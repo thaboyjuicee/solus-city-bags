@@ -21,6 +21,7 @@ function ItemCard({
     await api.post(path, { inventoryItemId: row.inventoryItemId });
     await onRefresh();
   };
+  const useLabel = row.item.consumable ? "Use" : row.item.effectType ? "Activate" : null;
 
   return (
     <div className="rounded-md border border-white/10 bg-black/20 p-3 flex flex-col gap-2">
@@ -39,8 +40,8 @@ function ItemCard({
         {row.equipped && (
           <button onClick={() => run("/inventory/unequip")} className="px-2 py-1 rounded border border-white/10 text-[10px] text-[#ff9800]">Unequip</button>
         )}
-        {(row.item.consumable || row.item.effectType) && (
-          <button onClick={() => run("/inventory/use")} className="px-2 py-1 rounded border border-white/10 text-[10px] text-[#66bb6a]">Use</button>
+        {useLabel && (
+          <button onClick={() => run("/inventory/use")} className="px-2 py-1 rounded border border-white/10 text-[10px] text-[#66bb6a]">{useLabel}</button>
         )}
       </div>
     </div>

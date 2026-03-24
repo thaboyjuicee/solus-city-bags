@@ -42,16 +42,40 @@ export function groupInventoryRows(
     sourceType: row.sourceType ?? null,
     item: row.item,
   }));
+  const protectionTypes = ["loot_reduction_percent", "decoy_wallet_percent", "heat_mask_percent"];
+
+  const equipped = serialized.filter((row) => row.equipped);
+  const consumables = serialized.filter((row) => !row.equipped && row.item.consumable);
+  const protection = serialized.filter(
+    (row) => !row.equipped && protectionTypes.includes(row.item.effectType ?? "")
+  );
+  const contraband = serialized.filter(
+    (row) => !row.equipped && row.item.subCategory === "contraband"
+  );
+  const utilities = serialized.filter(
+    (row) =>
+      !row.equipped &&
+      !row.item.consumable &&
+      !protectionTypes.includes(row.item.effectType ?? "") &&
+      row.item.slot === "utility" &&
+      row.item.subCategory !== "contraband"
+  );
+  const general = serialized.filter(
+    (row) =>
+      !row.equipped &&
+      !row.item.consumable &&
+      !protectionTypes.includes(row.item.effectType ?? "") &&
+      row.item.slot !== "utility" &&
+      row.item.subCategory !== "contraband"
+  );
 
   return {
-    equipped: serialized.filter((row) => row.equipped),
-    consumables: serialized.filter((row) => row.item.consumable),
-    utilities: serialized.filter((row) => row.item.slot === "utility"),
-    contraband: serialized.filter((row) => row.item.subCategory === "contraband"),
-    protection: serialized.filter((row) =>
-      ["loot_reduction_percent", "decoy_wallet_percent", "heat_mask_percent"].includes(row.item.effectType ?? "")
-    ),
-    general: serialized.filter((row) => !row.equipped),
+    equipped,
+    consumables,
+    utilities,
+    contraband,
+    protection,
+    general,
   };
 }
 

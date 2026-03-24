@@ -2,8 +2,9 @@ import { FastifyInstance } from "fastify";
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { requireAuth } from "../lib/auth";
-import { applyIncome, applyHappiness, computeCombatStats } from "../lib/game";
+import { applyIncome, applyHappiness, computeCombatBreakdownFromState, computeCombatStats } from "../lib/game";
 import { MAX_BUY_QTY } from "../lib/constants";
+import { getPlayerPerkContext } from "../lib/player/perks";
 
 class ShopRouteError extends Error {
   status: number;
@@ -28,16 +29,62 @@ export default async function shopRoutes(
   fastify.get("/shop/items", { preHandler: requireAuth }, async (request, reply) => {
     const { userId } = request.user;
     try {
-      const [items, inventory, profile, beforeStats] = await Promise.all([
-        prisma.item.findMany({ orderBy: [{ category: "asc" }, { price: "asc" }] }),
-        prisma.inventory.findMany({ where: { userId } }),
+      const [items, inventory, profile, member, perkContext] = await Promise.all([
+        prisma.item.findMany({ where: { blackMarketOnly: false }, orderBy: [{ category: "asc" }, { price: "asc" }] }),
+        prisma.inventory.findMany({ where: { userId }, include: { item: true } }),
         prisma.profile.findUnique({ where: { userId } }),
-        computeCombatStats(userId, prisma),
+        prisma.syndicateMember.findUnique({ where: { userId } }),
+        getPlayerPerkContext(userId, prisma),
       ]);
       if (!profile) return reply.status(404).send({ error: "Profile not found" });
       const ownedMap = new Map(inventory.map((inv) => [inv.itemId, inv.qty]));
+      const beforeStats = computeCombatBreakdownFromState({
+        profile,
+        inventory,
+        hasSyndicateBuff: !!member,
+        perkEffects: perkContext.effects,
+      });
 
-      const enriched = items.map((item) => ({
+      const enriched = items.map((item) => {
+        const previewInventory = inventory.map((row) => ({
+          ...row,
+          item: { ...row.item },
+        }));
+        const existingIndex = previewInventory.findIndex((row) => row.itemId === item.id);
+        const shouldAutoEquip =
+          !!item.slot &&
+          !previewInventory.some((row) => row.equipped && row.item.slot === item.slot);
+
+        if (existingIndex >= 0) {
+          previewInventory[existingIndex] = {
+            ...previewInventory[existingIndex],
+            qty: previewInventory[existingIndex].qty + 1,
+            equipped: previewInventory[existingIndex].equipped || shouldAutoEquip,
+          };
+        } else {
+          previewInventory.push({
+            userId,
+            itemId: item.id,
+            qty: 1,
+            equipped: shouldAutoEquip,
+            item: {
+              category: item.category,
+              atk: item.atk,
+              def: item.def,
+              speed: item.speed,
+              dex: item.dex,
+            },
+          });
+        }
+
+        const afterStats = computeCombatBreakdownFromState({
+          profile,
+          inventory: previewInventory,
+          hasSyndicateBuff: !!member,
+          perkEffects: perkContext.effects,
+        });
+
+        return {
         id: item.id,
         category: item.category,
         subCategory: item.subCategory,
@@ -62,11 +109,12 @@ export default async function shopRoutes(
         locked: profile.level < item.levelRequirement,
         powerPreview: {
           apNow: beforeStats.totalStats.ap,
-          apAfterOne: beforeStats.totalStats.ap + item.atk,
+          apAfterOne: afterStats.totalStats.ap,
           dpNow: beforeStats.totalStats.dp,
-          dpAfterOne: beforeStats.totalStats.dp + item.def,
+          dpAfterOne: afterStats.totalStats.dp,
         },
-      }));
+      };
+      });
 
       return reply.send({
         units: enriched.filter((i) => i.category === "unit"),
@@ -90,6 +138,7 @@ export default async function shopRoutes(
     try {
       const item = await prisma.item.findUnique({ where: { id: itemId } });
       if (!item) return reply.status(404).send({ error: "Item not found" });
+      if (item.blackMarketOnly) return reply.status(400).send({ error: "Only available on the black market" });
       const totalCost = item.price * qty;
 
       const updatedProfile = await prisma.$transaction(async (tx) => {
