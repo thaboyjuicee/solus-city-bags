@@ -19,6 +19,31 @@ function decodeBase64(value: string) {
   return Uint8Array.from(raw, (char) => char.charCodeAt(0));
 }
 
+function extractErrMsg(err: unknown, fallback: string) {
+  return (
+    (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
+    (err as { message?: string })?.message ??
+    fallback
+  );
+}
+
+function isBlockhashNotFoundError(err: unknown) {
+  return /blockhash not found/i.test(extractErrMsg(err, ""));
+}
+
+async function reportSolanaLogs(err: unknown) {
+  const maybe = err as { getLogs?: () => Promise<string[]> };
+  if (typeof maybe.getLogs !== "function") return;
+  try {
+    const logs = await maybe.getLogs();
+    if (logs?.length) {
+      console.error("Solana transaction logs:", logs);
+    }
+  } catch {
+    // no-op
+  }
+}
+
 export function HospitalOptionsCard({
   active,
   onUpdated,
@@ -73,6 +98,9 @@ export function HospitalOptionsCard({
     try {
       const quoteRes = await api.post<SlsHospitalQuote>("/sls/hospital/quote");
       const transaction = Transaction.from(decodeBase64(quoteRes.data.transaction));
+      const latest = await connection.getLatestBlockhash("confirmed");
+      transaction.recentBlockhash = latest.blockhash;
+      transaction.feePayer = publicKey;
       const signed = await signTransaction(transaction);
       const signature = await connection.sendRawTransaction(signed.serialize(), {
         skipPreflight: false,
@@ -81,8 +109,8 @@ export function HospitalOptionsCard({
 
       await connection.confirmTransaction({
         signature,
-        blockhash: quoteRes.data.blockhash,
-        lastValidBlockHeight: quoteRes.data.lastValidBlockHeight,
+        blockhash: latest.blockhash,
+        lastValidBlockHeight: latest.lastValidBlockHeight,
       });
 
       await api.post("/sls/hospital/confirm", { signature });
@@ -90,7 +118,12 @@ export function HospitalOptionsCard({
       await load();
       onUpdated();
     } catch (err: unknown) {
-      setError((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "SLS hospital release failed.");
+      await reportSolanaLogs(err);
+      setError(
+        isBlockhashNotFoundError(err)
+          ? "Hospital release quote expired while waiting for wallet approval. Try again."
+          : extractErrMsg(err, "SLS hospital release failed.")
+      );
     } finally {
       setBusy(null);
     }

@@ -68,6 +68,23 @@ function extractErrMsg(err: unknown, fallback: string) {
   );
 }
 
+function isBlockhashNotFoundError(err: unknown) {
+  return /blockhash not found/i.test(extractErrMsg(err, ""));
+}
+
+async function reportSolanaLogs(err: unknown) {
+  const maybe = err as { getLogs?: () => Promise<string[]> };
+  if (typeof maybe.getLogs !== "function") return;
+  try {
+    const logs = await maybe.getLogs();
+    if (logs?.length) {
+      console.error("Solana transaction logs:", logs);
+    }
+  } catch {
+    // no-op
+  }
+}
+
 function formatTimeLeft(seconds: number) {
   if (seconds <= 0) return "Refreshing now";
   const hrs = Math.floor(seconds / 3600);
@@ -215,7 +232,12 @@ function SendSLSPanel({ onSendComplete }: { onSendComplete: (entry: SlsTransacti
       setRecipient("");
       setAmount("");
     } catch (err) {
-      setError(extractErrMsg(err, "Transfer failed."));
+      await reportSolanaLogs(err);
+      setError(
+        isBlockhashNotFoundError(err)
+          ? "Wallet approval took too long and the transfer expired. Try again."
+          : extractErrMsg(err, "Transfer failed.")
+      );
       setPhase("idle");
     }
   };
@@ -343,6 +365,8 @@ function GetSLSPanel() {
       });
 
       const transaction = VersionedTransaction.deserialize(decodeBase64(res.data.transaction));
+      const latest = await connection.getLatestBlockhash("confirmed");
+      transaction.message.recentBlockhash = latest.blockhash;
       const signed = await signTransaction(transaction);
       const signature = await connection.sendRawTransaction(signed.serialize(), {
         skipPreflight: false,
@@ -351,14 +375,22 @@ function GetSLSPanel() {
 
       await connection.confirmTransaction({
         signature,
-        blockhash: transaction.message.recentBlockhash,
-        lastValidBlockHeight: res.data.lastValidBlockHeight,
+        blockhash: latest.blockhash,
+        lastValidBlockHeight: latest.lastValidBlockHeight,
       });
 
       setPhase("done");
     } catch (err) {
-      setError(extractErrMsg(err, "Swap failed."));
-      setPhase("quoted");
+      await reportSolanaLogs(err);
+      if (isBlockhashNotFoundError(err)) {
+        setQuote(null);
+        setSlsOut(null);
+        setError("Swap quote expired while waiting for wallet approval. Get a fresh quote and try again.");
+        setPhase("idle");
+      } else {
+        setError(extractErrMsg(err, "Swap failed."));
+        setPhase("quoted");
+      }
     }
   };
 
@@ -461,6 +493,9 @@ function SellSLSPanel({ onSold }: { onSold: () => void }) {
 
     try {
       const transaction = Transaction.from(decodeBase64(quote.transaction));
+      const latest = await connection.getLatestBlockhash("confirmed");
+      transaction.recentBlockhash = latest.blockhash;
+      transaction.feePayer = publicKey;
       const signed = await signTransaction(transaction);
       const signature = await connection.sendRawTransaction(signed.serialize(), {
         skipPreflight: false,
@@ -469,16 +504,23 @@ function SellSLSPanel({ onSold }: { onSold: () => void }) {
 
       await connection.confirmTransaction({
         signature,
-        blockhash: quote.blockhash,
-        lastValidBlockHeight: quote.lastValidBlockHeight,
+        blockhash: latest.blockhash,
+        lastValidBlockHeight: latest.lastValidBlockHeight,
       });
 
       await api.post("/sls/sell/confirm", { signature });
       setPhase("done");
       onSold();
     } catch (err) {
-      setError(extractErrMsg(err, "Sell failed."));
-      setPhase("quoted");
+      await reportSolanaLogs(err);
+      if (isBlockhashNotFoundError(err)) {
+        setQuote(null);
+        setError("Sell quote expired while waiting for wallet approval. Get a fresh quote and try again.");
+        setPhase("idle");
+      } else {
+        setError(extractErrMsg(err, "Sell failed."));
+        setPhase("quoted");
+      }
     }
   };
 

@@ -34,10 +34,17 @@ export default function TargetsPage() {
   const [profile, setProfile] = useState<MeResponse | null>(null);
   const [targets, setTargets] = useState<TargetPreview[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
   const [attackState, setAttackState] = useState<Record<string, { attacking: boolean; error: string | null }>>({});
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
     try {
       const [profileRes, targetsRes] = await Promise.all([
         api.get<MeResponse>("/me"),
@@ -45,11 +52,16 @@ export default function TargetsPage() {
       ]);
       setProfile(profileRes.data);
       setTargets(targetsRes.data);
+      setAttackState({});
       setPageError(null);
     } catch (err: unknown) {
       setPageError((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Failed to load targets.");
     } finally {
-      setLoading(false);
+      if (isRefresh) {
+        setRefreshing(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -97,11 +109,12 @@ export default function TargetsPage() {
         actions={
           <button
             type="button"
-            onClick={() => void fetchData()}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-white/10 bg-black/30 px-3 py-2 text-[10px] font-black tracking-[2px] text-[#888] uppercase hover:text-[#ccc] md:w-auto"
+            onClick={() => void fetchData(true)}
+            disabled={refreshing || loading}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-white/10 bg-black/30 px-3 py-2 text-[10px] font-black tracking-[2px] text-[#888] uppercase hover:text-[#ccc] disabled:opacity-50 md:w-auto"
           >
-            <RefreshCw size={13} />
-            Refresh
+            <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} />
+            {refreshing ? "Refreshing" : "Refresh"}
           </button>
         }
       />
