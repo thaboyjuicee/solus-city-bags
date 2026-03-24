@@ -120,7 +120,7 @@ export function serializeHallOfFameEntry(entry: {
     user: entry.user
       ? {
           id: entry.user.id,
-          name: entry.user.profile?.name ?? entry.user.wallet.slice(0, 6),
+          name: entry.user.profile?.name?.trim() || `${entry.user.wallet.slice(0, 4)}...${entry.user.wallet.slice(-4)}`,
         }
       : null,
     syndicate: entry.syndicate ? { id: entry.syndicate.id, name: entry.syndicate.name } : null,

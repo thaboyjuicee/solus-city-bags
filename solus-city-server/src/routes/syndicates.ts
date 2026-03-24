@@ -7,6 +7,7 @@ import { canManageRoles, canRecruit, canWithdrawVault, SYNDICATE_ROLES } from ".
 import { addContributionScore, addVaultContribution, applySyndicateVaultTransfer } from "../lib/syndicates/contributions";
 import { serializeChampionshipSyndicateState, serializeSyndicateOverview, serializeWarSummary } from "../lib/serializers/syndicates";
 import { SYNDICATE_VAULT_MAX_WITHDRAW_PERCENT, SYNDICATE_VAULT_MIN_WITHDRAW } from "../lib/config/balance";
+import { displayName } from "../lib/player/displayName";
 
 class SyndicateRouteError extends Error {
   status: number;
@@ -102,7 +103,9 @@ export default async function syndicateRoutes(
         const totalRp = s.members.reduce((sum, m) => sum + (m.user.profile?.rp ?? 0), 0);
         const creatorIdResolved = s.creatorId ?? s.leaderId;
         const creatorMember = s.members.find((m) => m.userId === creatorIdResolved);
-        const creatorName = creatorMember?.user.profile?.name ?? "Unknown";
+        const creatorName = creatorMember
+          ? displayName(creatorMember.user.profile?.name, creatorMember.user.wallet)
+          : "Unknown";
         return {
           ...serializeSyndicateOverview(s),
           leaderId: s.leaderId,
@@ -163,7 +166,7 @@ export default async function syndicateRoutes(
         joinedAt: m.joinedAt,
         contributionScore: m.contributionScore,
         warParticipation: m.warParticipation,
-        name: m.user.profile?.name || m.user.wallet.slice(0, 6) + "...",
+        name: displayName(m.user.profile?.name, m.user.wallet),
         rp: m.user.profile?.rp ?? 0,
         level: m.user.profile?.level ?? 1,
       }));
@@ -464,7 +467,7 @@ export default async function syndicateRoutes(
           id: log.id,
           type: log.type,
           message: log.message,
-          playerName: log.user.profile?.name ?? log.user.wallet.slice(0, 8) + "...",
+          playerName: displayName(log.user.profile?.name, log.user.wallet),
           ts: log.ts,
         }))
       );

@@ -255,3 +255,86 @@ On-chain transfer via `createTransferInstruction` + `getAssociatedTokenAddressSy
 `v2 → dev → master`
 
 Not yet executed. All Wave 1–4 systems implemented. Session-day bug fixes applied and stable.
+
+---
+
+## Syndicate Redesign Session (2026-03-23)
+
+### Syndicate Page Full Rewrite (`src/app/syndicates/page.tsx`)
+
+Complete rewrite of the syndicates frontend. Two top-level tabs via `mainTab: "mine" | "browse"` state.
+
+**YOUR SYNDICATE tab:**
+- Shows full HQ when in a syndicate; shows "not a member" message with Browse button otherwise
+- Sub-tabs: `hq | roster | pending | history | chat`
+- PENDING tab greyed out when syndicate is public (only relevant for private join-request flow)
+- HISTORY tab: lazy-fetched on first open; timeline with colored dots per event type
+- CHAT tab: coming soon placeholder
+
+**BROWSE tab:**
+- Lists all syndicates with name, description, member count, creator name, PUBLIC/PRIVATE badge
+- Own syndicate shows VIEW HQ button instead of JOIN/APPLY
+- Players already in a syndicate see no join/apply buttons
+- Public syndicates: JOIN button with inline error on failure
+- Private syndicates: APPLY button showing a coming-soon toast
+
+### Syndicate Visibility (`visibility` field)
+- `visibility String @default("public")` added to `Syndicate` model in `schema.prisma`
+- Migration: `solus-city-server/prisma/migrations/20260322180000_syndicate_visibility/migration.sql`
+- `PATCH /syndicates/:id` endpoint: gated to leader/co_leader/creator; updates `visibility`
+- Toggle rendered in HQ tab with `VisibilityBadge` component
+
+### Leave/Disband Smart Flow
+Three-state leave modal (`LeaveModal` union type):
+- `{ kind: "disband" }` — sole member: shows cash-in-vault warning, CONFIRM DISBAND calls `DELETE /syndicates/:id`
+- `{ kind: "transfer"; nextLeaderName }` — leader with other members: names the incoming leader
+- `{ kind: "confirm" }` — regular member: simple confirm
+
+**Backend (`DELETE /syndicates/:id`):**
+- Gated to leader/creator
+- Calls `disbandSyndicate(tx, syndicateId)` helper inside a Prisma `$transaction`
+- Cascade order: `SyndicateWarAction` (direct FK) → wars (by warId) → `TerritoryContribution` → `TerritoryControl` → `ChampionshipMatch` (all three FK columns) → `ChampionshipEntry` → `HallOfFameEntry` → `SyndicateMember` → `Syndicate`
+- Full error logging: `errMsg`, `errCode`, raw `err` object
+
+**CORS fix (`solus-city-server/src/index.ts` line 63):**
+`DELETE` was missing from `Access-Control-Allow-Methods`. Added alongside `GET,POST,PATCH,OPTIONS`.
+
+### Auto Leadership Transfer
+On `POST /syndicates/leave` when caller is the leader and other members exist:
+- DB-level query excludes leaving player: `findFirst({ where: { syndicateId, userId: { not: userId } }, orderBy: { contributionScore: "desc" } })`
+- Transfer + leave executed in single `$transaction`
+- Null guard: if no eligible next leader found, falls through to disband path
+
+### Join Cooldown
+- `lastLeftSyndicateAt DateTime?` added to `Profile` model in `schema.prisma`
+- Migration: `solus-city-server/prisma/migrations/20260322200000_profile_last_left_syndicate/migration.sql`
+- `POST /syndicates/:id/join` checks cooldown before allowing join
+- On cooldown: returns `400 { error: "You must wait Xm before joining a new syndicate" }`
+- Frontend: `joinErrors: Record<string, string | null>` state; catch block on JOIN handler; error shown inline under JOIN button
+- **⚠ Currently `JOIN_COOLDOWN_MS = 5 * 60 * 1000` (5 minutes for testing) — must change to `24 * 60 * 60 * 1000` before merging to main**
+
+### Creator Badge (stable identity)
+- `creatorId String?` added to `Syndicate` model — set once on creation, never updated
+- Migration: `20260322150000_syndicate_creator_id`
+- All serializers return `creatorId ?? leaderId`
+- Frontend: `creatorId` state latches from `null → id` only (stable latch pattern), never cleared by reloads
+
+### Home Page — Syndicate Name Label (`src/app/home/page.tsx`)
+Added syndicate name below the role badge in the Syndicate State section:
+```tsx
+<p className="text-[9px] tracking-[1px] text-[#555] uppercase">{me.syndicate.name}</p>
+```
+
+### Territories Hidden from UI
+- Removed from: `Navigation.tsx` (`MORE_TABS`), `leaderboard/page.tsx` (tabs + grid), `syndicates/page.tsx` (stat boxes), `home/page.tsx` (stat boxes)
+- Backend + `src/app/territories/` fully intact for future re-enable
+
+---
+
+## Pending Before Merge to Main
+
+| Item | File | Action |
+|------|------|--------|
+| JOIN cooldown revert | `solus-city-server/src/routes/syndicates.ts` | Change `5 * 60 * 1000` → `24 * 60 * 60 * 1000` |
+| Collaborator review | v2 branch | Review all syndicate changes |
+| Merge | — | `v2 → dev → main` |

@@ -198,7 +198,7 @@ export default function HomePage() {
       </span>
       {me.currentSyndicateRole ? <SyndicateRoleBadge role={me.currentSyndicateRole} /> : null}
     </div>
-    <p className="text-[30px] font-black leading-none text-[#eee] md:text-[36px]">{me.name ?? "Unnamed Operator"}</p>
+    <p className="text-[30px] font-black leading-none text-[#eee] md:text-[36px]">{me.name || (me.wallet ? `${me.wallet.slice(0, 4)}...${me.wallet.slice(-4)}` : "Unnamed Operator")}</p>
     <p className="mt-2 max-w-2xl text-[12px] text-[#b0b0b0]">
       Keep your wallet liquid, your vault protected, your heat controlled, and your syndicate pressure rising.
     </p>

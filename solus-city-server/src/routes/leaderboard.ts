@@ -5,6 +5,7 @@ import { requireAuth } from "../lib/auth";
 import { computeAPDP } from "../lib/game";
 import { getHallOfFameFeed } from "../lib/seasons/history";
 import { serializeHallOfFameEntry } from "../lib/serializers/seasons";
+import { displayName } from "../lib/player/displayName";
 
 const leaderboardQuery = z.object({
   type: z.enum(["season", "pvp", "crime", "syndicates", "territories", "prestige", "hall_of_fame"]).optional(),
@@ -48,7 +49,7 @@ export default async function leaderboardRoutes(
           entries: rows.map((row, index) => ({
             rank: index + 1,
             userId: row.userId,
-            name: row.user.profile?.name ?? row.user.wallet.slice(0, 6),
+            name: displayName(row.user.profile?.name, row.user.wallet),
             wallet: row.user.wallet,
             rp: row.user.profile?.rp ?? 0,
             level: row.user.profile?.level ?? 1,
@@ -75,7 +76,7 @@ export default async function leaderboardRoutes(
           entries: profiles.map((profile, index) => ({
             rank: index + 1,
             userId: profile.userId,
-            name: profile.name,
+            name: displayName(profile.name, profile.user.wallet),
             wallet: profile.user.wallet,
             level: profile.level,
             prestigeLevel: profile.prestigeLevel,
@@ -195,7 +196,7 @@ export default async function leaderboardRoutes(
         entries: rows.map((row, index) => ({
           rank: index + 1,
           userId: row.userId,
-          name: row.user.profile?.name ?? row.user.wallet.slice(0, 6),
+          name: displayName(row.user.profile?.name, row.user.wallet),
           wallet: row.user.wallet,
           score: type === "crime" ? row.crimeScore : row.score,
           pvpScore: row.pvpScore,

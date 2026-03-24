@@ -42,6 +42,7 @@ import { progressPlayerMissions } from "../lib/missions/progress";
 import { REPEAT_TARGET_LOOT_REDUCTION_WINDOW_MINUTES } from "../lib/config/balance";
 import { getPlayerPerkContext } from "../lib/player/perks";
 import { awardSeasonScore } from "../lib/seasons/scoring";
+import { truncateWallet } from "../lib/player/displayName";
 import { getMismatchAdjustment } from "../lib/matchmaking";
 import { addWarParticipation } from "../lib/syndicates/contributions";
 import { awardBattleWarPoints, getActiveWarForSyndicates } from "../lib/syndicates/wars";
@@ -549,7 +550,7 @@ export default async function battleRoutes(
             type: outcomeType === "evaded" ? "attack_evaded" : isNpc ? "attacked_npc" : win ? "attack_win" : "attack_loss",
             attackerId: userId,
             defenderId: defenderUserId,
-            attackerName: attackerProfileRaw.name || "You",
+            attackerName: attackerProfileRaw.name || truncateWallet(request.user.wallet),
             defenderName: opponentName,
             targetType: isNpc ? "npc" : "player",
             result: win ? "win" : "loss",
@@ -573,10 +574,10 @@ export default async function battleRoutes(
               userId: defenderUserId,
               type: "attacked",
               message: win
-                ? `${attackerProfileRaw.name || "A rival"} attacked you and stole $${loot.toLocaleString()}`
+                ? `${attackerProfileRaw.name || truncateWallet(request.user.wallet)} attacked you and stole $${loot.toLocaleString()}`
                 : outcomeType === "evaded"
-                  ? `${attackerProfileRaw.name || "A rival"} attacked you and you evaded.`
-                  : `${attackerProfileRaw.name || "A rival"} attacked you and lost.`,
+                  ? `${attackerProfileRaw.name || truncateWallet(request.user.wallet)} attacked you and you evaded.`
+                  : `${attackerProfileRaw.name || truncateWallet(request.user.wallet)} attacked you and lost.`,
               metadata: {
                 battleId: createdBattle.id,
                 cashStolen,
@@ -596,7 +597,7 @@ export default async function battleRoutes(
               type: outcomeType === "evaded" ? "attacked_by_player_evaded" : "attacked_by_player",
               attackerId: userId,
               defenderId: defenderUserId,
-              attackerName: attackerProfileRaw.name || "Rival",
+              attackerName: attackerProfileRaw.name || truncateWallet(request.user.wallet),
               defenderName: opponentName,
               targetType: "player",
               result: outcomeType === "evaded" ? "win" : win ? "loss" : "win",
