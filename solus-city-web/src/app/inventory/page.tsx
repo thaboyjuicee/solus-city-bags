@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import { InventoryGrid } from "@/components/game/InventoryGrid";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { StatusBars } from "@/components/ui/StatusBars";
 import { InventoryResponse, InventoryRow, MeResponse } from "@/lib/gameApi";
 import { useSLSBalance } from "@/hooks/useSLSBalance";
 
@@ -38,6 +39,7 @@ export default function InventoryPage() {
 
   return (
     <div className="flex flex-col gap-3">
+      {me ? <StatusBars profile={me} /> : null}
       <div className="grid grid-cols-2 gap-1.5 md:grid-cols-4">
         <div className="min-w-0 rounded-md border border-white/10 bg-black/20 p-3 text-center backdrop-blur-sm">
           <p className="text-[9px] font-bold tracking-[2px] text-[#555] mb-1">CASH</p>

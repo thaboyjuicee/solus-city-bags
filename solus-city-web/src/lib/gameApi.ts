@@ -432,6 +432,8 @@ export interface LeaderboardEntry {
   wallet?: string;
   level?: number;
   rp?: number;
+  ap?: number;
+  dp?: number;
   score?: number;
   seasonScore?: number;
   pvpScore?: number;

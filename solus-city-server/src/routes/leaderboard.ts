@@ -2,6 +2,7 @@
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { requireAuth } from "../lib/auth";
+import { computeAPDP } from "../lib/game";
 import { getHallOfFameFeed } from "../lib/seasons/history";
 import { serializeHallOfFameEntry } from "../lib/serializers/seasons";
 
@@ -20,22 +21,45 @@ export default async function leaderboardRoutes(
 
     try {
       if (type === "pvp") {
-        const profiles = await prisma.profile.findMany({
-          take: 50,
-          orderBy: [{ rp: "desc" }, { level: "desc" }],
-          include: { user: true },
+        const season = await prisma.season.findFirst({
+          where: { status: "active", startsAt: { lte: new Date() }, endsAt: { gt: new Date() } },
+          orderBy: { startsAt: "desc" },
         });
+
+        if (!season) return reply.send({ type, entries: [] });
+
+        const rows = await prisma.seasonParticipation.findMany({
+          where: { seasonId: season.id },
+          orderBy: [{ pvpScore: "desc" }, { score: "desc" }, { createdAt: "asc" }],
+          take: 50,
+          include: { user: { include: { profile: true } } },
+        });
+        const combatStats = await Promise.all(
+          rows.map(async (row) => ({
+            userId: row.userId,
+            ...(await computeAPDP(row.userId, prisma)),
+          }))
+        );
+        const combatByUserId = new Map(combatStats.map((entry) => [entry.userId, entry]));
+
         return reply.send({
           type,
-          entries: profiles.map((profile, index) => ({
+          seasonId: season.id,
+          entries: rows.map((row, index) => ({
             rank: index + 1,
-            userId: profile.userId,
-            name: profile.name,
-            wallet: profile.user.wallet,
-            rp: profile.rp,
-            level: profile.level,
-            seasonScore: profile.seasonScore,
-            isMe: profile.userId === userId,
+            userId: row.userId,
+            name: row.user.profile?.name ?? row.user.wallet.slice(0, 6),
+            wallet: row.user.wallet,
+            rp: row.user.profile?.rp ?? 0,
+            level: row.user.profile?.level ?? 1,
+            ap: combatByUserId.get(row.userId)?.ap ?? 0,
+            dp: combatByUserId.get(row.userId)?.dp ?? 0,
+            score: row.pvpScore,
+            seasonScore: row.score,
+            pvpScore: row.pvpScore,
+            crimeScore: row.crimeScore,
+            missionScore: row.missionScore,
+            isMe: row.userId === userId,
           })),
         });
       }
@@ -157,6 +181,13 @@ export default async function leaderboardRoutes(
         take: 50,
         include: { user: { include: { profile: true } } },
       });
+      const combatStats = await Promise.all(
+        rows.map(async (row) => ({
+          userId: row.userId,
+          ...(await computeAPDP(row.userId, prisma)),
+        }))
+      );
+      const combatByUserId = new Map(combatStats.map((entry) => [entry.userId, entry]));
 
       return reply.send({
         type,
@@ -172,6 +203,8 @@ export default async function leaderboardRoutes(
           missionScore: row.missionScore,
           level: row.user.profile?.level ?? 1,
           rp: row.user.profile?.rp ?? 0,
+          ap: combatByUserId.get(row.userId)?.ap ?? 0,
+          dp: combatByUserId.get(row.userId)?.dp ?? 0,
           isMe: row.userId === userId,
         })),
       });

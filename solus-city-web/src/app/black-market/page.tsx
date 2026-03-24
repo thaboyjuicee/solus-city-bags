@@ -686,6 +686,11 @@ export default function BlackMarketPage() {
         title="Black Market"
         subtitle="$SLS utility — swap, sell, send, and more"
         icon={<ShoppingBag className="h-5 w-5 text-[#9945FF]" />}
+        actions={
+          <div className="inline-flex items-center rounded-md border border-[rgba(153,69,255,0.35)] bg-black/35 px-3 py-2 text-[10px] font-black uppercase tracking-[2px] text-[#d8c7ff]">
+            Powered by BAGS
+          </div>
+        }
         titleClassName="text-[#9945FF]"
         subtitleClassName="text-[#888]"
         overlayClassName="bg-[linear-gradient(180deg,rgba(26,10,46,0.45),rgba(0,0,0,0.42)),linear-gradient(90deg,rgba(0,0,0,0.78),rgba(26,10,46,0.38),rgba(0,0,0,0.7))]"

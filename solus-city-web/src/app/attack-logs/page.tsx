@@ -1,23 +1,34 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ScrollText } from "lucide-react";
+import { RefreshCw, ScrollText } from "lucide-react";
 import { api } from "@/lib/api/client";
-import { AttackLogEntry } from "@/lib/gameApi";
+import { BATTLE_RESULT_KEY, BattleResult, formatHospitalMessage } from "@/lib/battle";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { RevengeAlert } from "@/components/game/RevengeAlert";
 import { PageBanner } from "@/components/game/PageBanner";
-import { BATTLE_RESULT_KEY, BattleResult } from "@/lib/battle";
 
-type Filter = "all" | "incoming" | "outgoing";
+interface AttackLogEntry {
+  id: string;
+  createdAt: string;
+  type: string;
+  attackerName: string;
+  defenderName: string;
+  targetType: "player" | "npc";
+  result: "win" | "loss";
+  outcomeType?: "evaded";
+  damageDealt: number;
+  damageTaken: number;
+  loot: number;
+  rpChange: number;
+  xpGained: number;
+  hospitalResult: string;
+  revengeTargetId?: string;
+  revengeAvailable: boolean;
+}
 
-function timeAgo(ts?: string | null): string {
-  if (!ts) return "recently";
-  const time = new Date(ts).getTime();
-  if (!Number.isFinite(time)) return "recently";
-  const diffMs = Date.now() - time;
-  if (!Number.isFinite(diffMs) || diffMs < 0) return "just now";
+function timeAgo(ts: string): string {
+  const diffMs = Date.now() - new Date(ts).getTime();
   const mins = Math.floor(diffMs / 60000);
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;
@@ -26,35 +37,34 @@ function timeAgo(ts?: string | null): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-function isIncoming(type: string) {
-  return type.startsWith("attacked");
-}
-
-function ResultBadge({ entry }: { entry: AttackLogEntry }) {
-  // Evaded takes priority
-  if (entry.outcomeType === "evaded") {
-    return <span className="text-[9px] font-black tracking-[2px] uppercase px-2 py-0.5 rounded bg-[#fdd835]/20 text-[#fdd835] border border-[#fdd835]/30">EVADED</span>;
-  }
-  // For incoming attacks, flip the result (result is from attacker's POV)
-  const iWon = isIncoming(entry.type) ? entry.result === "loss" : entry.result === "win";
-  return iWon
-    ? <span className="text-[9px] font-black tracking-[2px] uppercase px-2 py-0.5 rounded bg-[#66bb6a]/20 text-[#66bb6a] border border-[#66bb6a]/30">WIN</span>
-    : <span className="text-[9px] font-black tracking-[2px] uppercase px-2 py-0.5 rounded bg-[#ef5350]/20 text-[#ef5350] border border-[#ef5350]/30">LOSS</span>;
+function isIncoming(type: string): boolean {
+  return type === "attacked_by_player" || type === "attacked_by_player_evaded";
 }
 
 export default function AttackLogsPage() {
   const router = useRouter();
   const [logs, setLogs] = useState<AttackLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<Filter>("all");
+  const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<"all" | "incoming" | "outgoing">("all");
+  const [refreshing, setRefreshing] = useState(false);
+  const [revengeBusy, setRevengeBusy] = useState<Record<string, boolean>>({});
+  const [revengeErrors, setRevengeErrors] = useState<Record<string, string>>({});
 
-  const fetchLogs = useCallback(async () => {
+  const fetchLogs = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    setError(null);
     try {
       const res = await api.get<AttackLogEntry[]>("/logs/attacks");
       setLogs(res.data);
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { error?: string } } })?.response?.data
+          ?.error ?? "Failed to load attack logs.";
+      setError(msg);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -62,92 +72,202 @@ export default function AttackLogsPage() {
     fetchLogs();
   }, [fetchLogs]);
 
-  if (loading) return <div className="flex min-h-dvh items-center justify-center"><LoadingSpinner size={32} /></div>;
+  const revenge = async (entry: AttackLogEntry) => {
+    if (!entry.revengeTargetId) return;
+    setRevengeBusy((prev) => ({ ...prev, [entry.id]: true }));
+    setRevengeErrors((prev) => {
+      const next = { ...prev };
+      delete next[entry.id];
+      return next;
+    });
 
-  const filtered = logs.filter((entry) => {
-    if (filter === "incoming") return isIncoming(entry.type);
-    if (filter === "outgoing") return !isIncoming(entry.type);
+    try {
+      const res = await api.post<BattleResult>("/battle/attack", {
+        targetId: entry.revengeTargetId,
+        targetType: "player",
+      });
+      sessionStorage.setItem(BATTLE_RESULT_KEY, JSON.stringify(res.data));
+      router.push("/battle-result");
+    } catch (err: unknown) {
+      const data = (
+        err as { response?: { data?: { error?: string; code?: string; recoverAt?: string } } }
+      )?.response?.data;
+      const msg =
+        data?.code === "IN_HOSPITAL"
+          ? formatHospitalMessage(data.recoverAt)
+          : data?.error ?? "Revenge failed. Please try again.";
+      setRevengeErrors((prev) => ({ ...prev, [entry.id]: msg }));
+    } finally {
+      setRevengeBusy((prev) => ({ ...prev, [entry.id]: false }));
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-dvh bg-transparent items-center justify-center">
+        <LoadingSpinner size={32} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col min-h-dvh bg-transparent items-center justify-center gap-4 px-6">
+        <p className="text-danger text-sm text-center">{error}</p>
+        <button
+          onClick={() => {
+            setLoading(true);
+            fetchLogs();
+          }}
+          className="px-5 py-2.5 bg-accent rounded-lg text-white font-semibold text-sm"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  const visibleLogs = logs.filter((entry) => {
+    if (tab === "incoming") return isIncoming(entry.type);
+    if (tab === "outgoing") return !isIncoming(entry.type);
     return true;
   });
 
-  const FILTERS: Array<{ id: Filter; label: string }> = [
-    { id: "all", label: "All" },
-    { id: "incoming", label: "Incoming" },
-    { id: "outgoing", label: "Outgoing" },
-  ];
-
   return (
-    <div className="flex flex-col gap-3">
-      <PageBanner
-        imageSrc="/assets/images/arena_banner.png"
-        imageAlt="Attack logs banner"
-        title="Attack Logs"
-        subtitle="Your combat history and revenge opportunities"
-        icon={<ScrollText className="h-5 w-5 text-[#fdd835]" />}
-        titleClassName="text-[#fdd835]"
-        subtitleClassName="text-[#888]"
-      />
+    <div className="flex flex-col bg-transparent min-h-dvh">
+      <div className="flex flex-col gap-3">
+        <PageBanner
+          imageSrc="/assets/images/arena_banner.png"
+          imageAlt="Attack logs banner"
+          title="Attack Logs"
+          subtitle="Last 50 battles, revenge windows, and heat spikes"
+          icon={<ScrollText className="h-5 w-5 text-[#fdd835]" />}
+          titleClassName="text-[#fdd835]"
+          subtitleClassName="text-[#888]"
+          actions={
+            <button
+              type="button"
+              onClick={() => void fetchLogs(true)}
+              disabled={refreshing}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-white/10 bg-black/30 px-3 py-2 text-[10px] font-black tracking-[2px] uppercase text-[#888] hover:text-[#ccc] disabled:opacity-50 md:w-auto"
+              aria-label="Refresh logs"
+            >
+              <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} />
+              Refresh
+            </button>
+          }
+        />
 
-      <div className="grid grid-cols-3 gap-1">
-        {FILTERS.map(({ id, label }) => (
-          <button
-            key={id}
-            onClick={() => setFilter(id)}
-            className={`min-w-0 rounded-md border px-1 py-2 text-[9px] font-black uppercase tracking-[1px] sm:text-[10px] sm:tracking-[2px] ${
-              filter === id
-                ? "bg-[#1a0a2e] border-[rgba(153,69,255,0.3)] text-[#9945FF]"
-                : "bg-black/20 border-white/10 text-[#555]"
-            }`}
-          >
-            <span className="block leading-tight text-center">{label}</span>
-          </button>
-        ))}
-      </div>
-
-      {filtered.length === 0 && (
-        <p className="text-[11px] text-[#555] text-center py-8">No logs found.</p>
-      )}
-
-      {filtered.map((entry) => (
-        <div key={entry.id} className="rounded-lg border border-white/10 bg-black/20 p-3 flex flex-col gap-2">
-          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="break-words text-[11px] font-black text-[#eee]">{entry.attackerName} vs {entry.defenderName}</p>
-            <div className="flex items-center gap-2 self-start sm:self-auto">
-              <ResultBadge entry={entry} />
-              <p className="text-[10px] text-[#666]">{timeAgo(entry.createdAt)}</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2 text-[10px] font-bold">
-            <span className="text-[#66bb6a]">${Math.floor(Math.abs(entry.loot)).toLocaleString()}</span>
-            <span className="text-[#42a5f5]">Stolen ${Math.floor(entry.cashStolen).toLocaleString()}</span>
-            <span className="text-[#ff9800]">Heat +{entry.heatChange}</span>
-          </div>
-          {entry.protectionTriggered && entry.protectionTriggered.length > 0 && (
-            <p className="text-[10px] text-[#fdd835]">Protection: {entry.protectionTriggered.join(", ")}</p>
-          )}
-          {entry.revengeAvailable && entry.revengeTargetId && isIncoming(entry.type) && (
-            <>
-              <RevengeAlert targetName={entry.attackerName} expiresAt={entry.revengeExpiresAt} bonusPercent={entry.revengeBonusPreview} />
-              <button
-                disabled={busyId === entry.id}
-                onClick={async () => {
-                  setBusyId(entry.id);
-                  try {
-                    const res = await api.post<BattleResult>("/battle/attack", { targetId: entry.revengeTargetId, targetType: "player" });
-                    sessionStorage.setItem(BATTLE_RESULT_KEY, JSON.stringify(res.data));
-                    router.push("/battle-result");
-                  } finally {
-                    setBusyId(null);
-                  }
-                }}
-                className="w-full py-2 rounded border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] text-[#9945FF] text-[10px] font-black tracking-[2px] disabled:opacity-40"
-              >
-                {busyId === entry.id ? "REVENGING..." : "TAKE REVENGE"}
-              </button>
-            </>
-          )}
+        <div className="flex gap-2">
+          {(["all", "incoming", "outgoing"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`flex-1 py-2 rounded-lg border text-[10px] font-black tracking-[2px] uppercase transition-colors ${
+                tab === t
+                  ? "bg-[#1a0a2e] border-[rgba(153,69,255,0.3)] text-[#9945FF]"
+                  : "bg-black/20 backdrop-blur-sm border border-white/10 text-text-dim hover:text-text-secondary"
+              }`}
+            >
+              {t}
+            </button>
+          ))}
         </div>
-      ))}
+
+        {visibleLogs.length === 0 ? (
+          <p className="text-text-dim text-sm text-center py-8">No battle records yet.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {visibleLogs.map((entry) => {
+              const incoming = isIncoming(entry.type);
+              const outcomeLabel =
+                entry.outcomeType === "evaded"
+                  ? "EVADED"
+                  : entry.result === "win"
+                    ? "WIN"
+                    : "LOSS";
+              const outcomeBadgeClass =
+                entry.outcomeType === "evaded"
+                  ? "bg-[#f9a82520] text-[#f9a825]"
+                  : entry.result === "win"
+                    ? "bg-[#66bb6a20] text-[#66bb6a]"
+                    : "bg-[#ef535020] text-[#ef5350]";
+
+              const description = incoming
+                ? `${entry.attackerName} attacked you`
+                : `You attacked ${entry.defenderName}${entry.targetType === "npc" ? " (NPC)" : ""}`;
+
+              const lootFormatted =
+                entry.loot >= 0
+                  ? `+$${Math.floor(entry.loot).toLocaleString()}`
+                  : `-$${Math.floor(Math.abs(entry.loot)).toLocaleString()}`;
+
+              return (
+                <div
+                  key={entry.id}
+                  className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-3 flex flex-col gap-1.5"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[9px] font-black tracking-[2px] px-2 py-0.5 rounded ${outcomeBadgeClass}`}>
+                        {outcomeLabel}
+                      </span>
+                      <span
+                        className={`text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded ${
+                          incoming
+                            ? "bg-[#ef535015] text-[#ef5350]"
+                            : "bg-[#14F19515] text-[#14F195]"
+                        }`}
+                      >
+                        {incoming ? "INCOMING" : "OUTGOING"}
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-bold text-text-dim">
+                      {timeAgo(entry.createdAt)}
+                    </span>
+                  </div>
+
+                  <p className="text-[12px] text-[#ddd]">{description}</p>
+
+                  <div className="flex items-center gap-3 text-[11px] font-bold">
+                    <span className="text-[#66bb6a]">Dealt {entry.damageDealt}</span>
+                    <span className="text-[#ef5350]">Taken {entry.damageTaken}</span>
+                    <span className="text-[#14F195]">{lootFormatted}</span>
+                    <span className="text-[#ff9800]">Heat +{entry.heatChange}</span>
+                    {entry.rpChange !== 0 && (
+                      <span className={entry.rpChange > 0 ? "text-[#14F195]" : "text-[#ef5350]"}>
+                        {entry.rpChange > 0 ? "+" : ""}{entry.rpChange} RP
+                      </span>
+                    )}
+                  </div>
+
+                  {entry.revengeAvailable && entry.revengeTargetId && (
+                    <button
+                      onClick={() => revenge(entry)}
+                      disabled={!!revengeBusy[entry.id]}
+                      className="w-full py-2 border border-[rgba(153,69,255,0.3)] bg-[#1a0a2e] rounded text-[#9945FF] text-[10px] font-black tracking-[2px] disabled:opacity-45 flex items-center justify-center gap-1.5"
+                    >
+                      {revengeBusy[entry.id] ? (
+                        <LoadingSpinner size={14} color="#9945FF" />
+                      ) : (
+                        "REVENGE"
+                      )}
+                    </button>
+                  )}
+
+                  {revengeErrors[entry.id] && (
+                    <p className="text-[#ef5350] text-[11px] font-bold">
+                      {revengeErrors[entry.id]}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="h-16 md:hidden" />
+      </div>
     </div>
   );
 }
